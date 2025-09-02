@@ -1,0 +1,6 @@
+[submodule "libs/Optimization"]
+	path = libs/Optimization
+	url = git@github.com:alanpapalia/Optimization.git
+[submodule "libs/Preconditioners"]
+	path = libs/Preconditioners
+	url = git@github.com:david-m-rosen/Preconditioners.git
