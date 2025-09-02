@@ -1,5 +1,5 @@
-#include <CORA/CORA.h>
-#include <CORA/CORA_utils.h>
+#include <VarPro/Solver.h>
+#include <VarPro/Utils.h>
 
 #include <Optimization/Base/Concepts.h>
 #include <Optimization/Riemannian/TNT.h>
@@ -10,8 +10,8 @@ void printIfVerbose(bool verbose, std::string msg) {
   }
 }
 
-CORA::Scalar thresholdVal(CORA::Scalar val, CORA::Scalar lower_bound,
-                          CORA::Scalar upper_bound) {
+VarPro::Scalar thresholdVal(VarPro::Scalar val, VarPro::Scalar lower_bound,
+                          VarPro::Scalar upper_bound) {
   if (val < lower_bound) {
     return lower_bound;
   } else if (val > upper_bound) {
@@ -21,9 +21,9 @@ CORA::Scalar thresholdVal(CORA::Scalar val, CORA::Scalar lower_bound,
   }
 }
 
-namespace CORA {
+namespace VarPro {
 
-CoraResult solveCORA(Problem &problem, // NOLINT(runtime/references)
+ProblemResult solveProblem(Problem &problem, // NOLINT(runtime/references)
                      const Matrix &x0, int max_relaxation_rank, bool verbose,
                      bool log_iterates, bool show_iterates) {
   // check that x0 has the right number of rows
@@ -91,7 +91,7 @@ CoraResult solveCORA(Problem &problem, // NOLINT(runtime/references)
         return problem.tangent_space_projection(Y, problem.precondition(Ydot));
       };
 
-  // default TNT parameters for CORA
+  // default TNT parameters for VARPRO
   Optimization::Riemannian::TNTParams<Scalar> params;
   params.Delta0 = 5;
   params.alpha2 = 3.0;
@@ -124,7 +124,7 @@ CoraResult solveCORA(Problem &problem, // NOLINT(runtime/references)
   // no custom instrumentation function for now
   std::optional<InstrumentationFunction> user_function = std::nullopt;
 
-  CoraTntResult result;
+  TntResult result;
   Matrix X = problem.projectToManifold(x0);
   CertResults cert_results;
   Matrix eigvec_bootstrap;
@@ -216,7 +216,7 @@ CoraResult solveCORA(Problem &problem, // NOLINT(runtime/references)
                          problem.getExpectedVariableSize(), problem.dim(),
                          iterate.rows(), iterate.cols());
 
-        if (std::getenv("CORA_IGNORE_FINAL_ITERATES") == "true") {
+        if (std::getenv("VARPRO_IGNORE_FINAL_ITERATES") == "true") {
           std::cout << "WARNING - currently not logging final iterates"
                     << std::endl;
         } else {
@@ -440,4 +440,4 @@ Matrix projectSolution(const Problem &problem, const Matrix &Y, bool verbose) {
   return Yd;
 }
 
-} // namespace CORA
+} // namespace VarPro

@@ -12,10 +12,10 @@
  */
 
 #pragma once
-#include <CORA/CORA_types.h>
+#include <VarPro/Types.h>
 #include <Eigen/Dense>
 
-namespace CORA {
+namespace VarPro {
 
 class MatrixManifold {
 public:
@@ -67,4 +67,4 @@ public:
   }
 };
 
-} // namespace CORA
+} // namespace VarPro

@@ -1,12 +1,12 @@
 //
 // Created by Tim Magoun on 10/31/23.
 //
-#include <CORA/pyfg_text_parser.h>
+#include <VarPro/pyfg_text_parser.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <set>
 
-namespace CORA {
+namespace VarPro {
 
 Matrix fromAngle(double angle_rad);
 Matrix fromQuat(double qx, double qy, double qz, double qw);
@@ -98,26 +98,26 @@ int getDimFromPyfgFirstLine(const std::string &filename) {
 
 /**
  * @brief Parses a text file written in the PyFG format and returns a
- * CORA::Problem
+ * VarPro::Problem
  *
- * @details This function reads line by line, calling the CORA::Problem
+ * @details This function reads line by line, calling the VarPro::Problem
  * constructor. It will throw an exception if the input is not formatted
  * correctly or it fails to read a number or string that is expected. It assumes
  * that the symbols in PyFG are composed of a single character and a number,
  * e.g. (A0). It does not do any validation aside from the proper formatting of
  * the PyFG file.
  * @param filename Path to the PyFG file
- * @return CORA::Problem The parsed problem
+ * @return VarPro::Problem The parsed problem
  */
 Problem parsePyfgTextToProblem(const std::string &filename) {
   // Note: This currently ignores all groundtruth measurements embedded
   // in the file
   int dim = getDimFromPyfgFirstLine(filename);
   int relaxation_rank = dim;
-  CORA::Formulation formulation = CORA::Formulation::Explicit;
-  CORA::Preconditioner preconditioner =
-      CORA::Preconditioner::RegularizedCholesky;
-  CORA::Problem problem(dim, relaxation_rank, formulation, preconditioner);
+  VarPro::Formulation formulation = VarPro::Formulation::Explicit;
+  VarPro::Preconditioner preconditioner =
+      VarPro::Preconditioner::RegularizedCholesky;
+  VarPro::Problem problem(dim, relaxation_rank, formulation, preconditioner);
 
   const std::map<std::string, PyFGType> PyFGStringToType{
       {"VERTEX_SE2", POSE_TYPE_2D},
@@ -399,4 +399,4 @@ Matrix readSymmetric(std::istringstream &iss, int dim) {
   }
   return cov;
 }
-} // namespace CORA
+} // namespace VarPro

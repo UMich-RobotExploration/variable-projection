@@ -12,10 +12,10 @@
 
 #include <random> // For sampling random points on the manifold
 
-#include "CORA/CORA_types.h"
-#include "CORA/MatrixManifold.h"
+#include <VarPro/Types.h>
+#include <VarPro/MatrixManifold.h>
 
-namespace CORA {
+namespace VarPro {
 
 class StiefelProduct : public MatrixManifold {
 private:
@@ -86,4 +86,4 @@ public:
                            std::default_random_engine::default_seed) const;
 };
 
-} // namespace CORA
+} // namespace VarPro

@@ -1,33 +1,33 @@
 /** @file
-    @brief The main header file for the CORA library.
+    @brief The main header file for the VARPRO library.
 
-    This file provides the primary interface to the CORA library. All
+    This file provides the primary interface to the VARPRO library. All
     usage of the library should be done through this file.
 */
 
 #pragma once
 
-#include <CORA/CORA_problem.h>
-#include <CORA/CORA_types.h>
-#include <CORA/pyfg_text_parser.h>
+#include <VarPro/Problem.h>
+#include <VarPro/Types.h>
+#include <VarPro/pyfg_text_parser.h>
 #include <string>
 #include <utility>
 #include <vector>
 
-namespace CORA {
+namespace VarPro {
 
-using CoraTntResult = Optimization::Riemannian::TNTResult<Matrix, Scalar>;
-using CoraResult = std::pair<CoraTntResult, std::vector<Matrix>>;
+using TntResult = Optimization::Riemannian::TNTResult<Matrix, Scalar>;
+using ProblemResult = std::pair<TntResult, std::vector<Matrix>>;
 
-CoraResult solveCORA(Problem &problem, const Matrix &x0,
+ProblemResult solveProblem(Problem &problem, const Matrix &x0,
                      int max_relaxation_rank = 20, bool verbose = false,
                      bool log_iterates = false, bool show_iterates = false);
-inline CoraResult solveCORA(std::string filepath) {
+inline ProblemResult solveProblem(std::string filepath) {
   Problem problem = parsePyfgTextToProblem(filepath);
   Matrix x0 = Matrix();
   throw std::runtime_error(
       "Not implemented -- need to decide how to get initialization");
-  return solveCORA(problem, x0);
+  return solveProblem(problem, x0);
 }
 
 Matrix saddleEscape(const Problem &problem, const Matrix &Y, Scalar theta,
@@ -37,4 +37,4 @@ Matrix saddleEscape(const Problem &problem, const Matrix &Y, Scalar theta,
 Matrix projectSolution(const Problem &problem, const Matrix &Y,
                        bool verbose = false);
 
-} // namespace CORA
+} // namespace VarPro

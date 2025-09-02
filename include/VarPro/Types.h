@@ -1,6 +1,6 @@
 /**
- * @file CORA_types.h
- * @brief A file containing the basic types used by the CORA library.
+ * @file types.h
+ * @brief A file containing the basic types used by the VARPRO library.
  */
 
 #pragma once
@@ -38,7 +38,7 @@ inline void checkMatrixShape(const std::string &func_name, Index exp_rows,
   }
 }
 
-namespace CORA {
+namespace VarPro {
 
 typedef double Scalar;
 
@@ -49,7 +49,7 @@ typedef Eigen::MatrixXd Matrix;
 typedef Eigen::DiagonalMatrix<Scalar, Eigen::Dynamic> DiagonalMatrix;
 
 enum class Formulation {
-  // The CORA problem in which translations are explicitly represented
+  // The VARPRO problem in which translations are explicitly represented
   Explicit,
   // The problem in which translations are marginalized out
   Implicit
@@ -76,7 +76,7 @@ enum class ObliqueRetraction { Normalize };
 /** The preconditioner applied to the inner tCG solver. */
 enum class Preconditioner { None, Jacobi, BlockCholesky, RegularizedCholesky };
 
-/** The initialization method used for the CORA algorithm. */
+/** The initialization method used for the VARPRO algorithm. */
 enum class Initialization { Random, Odometry };
 
 /** A typedef for an "instrumentation function" that can be passed into
@@ -85,4 +85,4 @@ typedef Optimization::Riemannian::TNTUserFunction<Matrix, Matrix, Scalar,
                                                   Matrix>
     InstrumentationFunction;
 
-} // namespace CORA
+} // namespace VarPro

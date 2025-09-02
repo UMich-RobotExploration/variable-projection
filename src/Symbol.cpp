@@ -20,10 +20,10 @@
  *
  */
 
-#include <CORA/Symbol.h>
+#include <VarPro/Symbol.h>
 #include <climits>
 
-namespace CORA {
+namespace VarPro {
 
 static const size_t keyBits = sizeof(Key) * 8;
 static const size_t chrBits = sizeof(unsigned char) * 8;
@@ -39,4 +39,4 @@ Symbol::Symbol(Key key) : c_(key >> indexBits), j_(key & indexMask) {}
 
 Key Symbol::key() const { return (Key(c_) << indexBits) | j_; }
 
-} // namespace CORA
+} // namespace VarPro

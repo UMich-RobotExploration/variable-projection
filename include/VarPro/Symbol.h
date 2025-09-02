@@ -14,7 +14,7 @@
 #include <string>
 #include <utility>
 
-namespace CORA {
+namespace VarPro {
 
 typedef uint64_t Key;
 class Symbol {
@@ -86,4 +86,4 @@ inline Key Y(std::uint64_t j) { return Symbol('y', j); }
 inline Key Z(std::uint64_t j) { return Symbol('z', j); }
 
 } // namespace shorthand
-} // namespace CORA
+} // namespace VarPro

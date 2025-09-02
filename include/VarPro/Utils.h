@@ -1,13 +1,13 @@
 #pragma once
 
-#include <CORA/CORA_problem.h>
-#include <CORA/CORA_types.h>
-#include <CORA/Symbol.h>
+#include <VarPro/Problem.h>
+#include <VarPro/Types.h>
+#include <VarPro/Symbol.h>
 
 #include <string>
 #include <vector>
 
-namespace CORA {
+namespace VarPro {
 
 /**
  * @brief This function implements the fast solution verification method
@@ -74,4 +74,4 @@ void saveSolnToTum(const std::vector<Symbol> pose_symbols,
                    const Problem &problem, const Matrix &soln,
                    const std::string &fpath);
 
-} // namespace CORA
+} // namespace VarPro

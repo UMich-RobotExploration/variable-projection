@@ -1,4 +1,4 @@
-#include <CORA/CORA_utils.h>
+#include <VarPro/Utils.h>
 
 #include <Eigen/CholmodSupport>
 #include <Eigen/Geometry>
@@ -9,7 +9,7 @@
 #include "ILDL/ILDL.h"
 #include "Optimization/LinearAlgebra/LOBPCG.h"
 
-namespace CORA {
+namespace VarPro {
 
 using SymmetricLinOp =
     Optimization::LinearAlgebra::SymmetricLinearOperator<Matrix>;
@@ -349,4 +349,4 @@ void saveSolnToTum(const std::vector<Symbol> pose_symbols,
   // std::cout << "Saved robot poses to " << fpath << std::endl;
 }
 
-} // namespace CORA
+} // namespace VarPro

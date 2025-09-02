@@ -1,5 +1,5 @@
 /**
- * @file CORA_problem.h
+ * @file VARPRO_problem.h
  * @author
  * @brief
  * @version 0.1
@@ -11,18 +11,18 @@
 
 #pragma once
 
-#include <CORA/CORA_preconditioners.h>
-#include <CORA/CORA_types.h>
-#include <CORA/Measurements.h>
-#include <CORA/ObliqueManifold.h>
-#include <CORA/StiefelProduct.h>
-#include <CORA/Symbol.h>
+#include <VarPro/Preconditioners.h>
+#include <VarPro/Types.h>
+#include <VarPro/Measurements.h>
+#include <VarPro/ObliqueManifold.h>
+#include <VarPro/StiefelProduct.h>
+#include <VarPro/Symbol.h>
 #include <map>
 #include <string>
 #include <utility>
 #include <vector>
 
-namespace CORA {
+namespace VarPro {
 
 /**
  * @brief the submatrices that are used to construct the data matrix.
@@ -415,4 +415,4 @@ public:
   Matrix alignEstimateToOrigin(const Matrix &Y) const;
 }; // class Problem
 
-} // namespace CORA
+} // namespace VarPro

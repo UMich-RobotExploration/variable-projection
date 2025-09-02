@@ -1,5 +1,5 @@
 /**
- * @file CORA_problem.cpp
+ * @file VARPRO_problem.cpp
  * @author
  * @brief
  * @version 0.1
@@ -9,8 +9,8 @@
  *
  */
 
-#include <CORA/CORA_problem.h>
-#include <CORA/CORA_utils.h>
+#include <VarPro/Problem.h>
+#include <VarPro/Utils.h>
 #include <Optimization/LinearAlgebra/LOBPCG.h>
 
 #include <algorithm>
@@ -20,7 +20,7 @@
 #include <utility>
 #include <vector>
 
-namespace CORA {
+namespace VarPro {
 void Problem::addPoseVariable(const Symbol &pose_id) {
   if (pose_symbol_idxs_.find(pose_id) != pose_symbol_idxs_.end()) {
     throw std::invalid_argument("Pose variable already exists");
@@ -553,7 +553,7 @@ void Problem::updatePreconditioner() {
     // Here we use the fact that D >= 0, so that
     // ||D||_2 = lambda_max(D) = - lambda_min(-D)
 
-    CORA::SparseMatrix D = data_matrix_;
+    VarPro::SparseMatrix D = data_matrix_;
     Optimization::LinearAlgebra::SymmetricLinearOperator<Matrix> neg_D_op =
         [&D](const Matrix &X) -> Matrix { return -(D * X); };
 
@@ -579,10 +579,10 @@ void Problem::updatePreconditioner() {
 
     // load a scalar from an environment variable
     Scalar reg_Chol_precon_max_cond_ = 1e6;
-    char *env_var = std::getenv("CORA_REG_CHOLESKY_MAX_COND");
+    char *env_var = std::getenv("VARPRO_REG_CHOLESKY_MAX_COND");
     if (env_var != NULL) {
       reg_Chol_precon_max_cond_ = std::stod(env_var);
-      std::cout << "Loaded CORA_REG_CHOLESKY_MAX_COND from environment "
+      std::cout << "Loaded VARPRO_REG_CHOLESKY_MAX_COND from environment "
                    "variable: "
                 << reg_Chol_precon_max_cond_ << std::endl;
     }
@@ -1305,4 +1305,4 @@ Matrix Problem::alignEstimateToOrigin(const Matrix &Y) const {
   return Y_aligned;
 }
 
-} // namespace CORA
+} // namespace VarPro

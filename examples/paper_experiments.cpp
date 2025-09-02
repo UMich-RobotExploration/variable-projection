@@ -1,10 +1,13 @@
-#include <CORA/CORA.h>
-#include <CORA/CORA_problem.h>
-#include <CORA/CORA_types.h>
-#include <CORA/CORA_utils.h>
-#include <CORA/CORA_vis.h>
-#include <CORA/Symbol.h>
-#include <CORA/pyfg_text_parser.h>
+#include <VarPro/Solver.h>
+#include <VarPro/Problem.h>
+#include <VarPro/Types.h>
+#include <VarPro/Utils.h>
+#include <VarPro/Symbol.h>
+#include <VarPro/pyfg_text_parser.h>
+
+#ifdef ENABLE_VISUALIZATION
+#include <VarPro/Vis.h>
+#endif
 
 #include <filesystem>
 #include <set>
@@ -16,23 +19,30 @@
 
 using json = nlohmann::json;
 
-enum InitType { Random, Odom };
+enum InitType
+{
+  Random,
+  Odom
+};
 
-struct Config {
+struct Config
+{
   int init_rank_jump;
   int max_rank;
   bool verbose;
   bool log_iterates;
   bool show_iterates;
-  CORA::Preconditioner preconditioner;
-  CORA::Formulation formulation;
+  VarPro::Preconditioner preconditioner;
+  VarPro::Formulation formulation;
   InitType init_type;
   std::vector<std::string> files;
 };
 
-Config parseConfig(const std::string &filename) {
+Config parseConfig(const std::string &filename)
+{
   // check if the file exists
-  if (!std::filesystem::exists(filename)) {
+  if (!std::filesystem::exists(filename))
+  {
     std::cout << "Looking for file: " << filename << std::endl;
     throw std::runtime_error("Config file does not exist");
   }
@@ -49,25 +59,36 @@ Config parseConfig(const std::string &filename) {
   config.show_iterates = j["show_iterates"];
 
   std::string preconditioner_str = j["preconditioner"];
-  if (preconditioner_str == "Jacobi") {
-    config.preconditioner = CORA::Preconditioner::Jacobi;
-  } else if (preconditioner_str == "BlockCholesky") {
-    config.preconditioner = CORA::Preconditioner::BlockCholesky;
-  } else if (preconditioner_str == "RegularizedCholesky") {
-    config.preconditioner = CORA::Preconditioner::RegularizedCholesky;
+  if (preconditioner_str == "Jacobi")
+  {
+    config.preconditioner = VarPro::Preconditioner::Jacobi;
+  }
+  else if (preconditioner_str == "BlockCholesky")
+  {
+    config.preconditioner = VarPro::Preconditioner::BlockCholesky;
+  }
+  else if (preconditioner_str == "RegularizedCholesky")
+  {
+    config.preconditioner = VarPro::Preconditioner::RegularizedCholesky;
   }
 
   std::string formulation_str = j["formulation"];
-  if (formulation_str == "Implicit") {
-    config.formulation = CORA::Formulation::Implicit;
-  } else if (formulation_str == "Explicit") {
-    config.formulation = CORA::Formulation::Explicit;
+  if (formulation_str == "Implicit")
+  {
+    config.formulation = VarPro::Formulation::Implicit;
+  }
+  else if (formulation_str == "Explicit")
+  {
+    config.formulation = VarPro::Formulation::Explicit;
   }
 
   std::string init_type_str = j["init_type"];
-  if (init_type_str == "Odom") {
+  if (init_type_str == "Odom")
+  {
     config.init_type = InitType::Odom;
-  } else if (init_type_str == "Random") {
+  }
+  else if (init_type_str == "Random")
+  {
     config.init_type = InitType::Random;
   }
 
@@ -76,19 +97,21 @@ Config parseConfig(const std::string &filename) {
   return config;
 }
 
-using PoseChain = std::vector<CORA::Symbol>;
+using PoseChain = std::vector<VarPro::Symbol>;
 using PoseChains = std::vector<PoseChain>;
-using RPM = CORA::RelativePoseMeasurement;
+using RPM = VarPro::RelativePoseMeasurement;
 
 #ifdef GPERFTOOLS
 #include <gperftools/profiler.h>
 #endif
 
-PoseChains getRobotPoseChains(const CORA::Problem &problem) {
+PoseChains getRobotPoseChains(const VarPro::Problem &problem)
+{
   // get all of the unique pose characters
   std::set<unsigned char> seen_pose_chars;
-  for (auto const &all_pose_symbols : problem.getPoseSymbolMap()) {
-    CORA::Symbol pose_symbol = all_pose_symbols.first;
+  for (auto const &all_pose_symbols : problem.getPoseSymbolMap())
+  {
+    VarPro::Symbol pose_symbol = all_pose_symbols.first;
     seen_pose_chars.insert(pose_symbol.chr());
   }
 
@@ -99,7 +122,8 @@ PoseChains getRobotPoseChains(const CORA::Problem &problem) {
 
   // for each unique pose character, get the pose symbols (sorted)
   PoseChains robot_pose_chains;
-  for (auto const &pose_char : unique_pose_chars) {
+  for (auto const &pose_char : unique_pose_chars)
+  {
     PoseChain robot_pose_chain = problem.getPoseSymbols(pose_char);
     std::sort(robot_pose_chain.begin(), robot_pose_chain.end());
     robot_pose_chains.push_back(robot_pose_chain);
@@ -109,56 +133,62 @@ PoseChains getRobotPoseChains(const CORA::Problem &problem) {
   return robot_pose_chains;
 }
 
-CORA::Matrix getRandomStartPose(const int dim) {
-  CORA::Matrix rot_rand = CORA::Matrix::Random(dim, dim);
+VarPro::Matrix getRandomStartPose(const int dim)
+{
+  VarPro::Matrix rot_rand = VarPro::Matrix::Random(dim, dim);
 
   // make sure that the rotation matrix is orthogonal by taking the QR
   // decomposition
-  Eigen::HouseholderQR<CORA::Matrix> qr(rot_rand);
-  CORA::Matrix rot = qr.householderQ();
+  Eigen::HouseholderQR<VarPro::Matrix> qr(rot_rand);
+  VarPro::Matrix rot = qr.householderQ();
 
   // if the determinant is negative, multiply by an identity matrix
   // with the last element negated
-  if (rot.determinant() < 0) {
-    CORA::Matrix neg_identity = CORA::Matrix::Identity(dim, dim);
+  if (rot.determinant() < 0)
+  {
+    VarPro::Matrix neg_identity = VarPro::Matrix::Identity(dim, dim);
     neg_identity(dim - 1, dim - 1) = -1;
     rot = rot * neg_identity;
   }
 
   // get a random translation
-  CORA::Matrix tran = CORA::Matrix::Random(dim, 1) * 10;
+  VarPro::Matrix tran = VarPro::Matrix::Random(dim, 1) * 10;
 
-  CORA::Matrix start_pose = CORA::Matrix::Identity(dim + 1, dim + 1);
+  VarPro::Matrix start_pose = VarPro::Matrix::Identity(dim + 1, dim + 1);
   start_pose.block(0, 0, dim, dim) = rot;
   start_pose.block(0, dim, dim, 1) = tran;
 
   return start_pose;
 }
 
-std::vector<CORA::Matrix> getCircleIntersect(CORA::Scalar x1, CORA::Scalar y1,
-                                             CORA::Scalar r1, CORA::Scalar x2,
-                                             CORA::Scalar y2, CORA::Scalar r2) {
+std::vector<VarPro::Matrix> getCircleIntersect(VarPro::Scalar x1, VarPro::Scalar y1,
+                                               VarPro::Scalar r1, VarPro::Scalar x2,
+                                               VarPro::Scalar y2, VarPro::Scalar r2)
+{
   // get the distance between the two points
-  CORA::Scalar d = std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2));
+  VarPro::Scalar d = std::sqrt(std::pow(x2 - x1, 2) + std::pow(y2 - y1, 2));
 
   // check if the circles are too far apart, if so, just return the average of
   // the centers
-  if (d > r1 + r2) {
-    CORA::Matrix pt1(1, 2);
+  if (d > r1 + r2)
+  {
+    VarPro::Matrix pt1(1, 2);
     pt1 << (x1 + x2) / 2, (y1 + y2) / 2;
     return {pt1};
   }
 
   // check if one circle is inside the other, if so get the center of the
   // smaller circle and the vector from the larger circle to the smaller circle
-  if (d < std::abs(r1 - r2)) {
-    CORA::Matrix pt1(1, 2);
+  if (d < std::abs(r1 - r2))
+  {
+    VarPro::Matrix pt1(1, 2);
     pt1 << x1, y1;
-    CORA::Matrix pt2(1, 2);
+    VarPro::Matrix pt2(1, 2);
     pt2 << x2, y2;
 
     // swap the variables so that r1 is the smaller circle
-    if (r1 > r2) {
+    if (r1 > r2)
+    {
       std::swap(r1, r2);
       std::swap(pt1, pt2);
     }
@@ -174,46 +204,49 @@ std::vector<CORA::Matrix> getCircleIntersect(CORA::Scalar x1, CORA::Scalar y1,
   }
 
   // check if the circles are the same
-  if (d == 0 && r1 == r2) {
+  if (d == 0 && r1 == r2)
+  {
     throw std::runtime_error("Circles are the same");
   }
 
   // compute the distance from the first point to the intersection point
-  CORA::Scalar a =
+  VarPro::Scalar a =
       (std::pow(r1, 2) - std::pow(r2, 2) + std::pow(d, 2)) / (2 * d);
 
   // compute the height of the intersection point
-  CORA::Scalar h = std::sqrt(std::pow(r1, 2) - std::pow(a, 2));
+  VarPro::Scalar h = std::sqrt(std::pow(r1, 2) - std::pow(a, 2));
 
   // compute the intersection points
-  CORA::Scalar x3 = x1 + a * (x2 - x1) / d;
-  CORA::Scalar y3 = y1 + a * (y2 - y1) / d;
+  VarPro::Scalar x3 = x1 + a * (x2 - x1) / d;
+  VarPro::Scalar y3 = y1 + a * (y2 - y1) / d;
 
-  CORA::Scalar x4 = x3 + h * (y2 - y1) / d;
-  CORA::Scalar y4 = y3 - h * (x2 - x1) / d;
+  VarPro::Scalar x4 = x3 + h * (y2 - y1) / d;
+  VarPro::Scalar y4 = y3 - h * (x2 - x1) / d;
 
-  CORA::Scalar x5 = x3 - h * (y2 - y1) / d;
-  CORA::Scalar y5 = y3 + h * (x2 - x1) / d;
+  VarPro::Scalar x5 = x3 - h * (y2 - y1) / d;
+  VarPro::Scalar y5 = y3 + h * (x2 - x1) / d;
 
   // return the intersection points
-  CORA::Matrix pt1(1, 2);
+  VarPro::Matrix pt1(1, 2);
   pt1 << x4, y4;
-  CORA::Matrix pt2(1, 2);
+  VarPro::Matrix pt2(1, 2);
   pt2 << x5, y5;
   auto int_pts = {pt1, pt2};
   return int_pts;
 }
 
-CORA::Matrix init2dLandmark(const CORA::Symbol &landmark_symbol,
-                            const CORA::Matrix &x0,
-                            const CORA::Problem &problem) {
+VarPro::Matrix init2dLandmark(const VarPro::Symbol &landmark_symbol,
+                              const VarPro::Matrix &x0,
+                              const VarPro::Problem &problem)
+{
   // get all of the range measurements
   auto range_measurements = problem.getRangeMeasurements();
 
   // erase any range measurements that do not involve the landmark
   range_measurements.erase(
       std::remove_if(range_measurements.begin(), range_measurements.end(),
-                     [&landmark_symbol](const CORA::RangeMeasurement &measure) {
+                     [&landmark_symbol](const VarPro::RangeMeasurement &measure)
+                     {
                        return measure.first_id != landmark_symbol &&
                               measure.second_id != landmark_symbol;
                      }),
@@ -222,14 +255,16 @@ CORA::Matrix init2dLandmark(const CORA::Symbol &landmark_symbol,
   // find the measurement with the smallest range
   auto min_measure = std::min_element(
       range_measurements.begin(), range_measurements.end(),
-      [](const CORA::RangeMeasurement &a, const CORA::RangeMeasurement &b) {
+      [](const VarPro::RangeMeasurement &a, const VarPro::RangeMeasurement &b)
+      {
         return a.r < b.r;
       });
 
   // find the measurement with the largest range
   auto max_measure = std::max_element(
       range_measurements.begin(), range_measurements.end(),
-      [](const CORA::RangeMeasurement &a, const CORA::RangeMeasurement &b) {
+      [](const VarPro::RangeMeasurement &a, const VarPro::RangeMeasurement &b)
+      {
         return a.r < b.r;
       });
 
@@ -244,11 +279,13 @@ CORA::Matrix init2dLandmark(const CORA::Symbol &landmark_symbol,
   return most_diff_intersects[0];
 }
 
-CORA::Matrix getGtLandmarkPosition(const CORA::Symbol &landmark_symbol,
-                                   const CORA::Problem &problem,
-                                   std::string pyfg_fpath) {
+VarPro::Matrix getGtLandmarkPosition(const VarPro::Symbol &landmark_symbol,
+                                     const VarPro::Problem &problem,
+                                     std::string pyfg_fpath)
+{
   // check that the symbol char is 'l' or 'L'
-  if (landmark_symbol.chr() != 'l' && landmark_symbol.chr() != 'L') {
+  if (landmark_symbol.chr() != 'l' && landmark_symbol.chr() != 'L')
+  {
     throw std::runtime_error("Expected landmark symbol to be 'l' or 'L'");
   }
   auto landmark_symbol_index = landmark_symbol.index();
@@ -258,21 +295,24 @@ CORA::Matrix getGtLandmarkPosition(const CORA::Symbol &landmark_symbol,
   bool is_tiers = pyfg_fpath.find("tiers") != std::string::npos;
 
   // at least one of the above should be true
-  if (!(is_plaza1 || is_plaza2 || is_single_drone || is_tiers)) {
+  if (!(is_plaza1 || is_plaza2 || is_single_drone || is_tiers))
+  {
     throw std::runtime_error("Expected pyfg_fpath to be plaza1, plaza2, "
                              "single_drone, or tiers");
   }
 
   // no more than one of the above should be true
   auto sum_of_bools = is_plaza1 + is_plaza2 + is_single_drone + is_tiers;
-  if (sum_of_bools > 1) {
+  if (sum_of_bools > 1)
+  {
     throw std::runtime_error("Expected pyfg_fpath to be plaza1, plaza2, "
                              "single_drone, or tiers");
   }
 
   // check if "plaza1" is in the pyfg_fpath
-  CORA::Matrix gt_landmark_pos = CORA::Matrix::Zero(1, problem.dim());
-  if (is_plaza1) {
+  VarPro::Matrix gt_landmark_pos = VarPro::Matrix::Zero(1, problem.dim());
+  if (is_plaza1)
+  {
     /**
      * Plaza 1:
      * VERTEX_XY L0 -46.6232339999406 11.0255489991978
@@ -281,7 +321,8 @@ CORA::Matrix getGtLandmarkPosition(const CORA::Symbol &landmark_symbol,
      * VERTEX_XY L3 -17.664892999921 59.009180999361
      */
     // switch on the landmark symbol index
-    switch (landmark_symbol_index) {
+    switch (landmark_symbol_index)
+    {
     case 0:
       gt_landmark_pos(0, 0) = -46.6232339999406;
       gt_landmark_pos(0, 1) = 11.0255489991978;
@@ -299,7 +340,9 @@ CORA::Matrix getGtLandmarkPosition(const CORA::Symbol &landmark_symbol,
       gt_landmark_pos(0, 1) = 59.009180999361;
       return gt_landmark_pos;
     }
-  } else if (is_plaza2) {
+  }
+  else if (is_plaza2)
+  {
     /**
      *
      * Plaza 2:
@@ -308,7 +351,8 @@ CORA::Matrix getGtLandmarkPosition(const CORA::Symbol &landmark_symbol,
      * VERTEX_XY L2 -33.6205370000098 26.9677969999611
      * VERTEX_XY L3 1.70946300006472 -5.81220300029963
      */
-    switch (landmark_symbol_index) {
+    switch (landmark_symbol_index)
+    {
     case 0:
       gt_landmark_pos(0, 0) = -68.9265369999921;
       gt_landmark_pos(0, 1) = 18.3777969991788;
@@ -326,7 +370,9 @@ CORA::Matrix getGtLandmarkPosition(const CORA::Symbol &landmark_symbol,
       gt_landmark_pos(0, 1) = -5.81220300029963;
       return gt_landmark_pos;
     }
-  } else if (is_single_drone) {
+  }
+  else if (is_single_drone)
+  {
     /**
      *
      * Single drone:
@@ -335,14 +381,18 @@ CORA::Matrix getGtLandmarkPosition(const CORA::Symbol &landmark_symbol,
      * Tiers:
      * VERTEX_XY L0 -0.45365739942811395 1.0412147360554351
      */
-    switch (landmark_symbol_index) {
+    switch (landmark_symbol_index)
+    {
     case 0:
       gt_landmark_pos(0, 0) = -1.56660422992355;
       gt_landmark_pos(0, 1) = -3.7591615842206183;
       return gt_landmark_pos;
     }
-  } else if (is_tiers) {
-    switch (landmark_symbol_index) {
+  }
+  else if (is_tiers)
+  {
+    switch (landmark_symbol_index)
+    {
     case 0:
       gt_landmark_pos(0, 0) = -0.45365739942811395;
       gt_landmark_pos(0, 1) = 1.0412147360554351;
@@ -353,28 +403,33 @@ CORA::Matrix getGtLandmarkPosition(const CORA::Symbol &landmark_symbol,
   throw std::runtime_error("Invalid landmark symbol index");
 }
 
-std::vector<std::vector<RPM>> getOdomChains(const CORA::Problem &problem) {
+std::vector<std::vector<RPM>> getOdomChains(const VarPro::Problem &problem)
+{
   // get the relevant problem data
   PoseChains pose_chains = getRobotPoseChains(problem);
   std::vector<unsigned char> pose_chain_chars = {};
-  for (auto const &pose_chain : pose_chains) {
+  for (auto const &pose_chain : pose_chains)
+  {
     pose_chain_chars.push_back(pose_chain[0].chr());
   }
 
   // init the odom chains
   std::vector<std::vector<RPM>> odom_chains = {};
-  for (auto const &pose_chain : pose_chains) {
+  for (auto const &pose_chain : pose_chains)
+  {
     std::vector<RPM> odom_chain = {};
     odom_chains.push_back(odom_chain);
   }
 
   // iterate over the RPMs and add any odometry measurements to
   // the corresponding odom chain
-  for (const RPM &measure : problem.getRPMs()) {
+  for (const RPM &measure : problem.getRPMs())
+  {
     // is odom if the first and second pose symbols have the same starting
     // character and adjacent indices
     if (measure.first_id.chr() == measure.second_id.chr() &&
-        measure.first_id.index() + 1 == measure.second_id.index()) {
+        measure.first_id.index() + 1 == measure.second_id.index())
+    {
       // get the pose chain index
       auto it = std::find(pose_chain_chars.begin(), pose_chain_chars.end(),
                           measure.first_id.chr());
@@ -391,11 +446,13 @@ std::vector<std::vector<RPM>> getOdomChains(const CORA::Problem &problem) {
   // make sure that the odom chains are of the correct size (pose chain size -
   // 1)
   for (size_t pose_chain_index = 0; pose_chain_index < pose_chains.size();
-       pose_chain_index++) {
+       pose_chain_index++)
+  {
     PoseChain pose_chain = pose_chains[pose_chain_index];
     std::vector<RPM> odom_chain = odom_chains[pose_chain_index];
 
-    if (odom_chain.size() != pose_chain.size() - 1) {
+    if (odom_chain.size() != pose_chain.size() - 1)
+    {
       throw std::runtime_error(
           // "Expected odom chain size to be pose chain size - 1");
           "Expected odom chain size to be pose chain size "
@@ -407,12 +464,14 @@ std::vector<std::vector<RPM>> getOdomChains(const CORA::Problem &problem) {
 
   // sort the odom chains by the first pose symbol index
   for (size_t pose_chain_index = 0; pose_chain_index < pose_chains.size();
-       pose_chain_index++) {
+       pose_chain_index++)
+  {
     PoseChain pose_chain = pose_chains[pose_chain_index];
     std::vector<RPM> odom_chain = odom_chains[pose_chain_index];
 
     std::sort(odom_chain.begin(), odom_chain.end(),
-              [](const RPM &a, const RPM &b) {
+              [](const RPM &a, const RPM &b)
+              {
                 return a.first_id.index() < b.first_id.index();
               });
   }
@@ -421,10 +480,11 @@ std::vector<std::vector<RPM>> getOdomChains(const CORA::Problem &problem) {
   return odom_chains;
 }
 
-CORA::Matrix getOdomInitialization(const CORA::Problem &problem,
-                                   std::string pyfg_path) {
-  CORA::Matrix x0 = CORA::Matrix::Zero(problem.getDataMatrixSize(),
-                                       problem.getRelaxationRank());
+VarPro::Matrix getOdomInitialization(const VarPro::Problem &problem,
+                                     std::string pyfg_path)
+{
+  VarPro::Matrix x0 = VarPro::Matrix::Zero(problem.getDataMatrixSize(),
+                                           problem.getRelaxationRank());
   // x0 = problem.getRandomInitialGuess();
 
   int dim = problem.dim();
@@ -432,16 +492,21 @@ CORA::Matrix getOdomInitialization(const CORA::Problem &problem,
 
   // iterate over the odom chains
   bool first = true;
-  for (const std::vector<RPM> &odom_chain : getOdomChains(problem)) {
-    if (odom_chain.size() == 0) {
+  for (const std::vector<RPM> &odom_chain : getOdomChains(problem))
+  {
+    if (odom_chain.size() == 0)
+    {
       continue;
     }
 
-    CORA::Matrix cur_pose;
-    if (first) {
-      cur_pose = CORA::Matrix::Identity(dim + 1, dim + 1);
+    VarPro::Matrix cur_pose;
+    if (first)
+    {
+      cur_pose = VarPro::Matrix::Identity(dim + 1, dim + 1);
       first = false;
-    } else {
+    }
+    else
+    {
       cur_pose = getRandomStartPose(dim);
     }
     Index cur_rot_start = problem.getRotationIdx(odom_chain[0].first_id) * dim;
@@ -454,9 +519,10 @@ CORA::Matrix getOdomInitialization(const CORA::Problem &problem,
         cur_pose.block(0, dim, dim, 1).transpose();
 
     // iterate over the odometry measurements
-    for (const RPM &measure : odom_chain) {
+    for (const RPM &measure : odom_chain)
+    {
       // update the current pose
-      CORA::Matrix measure_as_matrix = measure.getHomogeneousMatrix();
+      VarPro::Matrix measure_as_matrix = measure.getHomogeneousMatrix();
       cur_pose = cur_pose * measure_as_matrix;
 
       // update the indices
@@ -472,27 +538,32 @@ CORA::Matrix getOdomInitialization(const CORA::Problem &problem,
   }
 
   /** RANDOMIZE THE LANDMARK VARIABLES **/
-  for (const auto &landmark_pair : problem.getLandmarkSymbolMap()) {
-    CORA::Symbol symbol = landmark_pair.first;
+  for (const auto &landmark_pair : problem.getLandmarkSymbolMap())
+  {
+    VarPro::Symbol symbol = landmark_pair.first;
     Index landmark_start_idx = problem.getTranslationIdx(symbol);
     // x0.block(landmark_start_idx, 0, 1, dim) =
     //     init2dLandmark(symbol, x0, problem);
-    x0.block(landmark_start_idx, 0, 1, dim) = CORA::Matrix::Random(1, dim) * 10;
+    x0.block(landmark_start_idx, 0, 1, dim) = VarPro::Matrix::Random(1, dim) * 10;
   }
 
   /** SET THE SPHERE VARIABLES **/
-  for (const auto &measure : problem.getRangeMeasurements()) {
-    CORA::SymbolPair pair = measure.getSymbolPair();
+  for (const auto &measure : problem.getRangeMeasurements())
+  {
+    VarPro::SymbolPair pair = measure.getSymbolPair();
     Index range_start_idx = problem.getRangeIdx(pair);
     Index first_trans_idx = problem.getTranslationIdx(pair.first);
     Index second_trans_idx = problem.getTranslationIdx(pair.second);
 
-    CORA::Matrix diff = x0.row(second_trans_idx) - x0.row(first_trans_idx);
+    VarPro::Matrix diff = x0.row(second_trans_idx) - x0.row(first_trans_idx);
 
-    if (diff.norm() < 1e-5) {
+    if (diff.norm() < 1e-5)
+    {
       // set x0.row(range_start_idx) to a random unit vector
-      x0.row(range_start_idx) = CORA::Matrix::Random(1, dim);
-    } else {
+      x0.row(range_start_idx) = VarPro::Matrix::Random(1, dim);
+    }
+    else
+    {
       x0.row(range_start_idx) = diff;
     }
   }
@@ -505,15 +576,16 @@ CORA::Matrix getOdomInitialization(const CORA::Problem &problem,
           .normalized();
 
   // rotate the solution so that it is generically dense
-  CORA::Matrix rot = CORA::Matrix::Random(problem.getRelaxationRank(),
-                                          problem.getRelaxationRank());
+  VarPro::Matrix rot = VarPro::Matrix::Random(problem.getRelaxationRank(),
+                                              problem.getRelaxationRank());
   // orthogonalize the rotation matrix
   rot = rot.householderQr().householderQ();
 
   // if the determinant is negative, then multiply by identity
   // matrix with -1 in the last row
-  if (rot.determinant() < 0) {
-    CORA::Matrix reflector = CORA::Matrix::Identity(
+  if (rot.determinant() < 0)
+  {
+    VarPro::Matrix reflector = VarPro::Matrix::Identity(
         problem.getRelaxationRank(), problem.getRelaxationRank());
     reflector(problem.getRelaxationRank() - 1,
               problem.getRelaxationRank() - 1) = -1;
@@ -521,7 +593,8 @@ CORA::Matrix getOdomInitialization(const CORA::Problem &problem,
   }
 
   // the determinant should be 1
-  if (std::abs(rot.determinant() - 1) > 1e-6) {
+  if (std::abs(rot.determinant() - 1) > 1e-6)
+  {
     throw std::runtime_error("Expected determinant to be 1");
   }
 
@@ -531,15 +604,16 @@ CORA::Matrix getOdomInitialization(const CORA::Problem &problem,
   return x0;
 }
 
-void saveSolutions(const CORA::Problem &problem,
-                   const CORA::Matrix &aligned_soln,
-                   const std::string &pyfg_fpath) {
+void saveSolutions(const VarPro::Problem &problem,
+                   const VarPro::Matrix &aligned_soln,
+                   const std::string &pyfg_fpath)
+{
   /**
    * @brief for each robot, save the solution to a .tum file e.g.
-   * data/plaza2.pyfg -> /tmp/plaza2/cora_0.tum
+   * data/plaza2.pyfg -> /tmp/plaza2/varpro_0.tum
    * or
-   * data/marine_two_robots.pyfg -> /tmp/marine_two_robots/cora_0.tum,
-   * /tmp/marine_two_robots/cora_1.tum
+   * data/marine_two_robots.pyfg -> /tmp/marine_two_robots/varpro_0.tum,
+   * /tmp/marine_two_robots/varpro_1.tum
    *
    */
 
@@ -550,30 +624,34 @@ void saveSolutions(const CORA::Problem &problem,
       pyfg_fpath.substr(data_length, pyfg_index - data_length);
 
   // if save_dir_name starts with /, then remove it
-  if (save_dir_name[0] == '/') {
+  if (save_dir_name[0] == '/')
+  {
     save_dir_name = save_dir_name.substr(1);
   }
   std::string save_dir_path = "/tmp/" + save_dir_name;
 
   // create the directory if it does not exist. Make sure to recursively create
   // the parent directories
-  if (!std::filesystem::exists(save_dir_path)) {
+  if (!std::filesystem::exists(save_dir_path))
+  {
     std::filesystem::create_directories(save_dir_path);
   }
 
-  std::string save_path = save_dir_path + "/cora_";
+  std::string save_path = save_dir_path + "/varpro_";
 
   // get the different robot pose chains
   PoseChains robot_pose_chains = getRobotPoseChains(problem);
 
   // if tiers.pyfg, then we have four robots
-  if (pyfg_fpath == "data/tiers.pyfg" && robot_pose_chains.size() != 4) {
+  if (pyfg_fpath == "data/tiers.pyfg" && robot_pose_chains.size() != 4)
+  {
     throw std::runtime_error("Expected 4 robots in tiers.pyfg");
   }
 
   // enumerate over the robot pose chains
   for (size_t robot_index = 0; robot_index < robot_pose_chains.size();
-       robot_index++) {
+       robot_index++)
+  {
     // get the robot pose chain
     PoseChain robot_pose_chain = robot_pose_chains[robot_index];
 
@@ -589,17 +667,18 @@ void saveSolutions(const CORA::Problem &problem,
   }
 }
 
-CORA::Matrix solveProblem(std::string pyfg_fpath, int init_rank_jump,
-                          int max_rank, CORA::Preconditioner preconditioner,
-                          CORA::Formulation formulation, InitType init_type,
-                          bool verbose = true, bool log_iterates = true,
-                          bool show_iterates = false) {
+VarPro::Matrix solveProblem(std::string pyfg_fpath, int init_rank_jump,
+                            int max_rank, VarPro::Preconditioner preconditioner,
+                            VarPro::Formulation formulation, InitType init_type,
+                            bool verbose = true, bool log_iterates = true,
+                            bool show_iterates = false)
+{
   std::cout << "Solving " << pyfg_fpath << std::endl;
 
-  CORA::Problem problem =
+  VarPro::Problem problem =
       std::filesystem::exists(pyfg_fpath)
-          ? CORA::parsePyfgTextToProblem(pyfg_fpath)
-          : CORA::parsePyfgTextToProblem("./bin/" + pyfg_fpath);
+          ? VarPro::parsePyfgTextToProblem(pyfg_fpath)
+          : VarPro::parsePyfgTextToProblem("./bin/" + pyfg_fpath);
 
   // set the problem parameters
   problem.setRank(problem.dim() + init_rank_jump);
@@ -614,39 +693,43 @@ CORA::Matrix solveProblem(std::string pyfg_fpath, int init_rank_jump,
   Eigen::saveMarket(problem.data_matrix_, fpath);
   std::cout << "Saved data matrix to " << fpath << std::endl;
 
-  CORA::Matrix x0;
-  if (init_type == InitType::Random) {
+  VarPro::Matrix x0;
+  if (init_type == InitType::Random)
+  {
     x0 = problem.getRandomInitialGuess();
-  } else if (init_type == InitType::Odom) {
+  }
+  else if (init_type == InitType::Odom)
+  {
     x0 = getOdomInitialization(problem, pyfg_fpath);
   }
 
   // if we're in implicit mode, then we need to truncate x0
   // to not have translation variables
-  if (formulation == CORA::Formulation::Implicit) {
+  if (formulation == VarPro::Formulation::Implicit)
+  {
     x0 = x0.block(0, 0, problem.rotAndRangeMatrixSize(), x0.cols());
   }
 
 #ifdef GPERFTOOLS
-  ProfilerStart("cora.prof");
+  ProfilerStart("varpro.prof");
 #endif
 
   // start timer
   auto start = std::chrono::high_resolution_clock::now();
 
   // solve the problem
-  CORA::CoraResult soln = CORA::solveCORA(problem, x0, max_rank, verbose,
-                                          log_iterates, show_iterates);
+  VarPro::ProblemResult soln = VarPro::solveProblem(problem, x0, max_rank, verbose,
+                                                    log_iterates, show_iterates);
 
   // end timer
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> elapsed = end - start;
-  std::cout << "CORA took " << elapsed.count() << " seconds" << std::endl;
+  std::cout << "VARPRO took " << elapsed.count() << " seconds" << std::endl;
 
   std::cout << "Experiment result, name: " << pyfg_fpath
             << ", time: " << elapsed.count()
             << " seconds, cost: " << soln.first.f << ", marginalized: "
-            << (formulation == CORA::Formulation::Implicit)
+            << (formulation == VarPro::Formulation::Implicit)
             << ", init rank jump: " << init_rank_jump
             << ", init random: " << (init_type == InitType::Random)
             << std::endl;
@@ -660,29 +743,34 @@ CORA::Matrix solveProblem(std::string pyfg_fpath, int init_rank_jump,
   results_file << pyfg_fpath << " " << elapsed.count() << std::endl;
   results_file.close();
 
-  // if we are logging the iterates, then let's visualize CORA
-  if (log_iterates) {
-    CORA::CORAVis viz{};
+#ifdef ENABLE_VISUALIZATION
+  // if we are logging the iterates, then let's visualize VarPro solution
+  if (log_iterates)
+  {
+    VarPro::VarProVis viz{};
     double viz_hz = 10.0;
 
     // save all the iterates to separate .tum files
     auto aligned_iterates = viz.projectAndAlignIterates(problem, soln.second);
-    for (size_t i = 0; i < soln.second.size(); i++) {
+    for (size_t i = 0; i < soln.second.size(); i++)
+    {
       std::string fake_fpath =
-          "saved_iterates/cora_" + std::to_string(i) + ".pyfg";
+          "saved_iterates/varpro_" + std::to_string(i) + ".pyfg";
       saveSolutions(problem, aligned_iterates[i], fake_fpath);
     }
 
     viz.run(problem, {soln.second}, viz_hz, true);
   }
+#endif
 
-  CORA::Matrix aligned_soln = problem.alignEstimateToOrigin(soln.first.x);
+  VarPro::Matrix aligned_soln = problem.alignEstimateToOrigin(soln.first.x);
   saveSolutions(problem, aligned_soln, pyfg_fpath);
 
   return aligned_soln;
 }
 
-std::vector<std::string> getRangeAndRpmMrclamFiles() {
+std::vector<std::string> getRangeAndRpmMrclamFiles()
+{
   std::string base_dir = "data/mrclam/range_and_rpm/";
   std::vector<std::string> filenames = {
       "mrclam2.pyfg",
@@ -696,7 +784,8 @@ std::vector<std::string> getRangeAndRpmMrclamFiles() {
   // for each file, prepend a directory that is everything before the file
   // extension (.pyfg)
   std::vector<std::string> full_paths = {};
-  for (auto file : filenames) {
+  for (auto file : filenames)
+  {
     // strip the .pyfg extension
     size_t pyfg_index = file.find(".pyfg");
     std::string filename = file.substr(0, pyfg_index);
@@ -706,7 +795,8 @@ std::vector<std::string> getRangeAndRpmMrclamFiles() {
   return full_paths;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char **argv)
+{
   std::vector<std::string> original_exp_files = {
       "data/plaza1.pyfg", "data/plaza2.pyfg", "data/single_drone.pyfg",
       "data/tiers.pyfg"}; // TIERS faster w/ random init
@@ -726,16 +816,18 @@ int main(int argc, char **argv) {
   // files = {"data/test.pyfg"};
   // files = {"data/tiers.pyfg"};
 
-  // load file from environment variable "CORAFILE"
-  if (const char *env_p = std::getenv("CORAFILE")) {
+  // load file from environment variable "VARPROFILE"
+  if (const char *env_p = std::getenv("VARPROFILE"))
+  {
     std::cout << "Using file from environment variable: " << env_p << std::endl;
     files = {env_p};
   }
 
-  Config config = parseConfig("/home/alan/cora-plus-plus/examples/config.json");
+  Config config = parseConfig("/home/alan/variable-projection/examples/config.json");
 
-  for (auto file : files) {
-    CORA::Matrix soln = solveProblem(
+  for (auto file : files)
+  {
+    VarPro::Matrix soln = solveProblem(
         file, config.init_rank_jump, config.max_rank, config.preconditioner,
         config.formulation, config.init_type, config.verbose,
         config.log_iterates, config.show_iterates);

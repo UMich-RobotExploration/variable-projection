@@ -1,7 +1,7 @@
-#include <CORA/CORA_types.h>
-#include <CORA/ObliqueManifold.h>
+#include <VarPro/Types.h>
+#include <VarPro/ObliqueManifold.h>
 
-namespace CORA {
+namespace VarPro {
 
 Matrix ObliqueManifold::projectToManifold(const Matrix &A) const {
   // check that the dimensions of A are as expected
@@ -42,4 +42,4 @@ Matrix ObliqueManifold::random_sample(
   return projectToManifold(A);
 }
 
-} // namespace CORA
+} // namespace VarPro

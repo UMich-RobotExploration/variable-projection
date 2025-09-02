@@ -2,8 +2,8 @@
 // Created by tim on 11/12/23.
 //
 
-#include "CORA/CORA_vis.h"
-#include "CORA/CORA_problem.h"
+#include "VARPRO/Vis.h"
+#include "VARPRO/Problem.h"
 #include <thread> // NOLINT [build/c++11]
 #include <utility>
 
@@ -13,14 +13,14 @@
 #include <set>
 #include <vector>
 
-namespace CORA {
+namespace VarPro {
 
-CORAVis::CORAVis() {}
+VarProVis::VarProVis() {}
 
 using TNTStatus = Optimization::Riemannian::TNTStatus;
 
 std::vector<Matrix>
-CORAVis::projectAndAlignIterates(const Problem &problem,
+VarProVis::projectAndAlignIterates(const Problem &problem,
                                  const std::vector<Matrix> &iterates) {
   std::vector<Matrix> aligned_iterates;
   for (const auto &iterate : iterates) {
@@ -34,12 +34,12 @@ CORAVis::projectAndAlignIterates(const Problem &problem,
 /**
  * @brief Start both the rendering thread and the data provider thread
  *
- * @param problem CORA problem to visualize
+ * @param problem VARPRO problem to visualize
  * @param results Vector of results, which will be looped over and rendered
  * @param rate_hz Rate at which the results will be rendered
  */
 
-void CORAVis::run(const Problem &problem, std::vector<Matrix> iterates,
+void VarProVis::run(const Problem &problem, std::vector<Matrix> iterates,
                   double rate_hz, bool verbose) {
   mrg::VisualizerParams params;
   params.frustum_scale = 0.3; // size of frustum in m
@@ -50,7 +50,7 @@ void CORAVis::run(const Problem &problem, std::vector<Matrix> iterates,
   params.landmark_color = {0.0f, 0.0f, 0.0f}; // Black
 
   auto viz = std::make_shared<mrg::Visualizer>(params);
-  auto render_thread = std::thread(&CORAVis::renderLoop, this, viz);
+  auto render_thread = std::thread(&VarProVis::renderLoop, this, viz);
 
   auto aligned_iterates = projectAndAlignIterates(problem, iterates);
   dataPlaybackLoop(std::shared_ptr<mrg::Visualizer>(viz), problem,
@@ -58,7 +58,7 @@ void CORAVis::run(const Problem &problem, std::vector<Matrix> iterates,
   render_thread.join();
 }
 
-void CORAVis::dataPlaybackLoop(const std::shared_ptr<mrg::Visualizer> &viz,
+void VarProVis::dataPlaybackLoop(const std::shared_ptr<mrg::Visualizer> &viz,
                                const Problem &problem,
                                std::vector<Matrix> iterates, double rate_hz,
                                bool verbose) {
@@ -74,7 +74,7 @@ void CORAVis::dataPlaybackLoop(const std::shared_ptr<mrg::Visualizer> &viz,
   int max_num_loops = 2;
 
   // try to load max_num_loops from the environment
-  if (const char *env_p = std::getenv("CORA_MAX_LOOPS")) {
+  if (const char *env_p = std::getenv("VARPRO_MAX_LOOPS")) {
     max_num_loops = std::stoi(env_p);
     std::cout << "Using max_num_loops from environment variable: "
               << max_num_loops << std::endl;
@@ -197,12 +197,12 @@ void CORAVis::dataPlaybackLoop(const std::shared_ptr<mrg::Visualizer> &viz,
   alive = false;
 }
 
-void CORAVis::renderLoop(const std::shared_ptr<mrg::Visualizer> &viz) {
+void VarProVis::renderLoop(const std::shared_ptr<mrg::Visualizer> &viz) {
   viz->RenderWorld();
   alive = false;
 }
 
-mrg::VizPose CORAVis::getPose(const Problem &problem,
+mrg::VizPose VarProVis::getPose(const Problem &problem,
                               const Matrix &solution_matrix,
                               const Symbol &pose_sym) {
   auto dim = problem.dim();
@@ -221,7 +221,7 @@ mrg::VizPose CORAVis::getPose(const Problem &problem,
   return std::make_tuple(pose_matrix, 0.5, 4.0);
 }
 
-Eigen::Vector3d CORAVis::getPoint(const Problem &problem,
+Eigen::Vector3d VarProVis::getPoint(const Problem &problem,
                                   const Matrix &solution_matrix,
                                   const Symbol &point_sym) {
   Eigen::Vector3d point = Eigen::Vector3d::Zero();
@@ -232,4 +232,4 @@ Eigen::Vector3d CORAVis::getPoint(const Problem &problem,
   return point;
 }
 
-} // namespace CORA
+} // namespace VarPro

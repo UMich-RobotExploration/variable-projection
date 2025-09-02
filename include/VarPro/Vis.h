@@ -4,21 +4,21 @@
 
 #pragma once
 
-#include <CORA/CORA.h>
-#include <CORA/CORA_types.h>
+#include <VarPro/Solver.h>
+#include <VarPro/Types.h>
 #include <atomic>
 #include <memory>
 #include <vector>
 
-#include "tonioviz/Visualizer.h"
+  #include "tonioviz/Visualizer.h"
 
-namespace CORA {
-class CORAVis {
+namespace VarPro {
+class VarProVis {
 public:
-  CORAVis();
+  VarProVis();
   void run(const Problem &problem, std::vector<Matrix> iterates, double rate_hz,
            bool verbose = false);
-  ~CORAVis() = default;
+  ~VarProVis() = default;
 
   std::vector<Matrix>
   projectAndAlignIterates(const Problem &problem,
@@ -42,4 +42,4 @@ private:
   void renderLoop(const std::shared_ptr<mrg::Visualizer> &viz);
 };
 
-} // namespace CORA
+} // namespace VarPro

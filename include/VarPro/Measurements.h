@@ -11,12 +11,12 @@
 
 #pragma once
 
-#include <CORA/CORA_types.h>
-#include <CORA/Symbol.h>
+#include <VarPro/Types.h>
+#include <VarPro/Symbol.h>
 #include <utility>
 #include <vector>
 
-namespace CORA {
+namespace VarPro {
 
 struct Measurement {
   Symbol id;
@@ -199,9 +199,9 @@ struct LandmarkPrior : Measurement {
   Scalar getTransPrecision() const { return getPrecision(); }
 };
 
-typedef std::vector<CORA::RelativePoseMeasurement> rel_pose_pose_measurements_t;
-typedef std::vector<CORA::RangeMeasurement> range_measurements_t;
-typedef std::vector<CORA::PosePrior> pose_priors_t;
-typedef std::vector<CORA::LandmarkPrior> landmark_priors_t;
+typedef std::vector<VarPro::RelativePoseMeasurement> rel_pose_pose_measurements_t;
+typedef std::vector<VarPro::RangeMeasurement> range_measurements_t;
+typedef std::vector<VarPro::PosePrior> pose_priors_t;
+typedef std::vector<VarPro::LandmarkPrior> landmark_priors_t;
 
-} // namespace CORA
+} // namespace VarPro

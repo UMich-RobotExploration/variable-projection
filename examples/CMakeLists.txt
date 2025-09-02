@@ -1,21 +1,21 @@
-add_executable(cora_example main.cpp)
-target_link_libraries(cora_example CORA)
+add_executable(varpro_example main.cpp)
+target_link_libraries(varpro_example VARPRO)
 
 if(${ENABLE_VISUALIZATION})
-  message(STATUS "Building CORAVis example")
-  add_executable(cora_vis cora_vis_test.cpp)
-  target_link_libraries(cora_vis CORA)
+  message(STATUS "Building VarProVis example")
+  add_executable(varpro_vis varpro_vis_test.cpp)
+  target_link_libraries(varpro_vis VARPRO)
 endif()
 
 if(${ENABLE_PROFILING})
-  target_compile_definitions(cora_example PRIVATE GPERFTOOLS)
-  target_link_libraries(cora_example profiler)
+  target_compile_definitions(varpro_example PRIVATE GPERFTOOLS)
+  target_link_libraries(varpro_example profiler)
 endif()
 
 if(${PERFORM_EXPERIMENTS})
   message(STATUS "Building paper_experiments executable")
   add_executable(paper_experiments paper_experiments.cpp)
-  target_link_libraries(paper_experiments CORA)
+  target_link_libraries(paper_experiments VARPRO)
   target_include_directories(paper_experiments PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
   if(${ENABLE_PROFILING})
     target_compile_definitions(paper_experiments PRIVATE GPERFTOOLS)
@@ -41,7 +41,7 @@ set(EXAMPLE_PYFG_FILES
 "data/tiers.pyfg"
 )
 
-message(STATUS "Building main cora_example command-line executable in directory ${EXECUTABLE_OUTPUT_PATH}\n")
+message(STATUS "Building main varpro_example command-line executable in directory ${EXECUTABLE_OUTPUT_PATH}\n")
 
 ## Copy example PyFG files to build directory
 foreach(PYFG_FILE ${EXAMPLE_PYFG_FILES})

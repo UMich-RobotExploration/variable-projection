@@ -1,5 +1,5 @@
 /**
- * @file CORA_preconditioners.cpp
+ * @file VARPRO_preconditioners.cpp
  * @author Alan Papalia (apapalia@mit.edu)
  * @brief
  * @version 0.1
@@ -9,16 +9,16 @@
  *
  */
 
-#include <CORA/CORA_preconditioners.h>
+#include <VarPro/Preconditioners.h>
 
-namespace CORA {
+namespace VarPro {
 
 CholFactorPtrVector getBlockCholeskyFactorization(const SparseMatrix &A,
                                                   const VectorXi &block_sizes) {
   if (block_sizes.sum() != A.rows()) {
     throw std::invalid_argument(
         "The block sizes must sum to A.rows() for the "
-        "CORA block Cholesky preconditioner. Block sizes sum: " +
+        "VARPRO block Cholesky preconditioner. Block sizes sum: " +
         std::to_string(block_sizes.sum()) +
         ", A.rows(): " + std::to_string(A.rows()));
   }
@@ -82,4 +82,4 @@ Matrix blockCholeskySolve(const CholFactorPtrVector &block_chol_factor_ptrs,
   return result;
 }
 
-} // namespace CORA
+} // namespace VarPro

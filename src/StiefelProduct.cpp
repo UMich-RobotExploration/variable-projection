@@ -2,8 +2,8 @@
 #include <Eigen/QR>
 #include <Eigen/SVD>
 
-#include "CORA/StiefelProduct.h"
-namespace CORA {
+#include <VarPro/StiefelProduct.h>
+namespace VarPro {
 
 Matrix StiefelProduct::projectToManifold(const Matrix &A) const {
   // We use a generalization of the well-known SVD-based projection for the
@@ -67,4 +67,4 @@ Matrix StiefelProduct::random_sample(
       R(static_cast<Index>(r), static_cast<Index>(c)) = g(generator);
   return projectToManifold(R);
 }
-} // namespace CORA
+} // namespace VarPro
