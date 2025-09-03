@@ -179,18 +179,18 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
           writeInitializationFile(init_fpath, problem, random_init);
         }
 
-        // VarPro::Matrix init = readInitializationFile(init_fpath, problem);
-        // VarPro::ProblemResult result = VarPro::solveProblem(problem, init, verbose);
-        // current_results.push_back(compileResult(dataset_path.filename().string(),
-        //                                         init_fpath, result, formulation));
+        VarPro::Matrix init = readInitializationFile(init_fpath, problem);
+        VarPro::ProblemResult result = VarPro::solveProblem(problem, init, verbose);
+        current_results.push_back(compileResult(dataset_path.filename().string(),
+                                                init_fpath, result, formulation));
       }
     }
   }
 
   // save the results to a json file in the experiment directory
-  // json j = current_results;
-  // std::ofstream file(dataset_path.string() + "/results.json");
-  // file << j << std::endl;
+  json j = current_results;
+  std::ofstream file(dataset_path.string() + "/results.json");
+  file << j << std::endl;
 
   // append the results to the all_results vector
   all_results.insert(all_results.end(), current_results.begin(), current_results.end());
@@ -207,8 +207,8 @@ int main(int argc, char **argv)
     std::cout << "Sweeping dataset in directory: " << dir << std::endl;
     sweepDataset(dir, all_results, config.verbose);
   }
-  // json j = all_results;
-  // // the output file should be the same directory as the config file abs_data_path
-  // std::ofstream file(config.abs_data_path + "/experiment_results.json");
-  // file << j << std::endl;
+  json j = all_results;
+  // the output file should be the same directory as the config file abs_data_path
+  std::ofstream file(config.abs_data_path + "/experiment_results.json");
+  file << j << std::endl;
 }
