@@ -503,7 +503,8 @@ void Problem::updateProblemData() {
   fillRelPoseSubmatrices();
   fillDataMatrix();
   updatePreconditioner();
-  if (formulation_ == Formulation::Implicit) {
+  if (formulation_ == Formulation::Implicit ||
+      formulation_ == Formulation::ExplicitVarPro) {
     fillImplicitFormulationMatrices();
   }
   problem_data_up_to_date_ = true;
@@ -712,10 +713,11 @@ void Problem::fillDataMatrix() {
 }
 
 void Problem::fillImplicitFormulationMatrices() {
-  if (formulation_ != Formulation::Implicit) {
+  if (formulation_ != Formulation::Implicit &&
+      formulation_ != Formulation::ExplicitVarPro) {
     throw std::invalid_argument("Implicit formulation matrices should only be "
-                                "filled when the problem is in implicit "
-                                "formulation mode");
+                                "filled when we need to access the subblocks of "
+                                "the data matrix (implicit or explicit-varpro.");
   }
 
   // Qmain_ is the upper-left (dn + r) x (dn + r) block of Q
@@ -744,10 +746,13 @@ Matrix Problem::separableStructureUpdate(const Matrix &Y) const {
                    relaxation_rank_, Y.rows(), Y.cols());
   if (formulation_ == Formulation::ExplicitVarPro) {
     Matrix Y_updated = Y;
-    Y_updated.block(rotAndRangeMatrixSize(), 0, numTranslationalStates(),
-                    relaxation_rank_) =
-        -LtransCholRed_->solve(TransOffDiagRed_.transpose() * Y.block(
-            0, 0, rotAndRangeMatrixSize(), relaxation_rank_));
+    Matrix Ymain = Y.block(0, 0, rotAndRangeMatrixSize(), relaxation_rank_);
+    Matrix P1 = TransOffDiagRed_.transpose() * Ymain;
+    Matrix P2 = LtransCholRed_->solve(P1);
+    Y_updated.block(rotAndRangeMatrixSize(), 0, numTranslationalStates()-1,
+                    relaxation_rank_) = -P2;
+    // set the last row to zero since this is the pinned translation
+    Y_updated.row(Y.rows() - 1).setZero();
     return Y_updated;
   } else {
     throw std::invalid_argument("Invalid formulation for separableStructureUpdate");

@@ -27,7 +27,8 @@ ProblemResult solveProblem(Problem &problem, // NOLINT(runtime/references)
                      const Matrix &x0, int max_relaxation_rank, bool verbose,
                      bool log_iterates, bool show_iterates) {
   // check that x0 has the right number of rows
-  if (problem.getFormulation() == Formulation::Explicit) {
+  if (problem.getFormulation() == Formulation::Explicit ||
+      problem.getFormulation() == Formulation::ExplicitVarPro) {
     checkMatrixShape("solveCora::Explicit", problem.getDataMatrixSize(),
                      x0.cols(), x0.rows(), x0.cols());
   } else {
@@ -146,7 +147,7 @@ ProblemResult solveProblem(Problem &problem, // NOLINT(runtime/references)
     printIfVerbose(verbose, "\nSolving problem at rank " +
                                 std::to_string(problem.getRelaxationRank()));
     result = Optimization::Riemannian::TNT<Matrix, Matrix, Scalar, Matrix>(
-        f, QM, metric, retract, X, NablaF_Y, precon, params, user_function);
+        f, QM, metric, retract, X, NablaF_Y, precon, params, user_function, separable_update);
     printIfVerbose(verbose, "Obtained solution with objective value: " +
                                 std::to_string(result.f));
     if (log_iterates) {
