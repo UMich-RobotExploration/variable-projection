@@ -18,7 +18,7 @@ namespace VarPro
 {
 
   using TntResult = Optimization::Riemannian::TNTResult<Matrix, Scalar>;
-  using ProblemResult = std::pair<TntResult, std::vector<Matrix>>;
+  using ProblemResult = TntResult;
 
   ProblemResult solveProblem(Problem &problem, const Matrix &x0, bool verbose = false);
 

@@ -1,6 +1,3 @@
-add_executable(varpro_example main.cpp)
-target_link_libraries(varpro_example VARPRO)
-
 if(${ENABLE_PROFILING})
   target_compile_definitions(varpro_example PRIVATE GPERFTOOLS)
   target_link_libraries(varpro_example profiler)

@@ -120,7 +120,7 @@ namespace VarPro
     params.gradient_tolerance = 1e-6;
     params.theta = 0.8;
     params.Delta_tolerance = 1e-5;
-    params.verbose = show_iterates;
+    params.verbose = verbose;
     params.precision = 2;
     params.max_computation_time = 20;
     params.relative_decrease_tolerance = 1e-6;
@@ -146,7 +146,7 @@ namespace VarPro
     printIfVerbose(verbose, "Obtained solution with objective value: " +
                                 std::to_string(result.f));
 
-    return std::make_pair(result, iterates);
+    return result;
   }
 
 } // namespace VarPro

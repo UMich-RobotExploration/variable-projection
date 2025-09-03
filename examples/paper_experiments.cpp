@@ -195,22 +195,6 @@ void sweepDataset(fs::path dataset_path)
 
 int main(int argc, char **argv)
 {
-  std::vector<std::string> original_exp_files = {
-      "data/plaza1.pyfg", "data/plaza2.pyfg", "data/single_drone.pyfg",
-      "data/tiers.pyfg"}; // TIERS faster w/ random init
-
-  auto mrclam_range_and_rpm_files = getRangeAndRpmMrclamFiles();
-
-  std::vector<std::string> files = {};
-
   Config config = parseConfig("/home/alan/variable-projection/examples/config.json");
-
-  for (auto file : files)
-  {
-    VarPro::Matrix soln = solveProblem(
-        file, config.init_rank_jump, config.max_rank, config.preconditioner,
-        config.formulation, config.init_type, config.verbose,
-        config.log_iterates, config.show_iterates);
-    std::cout << std::endl;
-  }
+  sweepDataset(config.abs_data_path);
 }
