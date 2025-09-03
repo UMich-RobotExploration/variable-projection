@@ -739,6 +739,18 @@ void Problem::fillImplicitFormulationMatrices() {
       numTranslationalStates() - 1, numTranslationalStates() - 1));
 }
 
+Matrix Problem::separableStructureUpdate(const Matrix &Y) const {
+  checkMatrixShape("Problem::separableStructureUpdate", getExpectedVariableSize(),
+                   relaxation_rank_, Y.rows(), Y.cols());
+  if (formulation_ == Formulation::ExplicitVarPro) {
+    throw NotImplementedException(
+        "Explicit variable projection not yet implemented");
+
+  } else {
+    throw std::invalid_argument("Unknown formulation");
+  }
+}
+
 Matrix Problem::dataMatrixProduct(const Matrix &Y) const {
   checkMatrixShape("Problem::dataMatrixProduct::Y", getExpectedVariableSize(),
                    Y.cols(), Y.rows(), Y.cols());

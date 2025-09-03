@@ -74,6 +74,15 @@ ProblemResult solveProblem(Problem &problem, // NOLINT(runtime/references)
         };
       };
 
+  // variable projection function
+  std::optional<SeparableStructureUpdate> separable_update = std::nullopt;
+  if (problem.getFormulation() == Formulation::ExplicitVarPro) {
+    separable_update = [&problem](const Matrix &Y,
+                                 const Matrix &NablaF_Y) {
+      return problem.separableStructureUpdate(Y);
+    };
+  }
+
   // get retraction from problem
   Optimization::Riemannian::Retraction<Matrix, Matrix, Matrix> retract =
       [&problem](const Matrix &Y, const Matrix &V, const Matrix &NablaF_Y) {

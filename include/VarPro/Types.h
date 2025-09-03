@@ -49,8 +49,11 @@ typedef Eigen::MatrixXd Matrix;
 typedef Eigen::DiagonalMatrix<Scalar, Eigen::Dynamic> DiagonalMatrix;
 
 enum class Formulation {
-  // The VARPRO problem in which translations are explicitly represented
+  // The original problem in which translations are explicitly represented
   Explicit,
+  // The original problem, but where the translations are set to their optimal
+  // values at each iterate
+  ExplicitVarPro,
   // The problem in which translations are marginalized out
   Implicit
 };
@@ -84,5 +87,10 @@ enum class Initialization { Random, Odometry };
 typedef Optimization::Riemannian::TNTUserFunction<Matrix, Matrix, Scalar,
                                                   Matrix>
     InstrumentationFunction;
+
+/** A typedef for a separable structure update (based on Khosoussi et al.)
+ * that can be passed into the Riemannian TNT solver. */
+typedef Optimization::Riemannian::SeparableStructureUpdate<Matrix, Matrix>
+    SeparableStructureUpdate;
 
 } // namespace VarPro
