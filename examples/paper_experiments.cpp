@@ -81,12 +81,6 @@ Config parseConfig(const std::string &filename)
   return config;
 }
 
-// "rank3_init10.txt": {
-//   "cost": 3687.256904220291,
-//   "iterations": 542,
-//   "time": 53.784879541,
-//   "formulation": "ExplicitVarPro",
-// }
 std::vector<int> getRanksToSweep(int min_rank, int max_rank)
 {
   std::vector<int> ranks;
@@ -158,6 +152,7 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
   std::vector<int> ranks = getRanksToSweep(problem.dim(), config.max_rank);
   std::vector<VarPro::Formulation> formulations = getFormulationsToSweep();
   auto init_file_names = makeInitializationFiles(dataset_path.string(), ranks);
+  std::vector<ExperimentResult> current_results = {};
 
   // now lets iterate over all of the different configurations
   for (size_t r_idx = 0; r_idx < ranks.size(); r_idx++)
@@ -184,13 +179,21 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
           writeInitializationFile(init_fpath, problem, random_init);
         }
 
-        VarPro::Matrix init = readInitializationFile(init_fpath, problem);
-        VarPro::ProblemResult result = VarPro::solveProblem(problem, init, verbose);
-        all_results.push_back(compileResult(dataset_path.filename().string(),
-                                            init_fpath, result, formulation));
+        // VarPro::Matrix init = readInitializationFile(init_fpath, problem);
+        // VarPro::ProblemResult result = VarPro::solveProblem(problem, init, verbose);
+        // current_results.push_back(compileResult(dataset_path.filename().string(),
+        //                                         init_fpath, result, formulation));
       }
     }
   }
+
+  // save the results to a json file in the experiment directory
+  // json j = current_results;
+  // std::ofstream file(dataset_path.string() + "/results.json");
+  // file << j << std::endl;
+
+  // append the results to the all_results vector
+  all_results.insert(all_results.end(), current_results.begin(), current_results.end());
 }
 
 int main(int argc, char **argv)
@@ -204,7 +207,8 @@ int main(int argc, char **argv)
     std::cout << "Sweeping dataset in directory: " << dir << std::endl;
     sweepDataset(dir, all_results, config.verbose);
   }
-  json j = all_results;
-  std::ofstream file("/home/alan/variable-projection/examples/all_results.json");
-  file << j << std::endl;
+  // json j = all_results;
+  // // the output file should be the same directory as the config file abs_data_path
+  // std::ofstream file(config.abs_data_path + "/experiment_results.json");
+  // file << j << std::endl;
 }
