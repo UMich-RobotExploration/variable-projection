@@ -1195,14 +1195,14 @@ namespace VarPro
                                            const Symbol &pose_symbol) const
   {
     Index trans_idx = getTranslationIdx(pose_symbol);
-    return Y.block(trans_idx, 0, 1, relaxation_rank_);
+    return Y.block(trans_idx, 0, 1, relaxation_rank_).transpose();
   }
 
   Matrix Problem::getBearingFromRangeSymbolPair(const Matrix &Y,
                                                 const SymbolPair &range_symbol_pair) const
   {
     Index range_idx = getRangeIdx(range_symbol_pair);
-    return Y.block(range_idx, 0, 1, relaxation_rank_);
+    return Y.block(range_idx, 0, 1, relaxation_rank_).transpose();
   }
 
   Matrix Problem::getRandomInitialGuess() const
