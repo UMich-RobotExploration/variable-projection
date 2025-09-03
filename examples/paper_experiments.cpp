@@ -3,7 +3,7 @@
 #include <VarPro/Types.h>
 #include <VarPro/Utils.h>
 #include <VarPro/Symbol.h>
-#include <VarPro/pyfg_text_parser.h>
+#include <VarPro/PyfgTextParser.h>
 
 #ifdef ENABLE_VISUALIZATION
 #include <VarPro/Vis.h>

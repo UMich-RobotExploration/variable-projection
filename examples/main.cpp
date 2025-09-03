@@ -1,7 +1,7 @@
 #include <VarPro/Solver.h>
 #include <VarPro/Problem.h>
 #include <VarPro/Types.h>
-#include <VarPro/pyfg_text_parser.h>
+#include <VarPro/PyfgTextParser.h>
 
 #ifdef GPERFTOOLS
 #include <gperftools/profiler.h>
@@ -9,7 +9,7 @@
 
 int main(int argc, char **argv) {
   if (argc != 2) {
-    std::cout << "Usage: " << argv[0] << " [input .g2o file]" << std::endl;
+    std::cout << "Usage: " << argv[0] << " [input .pyfg file]" << std::endl;
     exit(1);
   }
 
