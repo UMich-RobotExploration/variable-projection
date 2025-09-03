@@ -236,6 +236,14 @@ public:
   Index getRangeIdx(const SymbolPair &range_symbol_pair) const;
   Index getTranslationIdx(const Symbol &trans_symbol) const;
 
+  // accessing blocks of a matrix corresponding to a given pose or landmark
+  Matrix getRotationFromSymbol(const Matrix &Y,
+                                   const Symbol &pose_symbol) const;
+  Matrix getTranslationFromSymbol(const Matrix &Y,
+                                      const Symbol &pose_symbol) const;
+  Matrix getBearingFromRangeSymbolPair(const Matrix &Y,
+                                   const SymbolPair &range_symbol_pair) const;
+
   void printProblem() const;
 
   // function to get read-only references to the data submatrices

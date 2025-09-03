@@ -1038,6 +1038,20 @@ Index Problem::getTranslationIdx(const Symbol &trans_symbol) const {
   throw std::invalid_argument("Unknown translation symbol");
 }
 
+Matrix Problem::getRotationFromSymbol(const Matrix &Y,
+                                  const Symbol &pose_symbol) const{
+                                    throw NotImplementedException("Problem::getRotationFromSymbol");
+                                  }
+Matrix Problem::getTranslationFromSymbol(const Matrix &Y,
+                                    const Symbol &pose_symbol) const{
+                                      throw NotImplementedException("Problem::getTranslationFromSymbol");
+                                    }
+Matrix Problem::getBearingFromRangeSymbolPair(const Matrix &Y,
+                                  const SymbolPair &range_symbol_pair) const{
+                                    throw NotImplementedException("Problem::getBearingFromRangeSymbolPair");
+                                  }
+
+
 Matrix Problem::getRandomInitialGuess() const {
   // assert that the problem data must be up to date
   assert(problem_data_up_to_date_);
