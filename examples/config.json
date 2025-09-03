@@ -1,5 +1,5 @@
 {
   "verbose": true,
-  "formulation": "ExplicitVarPro",
+  "max_rank": 7,
   "abs_data_path": "/home/alan/variable-projection/examples/data/"
 }

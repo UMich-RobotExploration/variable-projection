@@ -25,6 +25,7 @@ struct Config
 {
   bool verbose;
   std::string abs_data_path;
+  int max_rank;
 };
 
 Config parseConfig(const std::string &filename)
@@ -42,6 +43,7 @@ Config parseConfig(const std::string &filename)
 
   Config config;
   config.verbose = j["verbose"];
+  config.max_rank = j["max_rank"];
   config.abs_data_path = j["abs_data_path"];
 
   return config;
@@ -85,19 +87,6 @@ VarPro::ProblemResult solveProblem(std::string pyfg_fpath, int init_rank_jump,
   // solve the problem
   VarPro::ProblemResult soln = VarPro::solveProblem(problem, x0, verbose);
 
-  // end timer
-  auto end = std::chrono::high_resolution_clock::now();
-  std::chrono::duration<double> elapsed = end - start;
-  std::cout << "VARPRO took " << elapsed.count() << " seconds" << std::endl;
-
-  std::cout << "Experiment result, name: " << pyfg_fpath
-            << ", time: " << elapsed.count()
-            << " seconds, cost: " << soln.first.f << ", marginalized: "
-            << (formulation == VarPro::Formulation::Implicit)
-            << ", init rank jump: " << init_rank_jump
-            << ", init random: " << (init_type == InitType::Random)
-            << std::endl;
-
 #ifdef GPERFTOOLS
   ProfilerStop();
 #endif
@@ -116,8 +105,43 @@ VarPro::ProblemResult solveProblem(std::string pyfg_fpath, int init_rank_jump,
 // "rank3_init10.txt": {
 //   "cost": 3687.256904220291,
 //   "iterations": 542,
-//   "time": 53.784879541
+//   "time": 53.784879541,
+//   "formulation": "ExplicitVarPro",
 // }
+std::vector<int> getRanksToSweep(int min_rank, int max_rank)
+{
+  std::vector<int> ranks;
+  for (int r = min_rank; r <= max_rank; r++)
+  {
+    ranks.push_back(r);
+  }
+  return ranks;
+}
+
+std::vector<VarPro::Formulation> getFormulationsToSweep()
+{
+  return {VarPro::Formulation::Explicit,
+          VarPro::Formulation::ExplicitVarPro,
+          VarPro::Formulation::Implicit};
+}
+
+std::vector<std::vector<std::string>> makeInitializationFiles(const std::string &dataset_path,
+                                                              const std::vector<int> &ranks)
+{
+  // start by making a 2d array to hold all of the initialization file paths
+  // the array should have len(ranks) rows and 10 columns
+  std::vector<std::vector<std::string>> init_file_paths = {};
+  for (int r : ranks)
+  {
+    std::vector<std::string> rank_init_file_paths;
+    for (int i = 1; i <= 10; i++)
+    {
+      rank_init_file_paths.push_back(dataset_path + "/rank" + std::to_string(r) +
+                                     "_init" + std::to_string(i) + ".txt");
+    }
+    init_file_paths.push_back(rank_init_file_paths);
+  }
+}
 
 /**
  * @brief Takes as input the directory that contains a .pyfg file and many different
@@ -130,61 +154,43 @@ void sweepDataset(fs::path dataset_path)
 
   // find the .pyfg file in the directory
   std::string pyfg_fpath = findPyfgInDir(dataset_path).string();
+  Config config = parseConfig("/home/alan/variable-projection/examples/config.json");
 
   VarPro::Problem problem =
       std::filesystem::exists(pyfg_fpath)
           ? VarPro::parsePyfgTextToProblem(pyfg_fpath)
           : VarPro::parsePyfgTextToProblem("./bin/" + pyfg_fpath);
 
-  // we want to iterate over rank values from problem.dim() to 7
-  int rank_start = problem.dim();
-  int rank_end = 7;
-  auto ranks = std::vector<int>();
-  for (int r = rank_start; r <= rank_end; r++)
-  {
-    ranks.push_back(r);
-  }
-
-  // we want to try all three different formulation types: Explicit, ExplicitVarPro, Implicit
-  std::vector<VarPro::Formulation> formulations = {
-      VarPro::Formulation::Explicit,
-      VarPro::Formulation::ExplicitVarPro,
-      VarPro::Formulation::Implicit};
-
-  // init file names = rank{r}_init{i}.txt for r in ranks and i in [1, 10]
-  // make a 2d array of strings
-  std::vector<std::vector<std::string>> init_file_names = {}
-  for (int r : ranks)
-  {
-    std::vector<std::string> rank_init_file_names = {};
-    for (int i = 1; i <= 10; i++)
-    {
-      rank_init_file_names.push_back("rank" + std::to_string(r) + "_init" + std::to_string(i) + ".txt");
-    }
-    init_file_names.push_back(rank_init_file_names);
-  }
+  std::vector<int> ranks = getRanksToSweep(problem.dim(), config.max_rank);
+  std::vector<VarPro::Formulation> formulations = getFormulationsToSweep();
+  auto init_file_names = makeInitializationFiles(dataset_path.string(), ranks);
 
   // now lets iterate over all of the different configurations
   for (size_t r_idx = 0; r_idx < ranks.size(); r_idx++)
   {
+    // set the rank
     int r = ranks[r_idx];
+    problem.setRank(r);
     for (VarPro::Formulation formulation : formulations)
     {
+      // set the formulation
+      problem.setFormulation(formulation);
       for (size_t init_idx = 0; init_idx < init_file_names[r_idx].size(); init_idx++)
       {
-        std::string init_file_name = init_file_names[r_idx][init_idx];
-        std::string init_fpath = dataset_path.string() + "/" + init_file_name;
+        std::string init_fpath = init_file_names[r_idx][init_idx];
         // if file doesn't exist, sample a random initialization instead from
         // problem and write to file
         if (!std::filesystem::exists(init_fpath))
         {
           VarPro::Matrix random_init = problem.getRandomInitialGuess();
-          std::ofstream init_file(init_fpath);
-          init_file << random_init << std::endl;
-          init_file.close();
-          std::cout << "Wrote random initialization to " << init_fpath << std::endl;
+          writeInitializationFile(init_fpath, problem, random_init);
         }
 
+        VarPro::Matrix init = readInitializationFile(init_fpath, problem);
+        VarPro::ProblemResult result = VarPro::solveProblem(problem, init, true);
+      }
+    }
+  }
 }
 
 int main(int argc, char **argv)

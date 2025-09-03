@@ -1187,19 +1187,22 @@ namespace VarPro
   Matrix Problem::getRotationFromSymbol(const Matrix &Y,
                                         const Symbol &pose_symbol) const
   {
-    throw NotImplementedException("Problem::getRotationFromSymbol");
+    Index pose_idx = getRotationIdx(pose_symbol);
+    return Y.block(pose_idx * dim_, 0, dim_, relaxation_rank_).transpose();
   }
 
   Matrix Problem::getTranslationFromSymbol(const Matrix &Y,
                                            const Symbol &pose_symbol) const
   {
-    throw NotImplementedException("Problem::getTranslationFromSymbol");
+    Index trans_idx = getTranslationIdx(pose_symbol);
+    return Y.block(trans_idx, 0, 1, relaxation_rank_);
   }
 
   Matrix Problem::getBearingFromRangeSymbolPair(const Matrix &Y,
                                                 const SymbolPair &range_symbol_pair) const
   {
-    throw NotImplementedException("Problem::getBearingFromRangeSymbolPair");
+    Index range_idx = getRangeIdx(range_symbol_pair);
+    return Y.block(range_idx, 0, 1, relaxation_rank_);
   }
 
   Matrix Problem::getRandomInitialGuess() const
