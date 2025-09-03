@@ -1,12 +1,6 @@
 add_executable(varpro_example main.cpp)
 target_link_libraries(varpro_example VARPRO)
 
-if(${ENABLE_VISUALIZATION})
-  message(STATUS "Building VarProVis example")
-  add_executable(varpro_vis varpro_vis_test.cpp)
-  target_link_libraries(varpro_vis VARPRO)
-endif()
-
 if(${ENABLE_PROFILING})
   target_compile_definitions(varpro_example PRIVATE GPERFTOOLS)
   target_link_libraries(varpro_example profiler)

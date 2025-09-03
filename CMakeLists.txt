@@ -31,8 +31,6 @@ set(ENABLE_VECTORIZATION ON CACHE BOOL "Enable vectorized instruction sets (SIMD
 set(ENABLE_OPENMP OFF CACHE BOOL "Enable OMP parallelization? [enabled by default]")
 # Enable code profiling using gperftools
 set(ENABLE_PROFILING OFF CACHE BOOL "Enable code profiling using gperftools")
-# Enable visualization module.
-set(ENABLE_VISUALIZATION OFF CACHE BOOL "Enable visualization module.")
 # Run the experiments from the paper
 set(PERFORM_EXPERIMENTS ON CACHE BOOL "Run the experiments from the paper.")
 # Build C++ examples
@@ -96,13 +94,6 @@ set(PRECONDITIONERS_DIR ${LIBS_DIR}/Preconditioners/ CACHE PATH "Path to top-lev
 # Run the Preconditioners package's CMake file
 add_subdirectory(${PRECONDITIONERS_DIR})
 
-# Find Optimization library
-if (${ENABLE_VISUALIZATION})
-set(TONIOVIZ_DIR ${LIBS_DIR}/tonioviz/ CACHE PATH "Path to top-level directory of TonioViz library (the one containing CMakeLists.txt)")
-add_subdirectory(${TONIOVIZ_DIR})
-get_property(TONIOVIZ_INCLUDE_DIRS TARGET tonioviz PROPERTY INTERFACE_INCLUDE_DIRECTORIES)
-endif ()
-
 # BUILD VARPRO LIBRARY
 
 set(VARPRO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
@@ -141,11 +132,6 @@ ${VARPRO_SOURCE_DIR}/StiefelProduct.cpp
 ${VARPRO_SOURCE_DIR}/ObliqueManifold.cpp
 )
 
-if (${ENABLE_VISUALIZATION})
-    list(APPEND VARPRO_SRCS ${VARPRO_SOURCE_DIR}/Vis.cpp)
-    list(APPEND VARPRO_HDRS ${VARPRO_HDR_DIR}/Vis.h)
-endif()
-
 # The VARPRO library
 add_library(${PROJECT_NAME} SHARED ${VARPRO_HDRS} ${VARPRO_SRCS})
 target_include_directories(${PROJECT_NAME} PUBLIC ${VARPRO_INCLUDES} ${OPTIMIZATION_INCLUDE_DIR})
@@ -155,11 +141,6 @@ if(OPENMP_FOUND)
 # Add additional compilation flags to enable OpenMP support
 set_target_properties(${PROJECT_NAME} PROPERTIES COMPILE_FLAGS ${OpenMP_CXX_FLAGS})
 set_target_properties(${PROJECT_NAME} PROPERTIES LINK_FLAGS "-fopenmp")
-endif()
-
-if (${ENABLE_VISUALIZATION})
-    target_include_directories(${PROJECT_NAME} PUBLIC ${TONIOVIZ_INCLUDE_DIRS})
-    target_link_libraries(${PROJECT_NAME} PUBLIC tonioviz)
 endif()
 
 # If python bindings are enabled, set warning that this is not implemented yet

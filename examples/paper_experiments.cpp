@@ -5,10 +5,6 @@
 #include <VarPro/Symbol.h>
 #include <VarPro/PyfgTextParser.h>
 
-#ifdef ENABLE_VISUALIZATION
-#include <VarPro/Vis.h>
-#endif
-
 #include <filesystem>
 #include <set>
 #include <vector>
@@ -750,26 +746,6 @@ VarPro::Matrix solveProblem(std::string pyfg_fpath, int init_rank_jump,
   std::ofstream results_file("results.txt", std::ios_base::app);
   results_file << pyfg_fpath << " " << elapsed.count() << std::endl;
   results_file.close();
-
-#ifdef ENABLE_VISUALIZATION
-  // if we are logging the iterates, then let's visualize VarPro solution
-  if (log_iterates)
-  {
-    VarPro::VarProVis viz{};
-    double viz_hz = 10.0;
-
-    // save all the iterates to separate .tum files
-    auto aligned_iterates = viz.projectAndAlignIterates(problem, soln.second);
-    for (size_t i = 0; i < soln.second.size(); i++)
-    {
-      std::string fake_fpath =
-          "saved_iterates/varpro_" + std::to_string(i) + ".pyfg";
-      saveSolutions(problem, aligned_iterates[i], fake_fpath);
-    }
-
-    viz.run(problem, {soln.second}, viz_hz, true);
-  }
-#endif
 
   VarPro::Matrix aligned_soln = problem.alignEstimateToOrigin(soln.first.x);
   saveSolutions(problem, aligned_soln, pyfg_fpath);
