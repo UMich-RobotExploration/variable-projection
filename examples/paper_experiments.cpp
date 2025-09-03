@@ -81,6 +81,14 @@ Config parseConfig(const std::string &filename)
   {
     config.formulation = VarPro::Formulation::Explicit;
   }
+  else if (formulation_str == "ExplicitVarPro")
+  {
+    config.formulation = VarPro::Formulation::ExplicitVarPro;
+  }
+  else
+  {
+    throw std::runtime_error("Unknown formulation: " + formulation_str);
+  }
 
   std::string init_type_str = j["init_type"];
   if (init_type_str == "Odom")

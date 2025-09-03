@@ -743,18 +743,21 @@ Matrix Problem::separableStructureUpdate(const Matrix &Y) const {
   checkMatrixShape("Problem::separableStructureUpdate", getExpectedVariableSize(),
                    relaxation_rank_, Y.rows(), Y.cols());
   if (formulation_ == Formulation::ExplicitVarPro) {
-    throw NotImplementedException(
-        "Explicit variable projection not yet implemented");
-
+    Matrix Y_updated = Y;
+    Y_updated.block(rotAndRangeMatrixSize(), 0, numTranslationalStates(),
+                    relaxation_rank_) =
+        -LtransCholRed_->solve(TransOffDiagRed_.transpose() * Y.block(
+            0, 0, rotAndRangeMatrixSize(), relaxation_rank_));
+    return Y_updated;
   } else {
-    throw std::invalid_argument("Unknown formulation");
+    throw std::invalid_argument("Invalid formulation for separableStructureUpdate");
   }
 }
 
 Matrix Problem::dataMatrixProduct(const Matrix &Y) const {
   checkMatrixShape("Problem::dataMatrixProduct::Y", getExpectedVariableSize(),
                    Y.cols(), Y.rows(), Y.cols());
-  if (formulation_ == Formulation::Explicit) {
+  if (formulation_ == Formulation::Explicit || formulation_ == Formulation::ExplicitVarPro) {
     return data_matrix_ * Y;
   } else if (formulation_ == Formulation::Implicit) {
     Matrix QY = (Qmain_ * Y);
@@ -884,7 +887,8 @@ Matrix Problem::precondition(const Matrix &V) const {
   Matrix res;
   if (preconditioner_ == Preconditioner::BlockCholesky ||
       preconditioner_ == Preconditioner::RegularizedCholesky) {
-    if (formulation_ == Formulation::Explicit) {
+    if (formulation_ == Formulation::Explicit ||
+        formulation_ == Formulation::ExplicitVarPro) {
       res = blockCholeskySolve(preconditioner_matrices_.block_chol_factor_ptrs_,
                                V);
     } else if (formulation_ == Formulation::Implicit) {
@@ -954,7 +958,7 @@ int Problem::getDataMatrixSize() const {
 }
 
 int Problem::getExpectedVariableSize() const {
-  if (formulation_ == Formulation::Explicit) {
+  if (formulation_ == Formulation::Explicit || formulation_ == Formulation::ExplicitVarPro) {
     return getDataMatrixSize();
   } else if (formulation_ == Formulation::Implicit) {
     return rotAndRangeMatrixSize();
