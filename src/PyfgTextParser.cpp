@@ -1,7 +1,7 @@
 //
 // Created by Tim Magoun on 10/31/23.
 //
-#include <VarPro/pyfg_text_parser.h>
+#include <VarPro/PyfgTextParser.h>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <set>

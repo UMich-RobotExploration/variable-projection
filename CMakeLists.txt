@@ -124,7 +124,7 @@ ${VARPRO_HDR_DIR}/Problem.h
 ${VARPRO_HDR_DIR}/Preconditioners.h
 ${VARPRO_HDR_DIR}/Symbol.h
 ${VARPRO_HDR_DIR}/Measurements.h
-${VARPRO_HDR_DIR}/pyfg_text_parser.h
+${VARPRO_HDR_DIR}/PyfgTextParser.h
 ${VARPRO_HDR_DIR}/MatrixManifold.h
 ${VARPRO_HDR_DIR}/StiefelProduct.h
 ${VARPRO_HDR_DIR}/ObliqueManifold.h
@@ -136,7 +136,7 @@ ${VARPRO_SOURCE_DIR}/Problem.cpp
 ${VARPRO_SOURCE_DIR}/Utils.cpp
 ${VARPRO_SOURCE_DIR}/Preconditioners.cpp
 ${VARPRO_SOURCE_DIR}/Symbol.cpp
-${VARPRO_SOURCE_DIR}/pyfg_text_parser.cpp
+${VARPRO_SOURCE_DIR}/PyfgTextParser.cpp
 ${VARPRO_SOURCE_DIR}/StiefelProduct.cpp
 ${VARPRO_SOURCE_DIR}/ObliqueManifold.cpp
 )

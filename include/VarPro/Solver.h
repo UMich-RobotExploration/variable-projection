@@ -9,7 +9,7 @@
 
 #include <VarPro/Problem.h>
 #include <VarPro/Types.h>
-#include <VarPro/pyfg_text_parser.h>
+#include <VarPro/PyfgTextParser.h>
 #include <string>
 #include <utility>
 #include <vector>

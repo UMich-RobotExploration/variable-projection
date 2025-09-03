@@ -1,5 +1,5 @@
 /**
- * @file pyfg_text_parser.h
+ * @file PyfgTextParser.h
  * @author
  * @brief Utilities to parse a text file written in the PyFG format
  * @version 0.1
