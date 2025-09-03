@@ -147,6 +147,23 @@ void getExperimentDirsRecursive(const fs::path &path, std::vector<fs::path> &exp
     }
 }
 
+std::uintmax_t dir_size(const fs::path& dir) {
+    std::uintmax_t size = 0;
+    std::error_code ec;
+
+    if (!fs::exists(dir, ec)) return 0;
+
+    for (auto const& entry : fs::recursive_directory_iterator(
+             dir, fs::directory_options::skip_permission_denied, ec))
+    {
+        if (entry.is_regular_file(ec)) {
+            size += entry.file_size(ec);
+        }
+    }
+    return size;
+}
+
+
 void writeInitializationFile(const fs::path &init_fpath,
                              const VarPro::Problem &problem,
                              const VarPro::Matrix &Y_init)

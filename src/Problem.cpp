@@ -1181,7 +1181,7 @@ namespace VarPro
     }
 
     // if we get here, we didn't find the translation symbol
-    throw std::invalid_argument("Unknown translation symbol");
+    throw std::invalid_argument("Unknown translation symbol: " + trans_symbol.string());
   }
 
   Matrix Problem::getRotationFromSymbol(const Matrix &Y,

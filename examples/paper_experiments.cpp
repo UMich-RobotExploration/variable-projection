@@ -201,11 +201,26 @@ int main(int argc, char **argv)
   Config config = parseConfig("/home/alan/variable-projection/examples/config.json");
   std::vector<fs::path> experiment_dirs = {};
   getExperimentDirsRecursive(config.abs_data_path, experiment_dirs);
+
+  // sort experiment_dirs based on the size of the directory (smallest to largest)
+  std::sort(experiment_dirs.begin(), experiment_dirs.end(),
+            [](const fs::path &a, const fs::path &b)
+            {
+              return dir_size(a) < dir_size(b);
+            });
+
   std::vector<ExperimentResult> all_results = {};
   for (const auto &dir : experiment_dirs)
   {
     std::cout << "Sweeping dataset in directory: " << dir << std::endl;
-    sweepDataset(dir, all_results, config.verbose);
+    try
+    {
+      sweepDataset(dir, all_results, config.verbose);
+    }
+    catch (const std::invalid_argument &e)
+    {
+      std::cerr << "Error sweeping dataset in directory " << dir << ": " << e.what() << std::endl;
+    }
   }
   json j = all_results;
   // the output file should be the same directory as the config file abs_data_path
