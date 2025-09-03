@@ -4,6 +4,9 @@
 #include <VarPro/Symbol.h>
 #include <VarPro/PyfgTextParser.h>
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 using PoseChain = std::vector<VarPro::Symbol>;
 using PoseChains = std::vector<PoseChain>;
 using RPM = VarPro::RelativePoseMeasurement;
@@ -116,28 +119,31 @@ fs::path findPyfgInDir(const fs::path &dir_path)
  * the leaf directories)
  *
  * @param path the path to search
- * @param leaf_dirs the vector to store the leaf directories
+ * @param exp_dirs the vector to store the leaf directories
  */
-void getExperimentDirs(const fs::path &path, std::vector<fs::path> &leaf_dirs)
+void getExperimentDirsRecursive(const fs::path &path, std::vector<fs::path> &exp_dirs)
 {
     if (!fs::is_directory(path))
     {
         throw std::invalid_argument("Path " + path.string() + " is not a directory");
     }
 
-    bool has_sub_directory = false;
+    bool has_pyfg = false;
     for (const auto &entry : fs::directory_iterator(path))
     {
         if (entry.is_directory())
         {
-            has_sub_directory = true;
-            find_leaf_directories_recursive(entry.path(), leaf_dirs);
+            getExperimentDirsRecursive(entry.path(), exp_dirs);
+        }
+        if (entry.path().extension() == ".pyfg")
+        {
+            has_pyfg = true;
         }
     }
 
-    if (!has_sub_directory)
+    if (has_pyfg)
     {
-        leaf_dirs.push_back(path);
+        exp_dirs.push_back(path);
     }
 }
 
@@ -145,6 +151,12 @@ void writeInitializationFile(const fs::path &init_fpath,
                              const VarPro::Problem &problem,
                              const VarPro::Matrix &Y_init)
 {
+    // if the directory does not exist, create it
+    if (!std::filesystem::exists(init_fpath.parent_path()))
+    {
+        std::filesystem::create_directories(init_fpath.parent_path());
+    }
+
     std::ofstream init_file(init_fpath);
     if (!init_file.is_open())
     {
@@ -159,23 +171,33 @@ void writeInitializationFile(const fs::path &init_fpath,
     {
         VarPro::Symbol pose_symbol = pose_symbol_idx.first;
         VarPro::Matrix R = problem.getRotationFromSymbol(Y_init, pose_symbol);
+
+        // check that the rotation is rank x dim
+        checkMatrixShape("writeInitializationFile::R", problem.getRelaxationRank(),
+                         problem.dim(), R.rows(), R.cols());
+
+        //  should be a column vector
         VarPro::Matrix t = problem.getTranslationFromSymbol(Y_init, pose_symbol);
+        checkMatrixShape("writeInitializationFile::t", problem.getRelaxationRank(), 1,
+                         t.rows(), t.cols());
 
         std::string pose_line = "VERTEX_POSE " + pose_symbol.string() + " ";
-        for (int i = 0; i < t.cols(); i++)
+        for (int i = 0; i < t.rows(); i++)
         {
-            pose_line += std::to_string(t(0, i)) + " ";
+            pose_line += std::to_string(t(i, 0)) + " ";
         }
         for (int i = 0; i < R.rows(); i++)
         {
             for (int j = 0; j < R.cols(); j++)
             {
-                pose_line += std::to_string(R(i, j)) + " ";
+                pose_line += std::to_string(R(i, j));
+                if (j < R.cols() - 1 || i < R.rows() - 1) // add space if not last element
+                {
+                    pose_line += " ";
+                }
             }
         }
         init_file << pose_line << std::endl;
-
-        throw NotImplementedException("writeInitializationFile::Pose");
     }
 
     // write each point to a line
@@ -184,11 +206,17 @@ void writeInitializationFile(const fs::path &init_fpath,
     {
         VarPro::Symbol landmark_symbol = landmark_symbol_idx.first;
         VarPro::Matrix p = problem.getTranslationFromSymbol(Y_init, landmark_symbol);
+        checkMatrixShape("writeInitializationFile::p", problem.getRelaxationRank(), 1,
+                         p.rows(), p.cols());
 
         std::string point_line = "VERTEX_POINT " + landmark_symbol.string() + " ";
-        for (int i = 0; i < p.cols(); i++)
+        for (int i = 0; i < p.rows(); i++)
         {
-            point_line += std::to_string(p(0, i)) + " ";
+            point_line += std::to_string(p(i, 0));
+            if (i < p.rows() - 1) // add space if not last element
+            {
+                point_line += " ";
+            }
         }
         init_file << point_line << std::endl;
     }
@@ -201,11 +229,18 @@ void writeInitializationFile(const fs::path &init_fpath,
                                                               range_measurement.second_id);
         VarPro::Matrix b =
             problem.getBearingFromRangeSymbolPair(Y_init, range_symbol_pair);
-            std::string bearing_line = "VERTEX_BEARING " + range_measurement.first_id.string() + " " +
+        checkMatrixShape("writeInitializationFile::b", problem.getRelaxationRank(), 1,
+                         b.rows(), b.cols());
+
+        std::string bearing_line = "VERTEX_BEARING " + range_measurement.first_id.string() + " " +
                                    range_measurement.second_id.string() + " ";
-        for (int i = 0; i < b.cols(); i++)
+        for (int i = 0; i < b.rows(); i++)
         {
-            bearing_line += std::to_string(b(0, i)) + " ";
+            bearing_line += std::to_string(b(i, 0));
+            if (i < b.rows() - 1) // add space if not last element
+            {
+                bearing_line += " ";
+            }
         }
         init_file << bearing_line << std::endl;
     }
@@ -215,7 +250,7 @@ void writeInitializationFile(const fs::path &init_fpath,
 }
 
 VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
-                                     const VarPro::Problem &problem)
+                                      const VarPro::Problem &problem)
 {
     // check if the file exists
     if (!std::filesystem::exists(init_fpath))
@@ -249,38 +284,40 @@ VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
         if (tokens[0] == "VERTEX_POSE")
         {
             if (tokens.size() < 2 + problem.getRelaxationRank() +
-                                   problem.getDim() * problem.getRelaxationRank())
+                                    problem.dim() * problem.getRelaxationRank())
             {
                 throw std::runtime_error("Invalid VERTEX_POSE line in initialization file " +
                                          init_fpath.string());
             }
             VarPro::Symbol pose_symbol(tokens[1]);
-            VarPro::Matrix t(1, problem.getRelaxationRank());
+            VarPro::Matrix t(problem.getRelaxationRank(), 1);
             for (int i = 0; i < problem.getRelaxationRank(); i++)
             {
-                t(0, i) = std::stod(tokens[2 + i]);
+                t(i, 0) = std::stod(tokens[2 + i]);
             }
-            VarPro::Matrix R(problem.getDim(), problem.getRelaxationRank());
-            for (int i = 0; i < problem.getDim(); i++)
+            VarPro::Matrix R(problem.getRelaxationRank(), problem.dim());
+            for (int i = 0; i < problem.getRelaxationRank(); i++)
             {
-                for (int j = 0; j < problem.getRelaxationRank(); j++)
+                for (int j = 0; j < problem.dim(); j++)
                 {
-                    R(i, j) = std::stod(tokens[2 + problem.getRelaxationRank() + i * problem.getRelaxationRank() + j]);
+                    R(i, j) = std::stod(tokens[2 + problem.getRelaxationRank() + i * problem.dim() + j]);
                 }
             }
 
             // set the rotation
             Index rot_idx = problem.getRotationIdx(pose_symbol);
-            Y_init.block(rot_idx * problem.getDim(), 0, problem.getDim(),
-                         problem.getRelaxationRank())
-                = R.transpose();
+            Y_init.block(rot_idx * problem.dim(), 0, problem.dim(),
+                         problem.getRelaxationRank()) = R.transpose();
 
             // set the translation
-            Index tran_idx = problem.getTranslationIdx(pose_symbol);
-            Y_init.block(tran_idx, 0, 1, problem.getRelaxationRank()) = t;
+            if (problem.getFormulation() != VarPro::Formulation::Implicit)
+            {
+                Index tran_idx = problem.getTranslationIdx(pose_symbol);
+                Y_init.block(tran_idx, 0, 1, problem.getRelaxationRank()) = t.transpose();
+            }
         }
 
-        if (tokens[0] == "VERTEX_POINT")
+        if (tokens[0] == "VERTEX_POINT" && problem.getFormulation() != VarPro::Formulation::Implicit)
         {
             if (tokens.size() < 2 + problem.getRelaxationRank())
             {
@@ -288,15 +325,15 @@ VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
                                          init_fpath.string());
             }
             VarPro::Symbol point_symbol(tokens[1]);
-            VarPro::Matrix p(1, problem.getRelaxationRank());
+            VarPro::Matrix p(problem.getRelaxationRank(), 1);
             for (int i = 0; i < problem.getRelaxationRank(); i++)
             {
-                p(0, i) = std::stod(tokens[2 + i]);
+                p(i, 0) = std::stod(tokens[2 + i]);
             }
 
             // set the point
             Index point_idx = problem.getTranslationIdx(point_symbol);
-            Y_init.block(point_idx, 0, 1, problem.getRelaxationRank()) = p;
+            Y_init.block(point_idx, 0, 1, problem.getRelaxationRank()) = p.transpose();
         }
 
         if (tokens[0] == "VERTEX_BEARING")
@@ -308,16 +345,16 @@ VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
             }
             VarPro::Symbol symbol1(tokens[1]);
             VarPro::Symbol symbol2(tokens[2]);
-            VarPro::Matrix b(1, problem.getRelaxationRank());
+            VarPro::Matrix b(problem.getRelaxationRank(), 1);
             for (int i = 0; i < problem.getRelaxationRank(); i++)
             {
-                b(0, i) = std::stod(tokens[3 + i]);
+                b(i, 0) = std::stod(tokens[3 + i]);
             }
 
             // set the bearing
             VarPro::SymbolPair range_symbol_pair = std::make_pair(symbol1, symbol2);
             Index bearing_idx = problem.getRangeIdx(range_symbol_pair);
-            Y_init.block(bearing_idx, 0, 1, problem.getRelaxationRank()) = b;
+            Y_init.block(bearing_idx, 0, 1, problem.getRelaxationRank()) = b.transpose();
         }
     }
 

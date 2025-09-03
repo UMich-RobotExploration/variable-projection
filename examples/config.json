@@ -1,5 +1,5 @@
 {
-  "verbose": true,
+  "verbose": false,
   "max_rank": 7,
   "abs_data_path": "/home/alan/variable-projection/examples/data/"
 }

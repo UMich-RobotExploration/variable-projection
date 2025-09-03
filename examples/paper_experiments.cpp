@@ -28,6 +28,38 @@ struct Config
   int max_rank;
 };
 
+struct ExperimentResult
+{
+  std::string dataset_name;
+  std::string init_file;
+  std::vector<VarPro::Scalar> costs;
+  std::vector<double> times;
+  VarPro::Formulation formulation;
+};
+
+NLOHMANN_JSON_SERIALIZE_ENUM(VarPro::Formulation,
+                             {{VarPro::Formulation::Explicit, "Explicit"},
+                              {VarPro::Formulation::ExplicitVarPro, "ExplicitVarPro"},
+                              {VarPro::Formulation::Implicit, "Implicit"}});
+
+void to_json(json &j, const ExperimentResult &r)
+{
+  j = json{{"dataset_name", r.dataset_name},
+           {"init_file", r.init_file},
+           {"costs", r.costs},
+           {"times", r.times},
+           {"formulation", r.formulation}};
+}
+
+void from_json(const json &j, ExperimentResult &r)
+{
+  j.at("dataset_name").get_to(r.dataset_name);
+  j.at("init_file").get_to(r.init_file);
+  j.at("costs").get_to(r.costs);
+  j.at("times").get_to(r.times);
+  j.at("formulation").get_to(r.formulation);
+}
+
 Config parseConfig(const std::string &filename)
 {
   // check if the file exists
@@ -47,59 +79,6 @@ Config parseConfig(const std::string &filename)
   config.abs_data_path = j["abs_data_path"];
 
   return config;
-}
-
-VarPro::ProblemResult solveProblem(std::string pyfg_fpath, int init_rank_jump,
-                                   int max_rank,
-                                   VarPro::Formulation formulation, InitType init_type,
-                                   bool verbose = true)
-{
-
-  // set the problem parameters
-  problem.setRank(problem.dim() + init_rank_jump);
-  problem.setFormulation(formulation);
-  problem.setPreconditioner(VarPro::Preconditioner::RegularizedCholesky);
-
-  // update the problem data
-  problem.updateProblemData();
-
-  VarPro::Matrix x0;
-  if (init_type == InitType::Random)
-  {
-    x0 = problem.getRandomInitialGuess();
-  }
-  else if (init_type == InitType::Odom)
-  {
-    x0 = getOdomInitialization(problem, pyfg_fpath);
-  }
-
-  // if we're in implicit mode, then we need to truncate x0
-  // to not have translation variables
-  if (formulation == VarPro::Formulation::Implicit)
-  {
-    x0 = x0.block(0, 0, problem.rotAndRangeMatrixSize(), x0.cols());
-  }
-
-#ifdef GPERFTOOLS
-  ProfilerStart("varpro.prof");
-#endif
-
-  // solve the problem
-  VarPro::ProblemResult soln = VarPro::solveProblem(problem, x0, verbose);
-
-#ifdef GPERFTOOLS
-  ProfilerStop();
-#endif
-
-  // append the filename (e.g., mrclam7) and the time to "results.txt"
-  std::ofstream results_file("results.txt", std::ios_base::app);
-  results_file << pyfg_fpath << " " << elapsed.count() << std::endl;
-  results_file.close();
-
-  VarPro::Matrix aligned_soln = problem.alignEstimateToOrigin(soln.first.x);
-  saveSolutions(problem, aligned_soln, pyfg_fpath);
-
-  return aligned_soln;
 }
 
 // "rank3_init10.txt": {
@@ -136,11 +115,26 @@ std::vector<std::vector<std::string>> makeInitializationFiles(const std::string 
     std::vector<std::string> rank_init_file_paths;
     for (int i = 1; i <= 10; i++)
     {
-      rank_init_file_paths.push_back(dataset_path + "/rank" + std::to_string(r) +
+      rank_init_file_paths.push_back(dataset_path + "/inits/rank" + std::to_string(r) +
                                      "_init" + std::to_string(i) + ".txt");
     }
     init_file_paths.push_back(rank_init_file_paths);
   }
+  return init_file_paths;
+}
+
+ExperimentResult compileResult(const std::string &dataset_name,
+                               const std::string &init_file,
+                               const VarPro::ProblemResult &result,
+                               VarPro::Formulation formulation)
+{
+  ExperimentResult exp_result;
+  exp_result.dataset_name = dataset_name;
+  exp_result.init_file = init_file;
+  exp_result.costs = result.objective_values;
+  exp_result.times = result.time;
+  exp_result.formulation = formulation;
+  return exp_result;
 }
 
 /**
@@ -149,7 +143,7 @@ std::vector<std::vector<std::string>> makeInitializationFiles(const std::string 
  *
  * @param dataset_path the path to the dataset directory
  */
-void sweepDataset(fs::path dataset_path)
+void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_results, bool verbose = false)
 {
 
   // find the .pyfg file in the directory
@@ -175,6 +169,7 @@ void sweepDataset(fs::path dataset_path)
     {
       // set the formulation
       problem.setFormulation(formulation);
+      problem.updateProblemData();
       for (size_t init_idx = 0; init_idx < init_file_names[r_idx].size(); init_idx++)
       {
         std::string init_fpath = init_file_names[r_idx][init_idx];
@@ -182,12 +177,17 @@ void sweepDataset(fs::path dataset_path)
         // problem and write to file
         if (!std::filesystem::exists(init_fpath))
         {
+          std::cout << "Initialization file " << init_fpath
+                    << " does not exist. Sampling random initialization instead."
+                    << std::endl;
           VarPro::Matrix random_init = problem.getRandomInitialGuess();
           writeInitializationFile(init_fpath, problem, random_init);
         }
 
         VarPro::Matrix init = readInitializationFile(init_fpath, problem);
-        VarPro::ProblemResult result = VarPro::solveProblem(problem, init, true);
+        VarPro::ProblemResult result = VarPro::solveProblem(problem, init, verbose);
+        all_results.push_back(compileResult(dataset_path.filename().string(),
+                                            init_fpath, result, formulation));
       }
     }
   }
@@ -196,5 +196,15 @@ void sweepDataset(fs::path dataset_path)
 int main(int argc, char **argv)
 {
   Config config = parseConfig("/home/alan/variable-projection/examples/config.json");
-  sweepDataset(config.abs_data_path);
+  std::vector<fs::path> experiment_dirs = {};
+  getExperimentDirsRecursive(config.abs_data_path, experiment_dirs);
+  std::vector<ExperimentResult> all_results = {};
+  for (const auto &dir : experiment_dirs)
+  {
+    std::cout << "Sweeping dataset in directory: " << dir << std::endl;
+    sweepDataset(dir, all_results, config.verbose);
+  }
+  json j = all_results;
+  std::ofstream file("/home/alan/variable-projection/examples/all_results.json");
+  file << j << std::endl;
 }
