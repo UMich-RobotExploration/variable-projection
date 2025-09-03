@@ -283,7 +283,7 @@ public:
   SparseMatrix getDataMatrix();
 
   // function to perform a separable structure update (in the style of Khosoussi et al.)
-  Matrix separableStructureUpdate(const Matrix &Y) const;
+  void separableStructureUpdate(Matrix &Y) const;
 
   // the full size of the full (explicit problem) data matrix
   int getDataMatrixSize() const;

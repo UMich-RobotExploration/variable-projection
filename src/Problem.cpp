@@ -741,19 +741,16 @@ void Problem::fillImplicitFormulationMatrices() {
       numTranslationalStates() - 1, numTranslationalStates() - 1));
 }
 
-Matrix Problem::separableStructureUpdate(const Matrix &Y) const {
+void Problem::separableStructureUpdate(Matrix &Y) const {
   checkMatrixShape("Problem::separableStructureUpdate", getExpectedVariableSize(),
                    relaxation_rank_, Y.rows(), Y.cols());
   if (formulation_ == Formulation::ExplicitVarPro) {
-    Matrix Y_updated = Y;
     Matrix Ymain = Y.block(0, 0, rotAndRangeMatrixSize(), relaxation_rank_);
-    Matrix P1 = TransOffDiagRed_.transpose() * Ymain;
-    Matrix P2 = LtransCholRed_->solve(P1);
-    Y_updated.block(rotAndRangeMatrixSize(), 0, numTranslationalStates()-1,
-                    relaxation_rank_) = -P2;
+    // Matrix P1 = TransOffDiagRed_.transpose() * Ymain;
+    Y.block(rotAndRangeMatrixSize(), 0, numTranslationalStates()-1,
+                    relaxation_rank_) = -LtransCholRed_->solve(TransOffDiagRed_.transpose() * Ymain);
     // set the last row to zero since this is the pinned translation
-    Y_updated.row(Y.rows() - 1).setZero();
-    return Y_updated;
+    Y.row(Y.rows() - 1).setZero();
   } else {
     throw std::invalid_argument("Invalid formulation for separableStructureUpdate");
   }

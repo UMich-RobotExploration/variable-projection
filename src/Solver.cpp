@@ -78,9 +78,9 @@ ProblemResult solveProblem(Problem &problem, // NOLINT(runtime/references)
   // variable projection function
   std::optional<SeparableStructureUpdate> separable_update = std::nullopt;
   if (problem.getFormulation() == Formulation::ExplicitVarPro) {
-    separable_update = [&problem](const Matrix &Y,
-                                 const Matrix &NablaF_Y) {
-      return problem.separableStructureUpdate(Y);
+    separable_update = [&problem](Matrix &Y,
+                                 Matrix &NablaF_Y) {
+      problem.separableStructureUpdate(Y);
     };
   }
 
