@@ -24,6 +24,7 @@ namespace VarPro {
 using CholeskyFactorization = Eigen::CholmodDecomposition<SparseMatrix>;
 using CholFactorPtr = std::shared_ptr<CholeskyFactorization>;
 using CholFactorPtrVector = std::vector<CholFactorPtr>;
+using CholInfo = Eigen::ComputationInfo;
 
 /**
  * @brief Generate a block-diagonal preconditioner for the given matrix A based
@@ -42,5 +43,15 @@ CholFactorPtrVector getBlockCholeskyFactorization(const SparseMatrix &A,
 
 Matrix blockCholeskySolve(const CholFactorPtrVector &block_chol_factor_ptrs,
                           const Matrix &rhs);
+
+
+inline CholInfo cholFactorStatus(const CholFactorPtrVector &chol_factor_ptrs){
+    // assert that is a vector of length 1
+    if (chol_factor_ptrs.size() != 1) {
+        throw std::invalid_argument("cholFactorStatus only supports a vector of length 1");
+    }
+    return chol_factor_ptrs[0]->info();
+}
+
 
 } // namespace VarPro

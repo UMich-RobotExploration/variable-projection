@@ -38,9 +38,11 @@ struct ExperimentResult
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(VarPro::Formulation,
-                             {{VarPro::Formulation::Explicit, "Explicit"},
+                             {
+                              {VarPro::Formulation::Explicit, "Explicit"},
                               {VarPro::Formulation::ExplicitVarPro, "ExplicitVarPro"},
-                              {VarPro::Formulation::Implicit, "Implicit"}});
+                              {VarPro::Formulation::Implicit, "Implicit"}
+                            });
 
 void to_json(json &j, const ExperimentResult &r)
 {
@@ -93,9 +95,11 @@ std::vector<int> getRanksToSweep(int min_rank, int max_rank)
 
 std::vector<VarPro::Formulation> getFormulationsToSweep()
 {
-  return {VarPro::Formulation::Explicit,
-          VarPro::Formulation::ExplicitVarPro,
-          VarPro::Formulation::Implicit};
+  return {
+          VarPro::Formulation::Implicit,
+          VarPro::Formulation::Explicit,
+          VarPro::Formulation::ExplicitVarPro
+        };
 }
 
 std::vector<std::vector<std::string>> makeInitializationFiles(const std::string &dataset_path,
@@ -131,6 +135,31 @@ ExperimentResult compileResult(const std::string &dataset_name,
   return exp_result;
 }
 
+std::string getExpDescription(fs::path pyfg_fpath, const VarPro::Problem &problem)
+{
+  std::string exp_name = pyfg_fpath.stem().string();
+  std::string description = "Experiment: " + exp_name + ". ";
+
+  description += "Formulation: ";
+  switch (problem.getFormulation())
+  {
+  case VarPro::Formulation::Explicit:
+    description += "Explicit. ";
+    break;
+  case VarPro::Formulation::ExplicitVarPro:
+    description += "ExplicitVarPro. ";
+    break;
+  case VarPro::Formulation::Implicit:
+    description += "Implicit. ";
+    break;
+  default:
+    description += "Unknown. ";
+    break;
+  }
+  description += "Relaxation rank: " + std::to_string(problem.getRelaxationRank()) + ".";
+  return description;
+}
+
 /**
  * @brief Takes as input the directory that contains a .pyfg file and many different
  * initializations (e.g., rank3_init10.txt, rank4_init10.txt, etc.)
@@ -148,6 +177,7 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
       std::filesystem::exists(pyfg_fpath)
           ? VarPro::parsePyfgTextToProblem(pyfg_fpath)
           : VarPro::parsePyfgTextToProblem("./bin/" + pyfg_fpath);
+  problem.updateProblemData();
 
   std::vector<int> ranks = getRanksToSweep(problem.dim(), config.max_rank);
   std::vector<VarPro::Formulation> formulations = getFormulationsToSweep();
@@ -164,7 +194,6 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
     {
       // set the formulation
       problem.setFormulation(formulation);
-      problem.updateProblemData();
       for (size_t init_idx = 0; init_idx < init_file_names[r_idx].size(); init_idx++)
       {
         std::string init_fpath = init_file_names[r_idx][init_idx];
@@ -173,13 +202,15 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
         if (!std::filesystem::exists(init_fpath))
         {
           std::cout << "Initialization file " << init_fpath
-                    << " does not exist. Sampling random initialization instead."
+                    << " does not exist. Writing a random initialization."
                     << std::endl;
           VarPro::Matrix random_init = problem.getRandomInitialGuess();
           writeInitializationFile(init_fpath, problem, random_init);
         }
 
         VarPro::Matrix init = readInitializationFile(init_fpath, problem);
+        std::cout << "Running " << getExpDescription(findPyfgInDir(dataset_path), problem)
+                  << " on initialization file " << init_fpath << std::endl;
         VarPro::ProblemResult result = VarPro::solveProblem(problem, init, verbose);
         current_results.push_back(compileResult(dataset_path.filename().string(),
                                                 init_fpath, result, formulation));

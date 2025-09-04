@@ -177,15 +177,11 @@ namespace VarPro
     auto num_translations = numTranslationalStates();
     auto num_pose_measurements =
         num_pose_pose_measurements + num_pose_landmark_measurements;
-    std::cout << "Num pose-pose and pose-landmark measurements: "
-              << num_pose_measurements << std::endl;
 
     // priors will be implemented as measurements from the origin pose
     auto num_pose_priors = numPosePriors();
     auto num_landmark_priors = numLandmarkPriors();
     num_pose_measurements += num_pose_priors + num_landmark_priors;
-    std::cout << "Num pose-pose, pose-landmark, and priors: "
-              << num_pose_measurements << std::endl;
 
     // if there are priors (landmark or pose), throw an error because we don't
     // support them yet
@@ -210,7 +206,6 @@ namespace VarPro
     int measures_added = 0;
 
     // pose-pose measures
-    std::cout << "adding pose-pose measures" << std::endl;
     for (int measure_idx = 0; measure_idx < num_pose_pose_measurements;
          measure_idx++)
     {
@@ -239,7 +234,6 @@ namespace VarPro
     measures_added += num_pose_pose_measurements;
 
     // pose priors
-    std::cout << "adding pose priors" << std::endl;
     for (int measure_idx = measures_added;
          measure_idx < measures_added + num_pose_priors; measure_idx++)
     {
@@ -268,7 +262,6 @@ namespace VarPro
     measures_added += num_pose_priors;
 
     // pose-landmark measures
-    std::cout << "adding pose-landmark measures" << std::endl;
     for (int measure_idx = measures_added;
          measure_idx < measures_added + num_pose_landmark_measurements;
          measure_idx++)
@@ -297,7 +290,6 @@ namespace VarPro
     measures_added += num_pose_landmark_measurements;
 
     // landmark priors
-    std::cout << "adding landmark priors" << std::endl;
     for (int measure_idx = measures_added;
          measure_idx < measures_added + num_landmark_priors; measure_idx++)
     {
@@ -577,11 +569,7 @@ namespace VarPro
     fillRelPoseSubmatrices();
     fillDataMatrix();
     updatePreconditioner();
-    if (formulation_ == Formulation::Implicit ||
-        formulation_ == Formulation::ExplicitVarPro)
-    {
-      fillImplicitFormulationMatrices();
-    }
+    fillImplicitFormulationMatrices();
     problem_data_up_to_date_ = true;
   }
 
@@ -675,6 +663,7 @@ namespace VarPro
 
       // Compute the required value of the regularization parameter lambda_reg
       Scalar lambda_reg = Dnorm / (reg_Chol_precon_max_cond_ - 1);
+      lambda_reg = std::max(lambda_reg, static_cast<Scalar>(1e-4));
 
       SparseMatrix epsilonPosDefUpdate =
           SparseMatrix(data_matrix_.rows(), data_matrix_.cols());
@@ -685,22 +674,48 @@ namespace VarPro
 
       SparseMatrix regularized_data_matrix = data_matrix_ + epsilonPosDefUpdate;
 
+      int num_rows = regularized_data_matrix.rows();
       if (pin_last_translation_)
       {
+        num_rows -= 1;
         block_sizes(0) = data_matrix_.rows() - 1;
-        preconditioner_matrices_.block_chol_factor_ptrs_ =
-            getBlockCholeskyFactorization(
-                regularized_data_matrix.block(0, 0,
-                                              regularized_data_matrix.rows() - 1,
-                                              regularized_data_matrix.cols() - 1),
-                block_sizes);
       }
-      else
+
+      bool good_factorization = false;
+      while (!good_factorization)
       {
-        block_sizes(0) = data_matrix_.rows();
         preconditioner_matrices_.block_chol_factor_ptrs_ =
-            getBlockCholeskyFactorization(regularized_data_matrix, block_sizes);
+            getBlockCholeskyFactorization(regularized_data_matrix.block(0, 0, num_rows, num_rows), block_sizes);
+        CholInfo info = cholFactorStatus(
+            preconditioner_matrices_.block_chol_factor_ptrs_);
+
+        if (info == CholInfo::Success)
+        {
+          std::cout << "Regularized Cholesky preconditioner with lambda_reg = "
+                    << lambda_reg << " constructed successfully."
+                    << std::endl;
+          good_factorization = true;
+        }
+        else
+        {
+          int scaling_factor = 2;
+          lambda_reg *= scaling_factor;
+          std::cout << "Warning: Cholesky factorization failed with info "
+                       "code "
+                    << info << ". Increasing regularization to "
+                    << lambda_reg << " and trying again." << std::endl;
+          epsilonPosDefUpdate.setIdentity();
+          epsilonPosDefUpdate *= scaling_factor;
+          regularized_data_matrix = data_matrix_ + epsilonPosDefUpdate;
+        }
       }
+
+      // else
+      // {
+      //   block_sizes(0) = data_matrix_.rows();
+      //   preconditioner_matrices_.block_chol_factor_ptrs_ =
+      //       getBlockCholeskyFactorization(regularized_data_matrix, block_sizes);
+      // }
     }
     else if (preconditioner_ == Preconditioner::Jacobi)
     {
@@ -809,13 +824,6 @@ namespace VarPro
 
   void Problem::fillImplicitFormulationMatrices()
   {
-    if (formulation_ != Formulation::Implicit &&
-        formulation_ != Formulation::ExplicitVarPro)
-    {
-      throw std::invalid_argument("Implicit formulation matrices should only be "
-                                  "filled when we need to access the subblocks of "
-                                  "the data matrix (implicit or explicit-varpro.");
-    }
 
     // Qmain_ is the upper-left (dn + r) x (dn + r) block of Q
     // Qmain_ = [Q11 0; 0 Q22]
@@ -1211,158 +1219,6 @@ namespace VarPro
     assert(problem_data_up_to_date_);
     Matrix x0 = Matrix::Random(getExpectedVariableSize(), relaxation_rank_);
     return projectToManifold(x0);
-  }
-
-  CertResults Problem::certify_solution(const Matrix &Y, Scalar eta, size_t nx,
-                                        const Matrix &eigvec_bootstrap,
-                                        size_t max_LOBPCG_iters,
-                                        Scalar max_fill_factor,
-                                        Scalar drop_tol) const
-  {
-    /// Construct certificate matrix S
-
-    // check the ratio of singular values of Y, if greater than 10^6, then
-    // lets also consider this certified
-    auto svd = Y.jacobiSvd(Eigen::ComputeThinU | Eigen::ComputeThinV);
-    auto sv = svd.singularValues();
-    if (sv(0) / sv(Y.cols() - 1) > 1e6)
-    {
-      CertResults results;
-      results.is_certified = true;
-      results.theta = 0;
-      results.x = Vector::Zero(getDataMatrixSize());
-      results.all_eigvecs = Matrix::Zero(getDataMatrixSize(), nx);
-      results.num_iters = 0;
-      return results;
-    }
-
-    LambdaBlocks Lambda_blocks;
-    SparseMatrix S;
-
-    // We compute the certificate matrix corresponding to the *full* (i.e.
-    // translation-explicit) form of the problem
-    Lambda_blocks = compute_Lambda_blocks(Y);
-    S = data_matrix_ -
-        compute_Lambda_from_Lambda_blocks(Lambda_blocks, getDataMatrixSize());
-
-    /// Test positive-semidefiniteness of certificate matrix S using fast
-    /// verification method
-    auto num_eigvecs =
-        std::min(std::max(Eigen::Index(nx), Y.cols() + 2), S.rows());
-    if (S.rows() < Y.cols())
-    {
-      throw std::invalid_argument(
-          "The number of rows of S must be greater than or "
-          "equal to the number of columns of Y");
-    }
-    Matrix init_eigvec_guess = Matrix::Random(S.rows(), num_eigvecs);
-    init_eigvec_guess.block(0, 0, S.rows(), eigvec_bootstrap.cols()) =
-        eigvec_bootstrap;
-
-    CertResults results = fast_verification(
-        S, eta, init_eigvec_guess, max_LOBPCG_iters, max_fill_factor, drop_tol);
-
-    while (std::isnan(results.theta))
-    {
-      // this seems to happen when there is a clustering of eigenvalues around
-      // zero, so we double eta and try again. Not perfect, but it works for now!
-      std::cout << "NaN in theta -- result not certified" << std::endl;
-      eta *= 2;
-      results = fast_verification(S, eta, init_eigvec_guess, max_LOBPCG_iters,
-                                  max_fill_factor, drop_tol);
-    }
-
-    if (!results.is_certified && (formulation_ == Formulation::Implicit))
-    {
-      // Extract the (leading) portion of the tangent vector corresponding to the
-      // rotational and spherical variables
-      Vector v = results.x.head(rotAndRangeMatrixSize()).normalized();
-      results.x = v;
-
-      // Compute x's Rayleight quotient with the simplified certificate matrix
-      SparseMatrix Lambda = compute_Lambda_from_Lambda_blocks(
-          Lambda_blocks, rotAndRangeMatrixSize());
-      Vector Sx = dataMatrixProduct(results.x) - Lambda * results.x;
-      results.theta = results.x.dot(Sx);
-      if (std::isnan(results.theta))
-      {
-        throw std::runtime_error(
-            "NaN in theta -- result not certified and implicit form");
-      }
-    }
-
-    return results;
-  }
-
-  Problem::LambdaBlocks Problem::compute_Lambda_blocks(const Matrix &Y) const
-  {
-    // Compute S * Y, where S is the data matrix defining the quadratic form
-    // for the specific version of the SE-Sync problem we're solving
-    Matrix QY = dataMatrixProduct(Y);
-
-    // Preallocate storage for diagonal blocks of Lambda
-    Matrix stiefel_Lambda_blocks(dim_, numPosesDim());
-
-    for (auto i = 0; i < numPoses(); ++i)
-    {
-      Matrix P = QY.block(i * dim_, 0, dim_, Y.cols()) *
-                 Y.block(i * dim_, 0, dim_, Y.cols()).transpose();
-      stiefel_Lambda_blocks.block(0, i * dim_, dim_, dim_) =
-          .5 * (P + P.transpose());
-    }
-
-    Vector oblique_Lambda_blocks(numRangeMeasurements());
-    auto rot_mat_sz = numPosesDim();
-    Vector oblique_inner_prods =
-        (Y.block(rot_mat_sz, 0, numRangeMeasurements(), Y.cols()).array() *
-         QY.block(rot_mat_sz, 0, numRangeMeasurements(),
-                  Y.cols())
-             .array())
-            .rowwise()
-            .sum(); // (r x 1) vector of inner products
-
-    return std::make_pair(stiefel_Lambda_blocks, oblique_inner_prods);
-  }
-
-  SparseMatrix
-  Problem::compute_Lambda_from_Lambda_blocks(const LambdaBlocks &Lambda_blocks,
-                                             const int &Lambda_size) const
-  {
-    std::vector<Eigen::Triplet<Scalar>> elements;
-    elements.reserve(dim_ * numPosesDim() + numRangeMeasurements());
-
-    // add the symmetric diagonal blocks for the Stiefel constraints
-    for (auto i = 0; i < numPoses(); ++i)
-    { // block index
-      for (auto r = 0; r < dim_; ++r)
-      { // block row index
-        for (auto c = 0; c < dim_; ++c)
-        { // block column index
-          elements.emplace_back(i * dim_ + r, i * dim_ + c,
-                                Lambda_blocks.first(r, i * dim_ + c));
-        }
-      }
-    }
-
-    auto rot_mat_sz = numPosesDim();
-    // add the diagonal block for the Oblique constraints
-    for (auto i = 0; i < numRangeMeasurements(); ++i)
-    {
-      elements.emplace_back(rot_mat_sz + i, rot_mat_sz + i,
-                            Lambda_blocks.second(i));
-    }
-
-    // add additional zeros if we're using the explicit formulation
-    SparseMatrix Lambda(Lambda_size, Lambda_size);
-    Lambda.setFromTriplets(elements.begin(), elements.end());
-    return Lambda;
-  }
-
-  SparseMatrix Problem::get_certificate_matrix(const Matrix &Y) const
-  {
-    LambdaBlocks Lambda_blocks = compute_Lambda_blocks(Y);
-    return data_matrix_ -
-           compute_Lambda_from_Lambda_blocks(Lambda_blocks, getDataMatrixSize());
   }
 
   Matrix Problem::getTranslationExplicitSolution(const Matrix &Y) const

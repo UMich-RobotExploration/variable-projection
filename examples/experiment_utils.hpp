@@ -375,7 +375,6 @@ VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
         }
     }
 
-    std::cout << "Read initialization from " << init_fpath << std::endl;
     init_file.close();
     return Y_init;
 }

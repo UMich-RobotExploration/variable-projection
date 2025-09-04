@@ -46,6 +46,7 @@ struct CoraDataSubmatrices {
 
 struct PreconditionerMatrices {
   CholFactorPtrVector block_chol_factor_ptrs_;
+  CholeskyFactorization *regularized_chol_factor_;
   DiagonalMatrix jacobi_preconditioner_;
   SparseMatrix block_jacobi_preconditioner_;
 };
@@ -359,53 +360,6 @@ public:
   Matrix precondition(const Matrix &V) const;
   Matrix projectToManifold(const Matrix &A) const;
   Matrix retract(const Matrix &Y, const Matrix &V) const;
-
-  /********** Certification **************/
-
-  using LambdaBlocks = std::pair<Matrix, Vector>;
-
-  /**
-   * @brief Check if a solution is certified. If not, compute a direction of
-   * negative curvature and its associated Rayleigh quotient.
-   *
-   * @param Y the rank-r solution to certify
-   * @param eta the regularization parameter (tolerance on PSDness of the
-   * certificate matrix)
-   * @param nx the block size to use in LOBPCG
-   * @param max_LOBPCG_iters the maximum number of LOBPCG iterations to use
-   * @param max_fill_factor the maximum fill factor to use in the incomplete
-   * factorization-based preconditioner
-   * @param drop_tol the drop tolerance to use in the incomplete
-   * factorization-based preconditioner
-   * @return CertResults
-   */
-  CertResults certify_solution(const Matrix &Y, Scalar eta, size_t nx,
-                               const Matrix &eigvec_bootstrap,
-                               size_t max_LOBPCG_iters = 500,
-                               Scalar max_fill_factor = 3,
-                               Scalar drop_tol = 1e-3) const;
-
-  /** Given the d x dn block matrix containing the diagonal blocks of Lambda,
-   * this function computes and returns the matrix Lambda itself */
-  SparseMatrix
-  compute_Lambda_from_Lambda_blocks(const LambdaBlocks &Lambda_blocks,
-                                    const int &Lambda_size) const;
-
-  /** Given a critical point Y of the rank-r relaxation, this function computes
-   * and returns a d x dn matrix comprised of d x d block elements of the
-   * associated block-diagonal Lagrange multiplier matrix associated with the
-   * orthonormality constraints on the generalized orientations of the poses
-   * (cf. eq. (119) in the SE-Sync tech report) */
-  LambdaBlocks compute_Lambda_blocks(const Matrix &Y) const;
-
-  /**
-   * @brief Get the certificate matrix as Q - Lambda. If this matrix is PSD,
-   * then the solution is certified.
-   *
-   * @param Lambda the Lagrange multiplier matrix
-   * @return SparseMatrix
-   */
-  SparseMatrix get_certificate_matrix(const Matrix &Y) const;
 
   /************** Utilities **********************/
 
