@@ -106,6 +106,14 @@ fs::path findPyfgInDir(const fs::path &dir_path)
 {
     for (const auto &entry : fs::directory_iterator(dir_path))
     {
+        // if .bak is in the full filename, skip it
+        if (entry.path().string().find(".bak") != std::string::npos)
+        {
+            std::cout << "Skipping backup file: " << entry.path() << std::endl;
+            continue;
+        }
+
+
         if (entry.path().extension() == ".pyfg")
         {
             return entry.path();

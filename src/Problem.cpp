@@ -710,12 +710,11 @@ namespace VarPro
         }
       }
 
-      // else
-      // {
-      //   block_sizes(0) = data_matrix_.rows();
-      //   preconditioner_matrices_.block_chol_factor_ptrs_ =
-      //       getBlockCholeskyFactorization(regularized_data_matrix, block_sizes);
-      // }
+      // // temp code to write the regularized data matrix to a file
+      // std::string data_matrix_fpath = "/tmp/regularized_data_matrix.mtx";
+      // saveSparseMatrixToFile(regularized_data_matrix, data_matrix_fpath);
+      // std::cout << "Wrote regularized data matrix to " << data_matrix_fpath
+      //           << std::endl;
     }
     else if (preconditioner_ == Preconditioner::Jacobi)
     {
@@ -844,6 +843,14 @@ namespace VarPro
     LtransCholRed_ = std::make_shared<CholeskyFactorization>(data_matrix_.block(
         rotAndRangeMatrixSize(), rotAndRangeMatrixSize(),
         numTranslationalStates() - 1, numTranslationalStates() - 1));
+
+    // // save the block used for LtransCholRed_ for debugging
+    // std::string LtransCholRed_fpath = "/tmp/LtransCholRed_.mtx";
+    // SparseMatrix block = data_matrix_.block(
+    //     rotAndRangeMatrixSize(), rotAndRangeMatrixSize(),
+    //     numTranslationalStates() , numTranslationalStates() );
+    // saveSparseMatrixToFile(block, LtransCholRed_fpath);
+    // std::cout << "Wrote LtransCholRed_ to " << LtransCholRed_fpath << std::endl;
   }
 
   void Problem::separableStructureUpdate(Matrix &Y) const
@@ -1047,8 +1054,8 @@ namespace VarPro
     // check for NaNs in res
     if (res.hasNaN())
     {
-      std::cout << "NaNs in preconditioned vector:\n"
-                << res << std::endl;
+      // std::cout << "NaNs in preconditioned vector:\n"
+      //           << res << std::endl;
       throw std::runtime_error("NaNs in preconditioned vector");
     }
     return res;

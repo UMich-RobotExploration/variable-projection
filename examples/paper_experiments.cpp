@@ -38,11 +38,9 @@ struct ExperimentResult
 };
 
 NLOHMANN_JSON_SERIALIZE_ENUM(VarPro::Formulation,
-                             {
-                              {VarPro::Formulation::Explicit, "Explicit"},
+                             {{VarPro::Formulation::Explicit, "Explicit"},
                               {VarPro::Formulation::ExplicitVarPro, "ExplicitVarPro"},
-                              {VarPro::Formulation::Implicit, "Implicit"}
-                            });
+                              {VarPro::Formulation::Implicit, "Implicit"}});
 
 void to_json(json &j, const ExperimentResult &r)
 {
@@ -96,10 +94,9 @@ std::vector<int> getRanksToSweep(int min_rank, int max_rank)
 std::vector<VarPro::Formulation> getFormulationsToSweep()
 {
   return {
-          VarPro::Formulation::Implicit,
-          VarPro::Formulation::Explicit,
-          VarPro::Formulation::ExplicitVarPro
-        };
+      VarPro::Formulation::Implicit,
+      VarPro::Formulation::Explicit,
+      VarPro::Formulation::ExplicitVarPro};
 }
 
 std::vector<std::vector<std::string>> makeInitializationFiles(const std::string &dataset_path,
@@ -129,9 +126,20 @@ ExperimentResult compileResult(const std::string &dataset_name,
   ExperimentResult exp_result;
   exp_result.dataset_name = dataset_name;
   exp_result.init_file = init_file;
-  exp_result.costs = result.objective_values;
-  exp_result.times = result.time;
   exp_result.formulation = formulation;
+
+  // if result is empty (uninitialized), set the costs and times to empty vectors
+  if (result.objective_values.size() == 0 || result.time.size() == 0)
+  {
+    exp_result.costs = {};
+    exp_result.times = {};
+  }
+  else
+  {
+    exp_result.costs = result.objective_values;
+    exp_result.times = result.time;
+  }
+
   return exp_result;
 }
 
@@ -160,6 +168,22 @@ std::string getExpDescription(fs::path pyfg_fpath, const VarPro::Problem &proble
   return description;
 }
 
+std::vector<ExperimentResult> loadResultsFromFile(const std::string &filename)
+{
+  // check if the file exists
+  if (!std::filesystem::exists(filename))
+  {
+    throw std::runtime_error("Results file does not exist");
+  }
+
+  std::ifstream file(filename);
+  json j;
+  file >> j;
+
+  std::vector<ExperimentResult> results = j.get<std::vector<ExperimentResult>>();
+  return results;
+}
+
 /**
  * @brief Takes as input the directory that contains a .pyfg file and many different
  * initializations (e.g., rank3_init10.txt, rank4_init10.txt, etc.)
@@ -168,6 +192,16 @@ std::string getExpDescription(fs::path pyfg_fpath, const VarPro::Problem &proble
  */
 void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_results, bool verbose = false)
 {
+  // if there is already a results.json file in the directory, load the existing
+  // (cached) results and do not run the sweep again
+  if (std::filesystem::exists(dataset_path / "results.json"))
+  {
+    std::cout << "Results file already exists in directory " << dataset_path
+              << ". Skipping sweep." << std::endl;
+    auto existing_results = loadResultsFromFile((dataset_path / "results.json").string());
+    all_results.insert(all_results.end(), existing_results.begin(), existing_results.end());
+    return;
+  }
 
   // find the .pyfg file in the directory
   std::string pyfg_fpath = findPyfgInDir(dataset_path).string();
@@ -211,7 +245,17 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
         VarPro::Matrix init = readInitializationFile(init_fpath, problem);
         std::cout << "Running " << getExpDescription(findPyfgInDir(dataset_path), problem)
                   << " on initialization file " << init_fpath << std::endl;
-        VarPro::ProblemResult result = VarPro::solveProblem(problem, init, verbose);
+        VarPro::ProblemResult result = {};
+        try
+        {
+          result = VarPro::solveProblem(problem, init, verbose);
+        }
+        catch (const std::runtime_error &e)
+        {
+          result.time = {};
+          result.objective_values = {};
+          std::cout << "Error solving problem: " << e.what() << std::endl;
+        }
         current_results.push_back(compileResult(dataset_path.filename().string(),
                                                 init_fpath, result, formulation));
       }

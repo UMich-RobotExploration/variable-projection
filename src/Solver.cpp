@@ -43,10 +43,6 @@ namespace VarPro
     }
     else
     {
-      std::cout << "Solving problem in translation implicit mode. Make sure that "
-                   "the initial guess only contains rotation and range "
-                   "variables."
-                << std::endl;
       checkMatrixShape("solveCora::Implicit", problem.rotAndRangeMatrixSize(),
                        x0.cols(), x0.rows(), x0.cols());
     }
