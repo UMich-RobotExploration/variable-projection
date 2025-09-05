@@ -1,5 +1,6 @@
 {
   "verbose": false,
   "max_rank": 5,
-  "abs_data_path": "/home/alan/variable-projection/examples/data/snl"
+  "abs_data_path": "/home/alan/variable-projection/examples/data",
+  "num_inits": 5
 }

@@ -118,7 +118,7 @@ namespace VarPro
     params.Delta_tolerance = 1e-5;
     params.verbose = verbose;
     params.precision = 2;
-    params.max_computation_time = 20;
+    params.max_computation_time = 100;
     params.relative_decrease_tolerance = 1e-6;
     params.stepsize_tolerance = 1e-6;
     params.log_iterates = false;

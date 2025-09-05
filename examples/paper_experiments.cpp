@@ -26,6 +26,7 @@ struct Config
   bool verbose;
   std::string abs_data_path;
   int max_rank;
+  int num_inits;
 };
 
 struct ExperimentResult
@@ -77,6 +78,7 @@ Config parseConfig(const std::string &filename)
   config.verbose = j["verbose"];
   config.max_rank = j["max_rank"];
   config.abs_data_path = j["abs_data_path"];
+  config.num_inits = j["num_inits"];
 
   return config;
 }
@@ -215,7 +217,7 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
 
   std::vector<int> ranks = getRanksToSweep(problem.dim(), config.max_rank);
   std::vector<VarPro::Formulation> formulations = getFormulationsToSweep();
-  auto init_file_names = makeInitializationFiles(dataset_path.string(), ranks);
+  auto init_file_names = makeInitializationFiles(dataset_path.string(), ranks, config.num_inits);
   std::vector<ExperimentResult> current_results = {};
 
   // now lets iterate over all of the different configurations
