@@ -64,8 +64,8 @@ def visualize_data(data_fpath: str):
         costs = np.array(entry["costs"])
         groups[(formulation, rank)].append((times, costs))
 
-    # Plot
-    plt.figure(figsize=(10, 6))
+    # Plot two subplots: costs vs iterations and costs vs time
+    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
 
     for i, ((formulation, rank), runs) in enumerate(groups.items()):
         rank_num = int(rank.replace("rank", ""))
@@ -91,20 +91,48 @@ def visualize_data(data_fpath: str):
         # Plot shaded area
         color = COLORS[(rank, formulation)]
         label = f"{rank} ({formulation})"
-        plt.fill_between(times, min_cost, max_cost, color=color, alpha=0.2)
-        plt.plot(times, median_cost, color=color, label=label)
+        # plt.fill_between(times, min_cost, max_cost, color=color, alpha=0.2)
+        # plt.plot(times, median_cost, color=color, label=label)
+        axs[0].fill_between(range(min_len), min_cost, max_cost, color=color, alpha=0.2)
+        axs[0].plot(range(min_len), median_cost, color=color, label=label)
+        axs[1].fill_between(times, min_cost, max_cost, color=color, alpha=0.2)
+        axs[1].plot(times, median_cost, color=color, label=label)
 
-    plt.xlabel("Time (s)")
-    plt.ylabel("Cost")
-    plt.yscale("log")  # log scale often useful for optimization costs
-    plt.legend()
-    plt.title("Solver Costs vs Time")
+    # Costs vs Iterations
+    axs[0].set_xlabel("Iterations")
+    axs[0].set_ylabel("Cost")
+    axs[0].set_yscale("log")  # log scale often useful for optimization costs
+    axs[0].legend()
+    axs[0].set_title("Solver Costs vs Iterations")
     # subtitle with dataset name
     dataset_name = data_fpath.split("/")[-2]
-    plt.suptitle(f"Dataset: {dataset_name}", fontsize=10)
-    plt.grid(True, which="both", ls="--", alpha=0.5)
+    axs[0].text(0.5, 1.05, f"Dataset: {dataset_name}", fontsize=10, ha='center', transform=axs[0].transAxes)
+    axs[0].grid(True, which="both", ls="--", alpha=0.5) # grid for both major and minor ticks
+
+    # Costs vs Time
+    axs[1].set_xlabel("Time (s)")
+    axs[1].set_ylabel("Cost")
+    axs[1].set_yscale("log")  # log scale often useful for optimization costs
+    axs[1].legend()
+    axs[1].set_title("Solver Costs vs Time")
+    # subtitle with dataset name
+    axs[1].text(0.5, 1.05, f"Dataset    : {dataset_name}", fontsize=10, ha='center', transform=axs[1].transAxes)
+    axs[1].grid(True, which="both", ls="--", alpha=0.5) # grid for both major and minor ticks
+
     plt.tight_layout()
     plt.show()
+
+    # plt.xlabel("Time (s)")
+    # plt.ylabel("Cost")
+    # plt.yscale("log")  # log scale often useful for optimization costs
+    # plt.legend()
+    # plt.title("Solver Costs vs Time")
+    # # subtitle with dataset name
+    # dataset_name = data_fpath.split("/")[-2]
+    # plt.suptitle(f"Dataset: {dataset_name}", fontsize=10)
+    # plt.grid(True, which="both", ls="--", alpha=0.5)
+    # plt.tight_layout()
+    # plt.show()
 
 if __name__ == "__main__":
     for subdir in EXP_SUBDIRS:
