@@ -78,6 +78,7 @@ def visualize_data(data_fpath: str):
         costs_stack = np.array([c[:min_len] for _, c in runs])
 
         # Assume times are consistent across runs (you mentioned times list is per-iterate)
+        print("WARNING: Assuming times are consistent across runs -- should test this!")
         times = times_stack[0]
 
         # Compute min/max across runs
