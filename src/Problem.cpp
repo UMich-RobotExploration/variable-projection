@@ -853,25 +853,6 @@ namespace VarPro
     // std::cout << "Wrote LtransCholRed_ to " << LtransCholRed_fpath << std::endl;
   }
 
-  void Problem::separableStructureUpdate(Matrix &Y) const
-  {
-    checkMatrixShape("Problem::separableStructureUpdate", getExpectedVariableSize(),
-                     relaxation_rank_, Y.rows(), Y.cols());
-    if (formulation_ == Formulation::ExplicitVarPro)
-    {
-      Matrix Ymain = Y.block(0, 0, rotAndRangeMatrixSize(), relaxation_rank_);
-      // Matrix P1 = TransOffDiagRed_.transpose() * Ymain;
-      Y.block(rotAndRangeMatrixSize(), 0, numTranslationalStates() - 1,
-              relaxation_rank_) = -LtransCholRed_->solve(TransOffDiagRed_.transpose() * Ymain);
-      // set the last row to zero since this is the pinned translation
-      Y.row(Y.rows() - 1).setZero();
-    }
-    else
-    {
-      throw std::invalid_argument("Invalid formulation for separableStructureUpdate");
-    }
-  }
-
   Matrix Problem::dataMatrixProduct(const Matrix &Y) const
   {
     checkMatrixShape("Problem::dataMatrixProduct::Y", getExpectedVariableSize(),
@@ -1226,6 +1207,25 @@ namespace VarPro
     assert(problem_data_up_to_date_);
     Matrix x0 = Matrix::Random(getExpectedVariableSize(), relaxation_rank_);
     return projectToManifold(x0);
+  }
+
+  void Problem::separableStructureUpdate(Matrix &Y) const
+  {
+    checkMatrixShape("Problem::separableStructureUpdate", getExpectedVariableSize(),
+                     relaxation_rank_, Y.rows(), Y.cols());
+    if (formulation_ == Formulation::ExplicitVarPro)
+    {
+      Matrix Ymain = Y.block(0, 0, rotAndRangeMatrixSize(), relaxation_rank_);
+      // Matrix P1 = TransOffDiagRed_.transpose() * Ymain;
+      Y.block(rotAndRangeMatrixSize(), 0, numTranslationalStates() - 1,
+              relaxation_rank_) = -LtransCholRed_->solve(TransOffDiagRed_.transpose() * Ymain);
+      // set the last row to zero since this is the pinned translation
+      Y.row(Y.rows() - 1).setZero();
+    }
+    else
+    {
+      throw std::invalid_argument("Invalid formulation for separableStructureUpdate");
+    }
   }
 
   Matrix Problem::getTranslationExplicitSolution(const Matrix &Y) const
