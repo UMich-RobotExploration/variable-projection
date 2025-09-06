@@ -5,6 +5,33 @@ clc; clear all; close all;
 dirpath = '/home/alan/variable-projection/examples/matlab';
 addpath(genpath(dirpath));
 
+%% LOOK AT SEPARABLE STRUCTURE UPDATES
+
+Q21_path = fullfile(dirpath, 'separableUpdate/Q21.mtx');
+Q22_path = fullfile(dirpath, 'separableUpdate/Q22.mtx');
+Ycons_path = fullfile(dirpath, 'separableUpdate/Ycons.mtx');
+Yfull_path = fullfile(dirpath, 'separableUpdate/Yfull.mtx');
+
+Q21 = mmread(Q21_path);
+Q22 = mmread(Q22_path);
+Ycons = mmread(Ycons_path);
+Yfull = mmread(Yfull_path);
+
+% Check that the bottom of Yfull is the same as the pinv(Q22) * Q21 * Ycons
+Yfull_bottom = Yfull(size(Ycons,1)+1:end, :);
+Yfull_bottom2 = -pinv(full(Q22)) * full(Q21) * full(Ycons);
+
+% need to subtract out the last row of Yfull_bottom2
+bottom2_last_row = Yfull_bottom2(end, :);
+Yfull_bottom2 = Yfull_bottom2 - bottom2_last_row;
+
+diff = Yfull_bottom - Yfull_bottom2;
+max(abs(diff(:)))
+norm(diff, 'fro')
+
+
+%% LOOK AT Q AND Ltrans
+
 % read the Q matrix, which is at dirpath/Q.mtx
 Qmatpath = fullfile(dirpath, 'bal-93/Q.mtx');
 Q = mmread(Qmatpath);
@@ -20,7 +47,6 @@ spy(N);
 
 [labels, sizes, G] = components_from_laplacian(Ltrans);
 
-%%
 p = amd(Q);
 L = chol(Q(p,p));
 
