@@ -102,7 +102,8 @@ std::vector<VarPro::Formulation> getFormulationsToSweep()
 }
 
 std::vector<std::vector<std::string>> makeInitializationFiles(const std::string &dataset_path,
-                                                              const std::vector<int> &ranks)
+                                                              const std::vector<int> &ranks,
+                                                              int num_inits)
 {
   // start by making a 2d array to hold all of the initialization file paths
   // the array should have len(ranks) rows and 10 columns
@@ -110,7 +111,7 @@ std::vector<std::vector<std::string>> makeInitializationFiles(const std::string 
   for (int r : ranks)
   {
     std::vector<std::string> rank_init_file_paths;
-    for (int i = 1; i <= 10; i++)
+    for (int i = 1; i <= num_inits; i++)
     {
       rank_init_file_paths.push_back(dataset_path + "/inits/rank" + std::to_string(r) +
                                      "_init" + std::to_string(i) + ".txt");
