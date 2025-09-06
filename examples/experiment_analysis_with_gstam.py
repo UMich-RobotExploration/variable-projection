@@ -15,7 +15,7 @@ EXP_SUBDIRS = [
    # "/raslam/factor_graph_small/results.json",
     "/raslam/single_drone/results.json",
     "/raslam/plaza2/results.json",
-    # "/sfm/bal-392/results.json",
+    #"/sfm/bal-392/results.json",
     # "/sfm/TUM-desk/results.json",
     # "/sfm/MipNerf-garden/results.json",
     # "/sfm/IMC-gate/results.json",
@@ -27,7 +27,7 @@ EXP_SUBDIRS = [
     # "/sfm/Replica-REProom0_100/results.json",
     # "/sfm/TUM-computer-R/results.json",
     # "/sfm/TUM-computer-T/results.json",
-    # "/sfm/bal-93/results.json",
+    "/sfm/bal-93/results.json",
     # "/sfm/Replica-REPoffice1_100/results.json",
   #  "/sfm/MipNerf-kitchen/results.json",
  #   "/pgo/results.json",
@@ -77,6 +77,22 @@ def extract_rank(init_file: str) -> str:
     m = RANK_PATTERN.search(os.path.basename(init_file or ""))
     return f"rank{m.group(1)}" if m else "rank?"
 
+def get_entry_rank(e, default=RANK_TARGET):
+    """Resolve rank robustly (init_file -> rank field -> GTSAM fallback)."""
+    r = extract_rank(e.get("init_file", ""))
+    if r != "rank?":
+        return r
+    cand = e.get("rank")  # sometimes present as 5 or "rank5"
+    if cand is not None:
+        m = RANK_PATTERN.search(str(cand))
+        if m:
+            return f"rank{m.group(1)}"
+    # fallback: many GTSAM logs omit rank in filename
+    form_guess = normalize_formulation(e.get("formulation"), e.get("_source_path", ""))
+    if form_guess == "GTSAM":
+        return default
+    return "rank?"
+
 # Fixed colors for the four formulations
 _palette = plt.get_cmap("tab10")
 COLORS_FIXED = {
@@ -93,16 +109,25 @@ def visualize_dataset(dataset_name: str, entries: list):
     Only plots rank5, and only the four formulations in FORM_ORDER.
     Aggregates multiple runs (min/max band + median) and uses cumulative time.
     """
-    if "sfm" in dataset_name:
+    if "bal-93" not in dataset_name:
+        print(dataset_name)
         return
     groups = defaultdict(list)  # {formulation: [(cum_times, costs), ...]}
     for e in entries:
         form = normalize_formulation(e.get("formulation"), e.get("_source_path", ""))
         if form not in FORM_ORDER:
             continue
-        rank = extract_rank(e.get("init_file", ""))
-        if rank != RANK_TARGET:
+        rank = get_entry_rank(e, default=RANK_TARGET)
+        if RANK_TARGET and rank != RANK_TARGET:
+            print(dataset_name)
+            print(form)
+            print(rank)
+            print()
             continue
+        print(dataset_name)
+        print(form)
+        print(rank)
+        print()
 
         times = np.array(e.get("times", []), dtype=float)
         costs = np.array(e.get("costs", []), dtype=float)
@@ -377,22 +402,25 @@ def visualize_all_tasks_runtime_shadedbox(dataset_to_entries: dict,
 
 
 def cumtimes_by_form(entries, rank_target=RANK_TARGET):
-    """
-    Collect capped cumulative times per formulation for the target rank.
-    Returns: dict {formulation: [cum_time_s, ...]}
-    """
     out = defaultdict(list)
     for e in entries:
         form = normalize_formulation(e.get("formulation"), e.get("_source_path", ""))
         if form not in FORM_ORDER:
             continue
-        if extract_rank(e.get("init_file", "")) != rank_target:
+
+        # parse rank, but fall back for GTSAM (many GTSAM JSONs lack 'init_file' rank)
+        rank = extract_rank(e.get("init_file", ""))
+        if rank == "rank?" and form == "GTSAM":
+            rank = rank_target  # assume it's the same target rank you’re plotting
+
+        if rank_target and rank != rank_target:
             continue
 
         tval = capped_cumulative_time(e.get("times", []), e.get("costs", []))
         if tval is not None and np.isfinite(tval):
             out[form].append(float(tval))
     return out
+
 
 # --- Task detection (simple, path- and name-based) ---
 def classify_task_from_path(path: str, dataset_name: str) -> str:
