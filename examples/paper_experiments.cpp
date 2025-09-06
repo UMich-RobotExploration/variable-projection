@@ -96,9 +96,10 @@ std::vector<int> getRanksToSweep(int min_rank, int max_rank)
 std::vector<VarPro::Formulation> getFormulationsToSweep()
 {
   return {
-      VarPro::Formulation::Implicit,
       VarPro::Formulation::Explicit,
-      VarPro::Formulation::ExplicitVarPro};
+      VarPro::Formulation::ExplicitVarPro,
+      VarPro::Formulation::Implicit
+    };
 }
 
 std::vector<std::vector<std::string>> makeInitializationFiles(const std::string &dataset_path,
@@ -246,11 +247,15 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
         }
 
         VarPro::Matrix init = readInitializationFile(init_fpath, problem);
+        checkMatrixShape("sweepDataset::init",
+                         problem.getExpectedVariableSize(), problem.getRelaxationRank(),
+                         init.rows(), init.cols());
         std::cout << "Running " << getExpDescription(findPyfgInDir(dataset_path), problem)
                   << " on initialization file " << init_fpath << std::endl;
         VarPro::ProblemResult result = {};
         try
         {
+          throw std::runtime_error("Skipping solveProblem");
           result = VarPro::solveProblem(problem, init, verbose);
         }
         catch (const std::runtime_error &e)

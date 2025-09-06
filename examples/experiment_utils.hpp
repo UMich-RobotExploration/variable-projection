@@ -113,7 +113,6 @@ fs::path findPyfgInDir(const fs::path &dir_path)
             continue;
         }
 
-
         if (entry.path().extension() == ".pyfg")
         {
             return entry.path();
@@ -155,22 +154,24 @@ void getExperimentDirsRecursive(const fs::path &path, std::vector<fs::path> &exp
     }
 }
 
-std::uintmax_t dir_size(const fs::path& dir) {
+std::uintmax_t dir_size(const fs::path &dir)
+{
     std::uintmax_t size = 0;
     std::error_code ec;
 
-    if (!fs::exists(dir, ec)) return 0;
+    if (!fs::exists(dir, ec))
+        return 0;
 
-    for (auto const& entry : fs::recursive_directory_iterator(
+    for (auto const &entry : fs::recursive_directory_iterator(
              dir, fs::directory_options::skip_permission_denied, ec))
     {
-        if (entry.is_regular_file(ec)) {
+        if (entry.is_regular_file(ec))
+        {
             size += entry.file_size(ec);
         }
     }
     return size;
 }
-
 
 void writeInitializationFile(const fs::path &init_fpath,
                              const VarPro::Problem &problem,
@@ -291,7 +292,7 @@ VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
                                  init_fpath.string() + " for reading");
     }
 
-    VarPro::Matrix Y_init = VarPro::Matrix::Zero(problem.getExpectedVariableSize(),
+    VarPro::Matrix Y_init = VarPro::Matrix::Zero(problem.getDataMatrixSize(),
                                                  problem.getRelaxationRank());
 
     std::string line;
@@ -342,7 +343,7 @@ VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
             }
         }
 
-        if (tokens[0] == "VERTEX_POINT" && problem.getFormulation() != VarPro::Formulation::Implicit)
+        if (tokens[0] == "VERTEX_POINT")
         {
             if (tokens.size() < 2 + problem.getRelaxationRank())
             {
@@ -384,5 +385,23 @@ VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
     }
 
     init_file.close();
+
+    // check if random_init has nans or infs
+    if (!Y_init.allFinite())
+    {
+        throw std::runtime_error("Random initialization contains NaNs or Infs");
+    }
+
+    // check that it has the correct shape
+    checkMatrixShape("readInitializationFile::Y_init",
+                     problem.getDataMatrixSize(), problem.getRelaxationRank(),
+                     Y_init.rows(), Y_init.cols());
+
+    // if we are in implicit mode, we actually want to return only the top block (without the translations)
+    if (problem.getFormulation() == VarPro::Formulation::Implicit)
+    {
+        return Y_init.topRows(problem.rotAndRangeMatrixSize());
+    }
+
     return Y_init;
 }
