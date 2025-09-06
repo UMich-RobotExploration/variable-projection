@@ -25,6 +25,7 @@ struct Config
 {
   bool verbose;
   std::string abs_data_path;
+  int min_rank;
   int max_rank;
   int num_inits;
 };
@@ -76,6 +77,7 @@ Config parseConfig(const std::string &filename)
 
   Config config;
   config.verbose = j["verbose"];
+  config.min_rank = j["min_rank"];
   config.max_rank = j["max_rank"];
   config.abs_data_path = j["abs_data_path"];
   config.num_inits = j["num_inits"];
@@ -217,7 +219,7 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
           : VarPro::parsePyfgTextToProblem("./bin/" + pyfg_fpath);
   problem.updateProblemData();
 
-  std::vector<int> ranks = getRanksToSweep(problem.dim(), config.max_rank);
+  std::vector<int> ranks = getRanksToSweep(config.min_rank, config.max_rank);
   std::vector<VarPro::Formulation> formulations = getFormulationsToSweep();
   auto init_file_names = makeInitializationFiles(dataset_path.string(), ranks, config.num_inits);
   std::vector<ExperimentResult> current_results = {};
@@ -255,7 +257,6 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
         VarPro::ProblemResult result = {};
         try
         {
-          throw std::runtime_error("Skipping solveProblem");
           result = VarPro::solveProblem(problem, init, verbose);
         }
         catch (const std::runtime_error &e)
