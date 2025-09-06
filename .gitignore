@@ -1,8 +1,5 @@
 *.zip
 
-# SfM dataset
-examples/data/sfm/*
-
 # VS Code
 .vscode
 
