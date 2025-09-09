@@ -44,133 +44,187 @@ EXP_SUBDIRS = [
 
 COLOR_SCHEME = plt.get_cmap("tab10")
 num_colors = COLOR_SCHEME.N
-COLOR_KEYS = [(rank, form) for rank in ["rank3", "rank4", "rank5"] for form in ["Explicit", "Explicit VarPro", "Implicit", "GTSAM"]]
+COLOR_KEYS = [(rank, form) for rank in ["rank5"] for form in ["Explicit", "Explicit VarPro", "Implicit", "GTSAM"]]
 COLORS = {key: COLOR_SCHEME(i % num_colors) for i, key in enumerate(COLOR_KEYS)}
 
+# Optional fallback colors
+def color_for(key):
+    # key is (formulation, rank)
+    try :
+        return COLORS[key[1], key[0]]
+    except KeyError:
+        base = {
+            "Explicit": "#1f77b4",
+            "Explicit VarPro": "#ff7f0e",
+            "Implicit": "#2ca02c",
+            "GTSAM": "#d62728",
+        }
+        return base.get(key[0], "#9467bd")
+
+def _ensure_strictly_increasing(t):
+    """Make times strictly increasing (fix duplicates with tiny eps)."""
+    t = np.asarray(t, dtype=float)
+    if t.ndim != 1:
+        raise ValueError("times must be 1-D")
+    eps = np.finfo(float).eps
+    for i in range(1, t.size):
+        if t[i] <= t[i-1]:
+            t[i] = t[i-1] + max(1e-12, abs(t[i-1]) * 1e-12 + eps)
+    return t
 
 def get_groups_from_data(data_fpath: str) -> dict:
-    # check that the file exists
     try:
         with open(data_fpath, "r") as f:
-            pass
+            data = json.load(f)
     except FileNotFoundError:
         print(f"File not found: {data_fpath}")
         return {}
 
-    with open(data_fpath, "r") as f:
-        data = json.load(f)
-
-    # Group by (formulation, rank)
     groups = defaultdict(list)
-
     FORMULATION_MAP = {0: "Explicit", 1: "Explicit VarPro", 2: "Implicit", "gtsam": "GTSAM"}
 
     for entry in data:
-        formulation = FORMULATION_MAP[entry["formulation"]]
-        # Extract rank from filename, e.g. ".../rank2_init1.txt"
-        match = re.search(r"rank(\d+)", entry["init_file"])
-        rank = f"rank{match.group(1)}" if match else "unknown"
+        form_raw = entry.get("formulation")
+        formulation = FORMULATION_MAP.get(form_raw, f"Unknown({form_raw})")
 
-        times = np.array(entry["times"])
-        costs = np.array(entry["costs"])
+        init_file = entry.get("init_file", "")
+        m = re.search(r"rank(\d+)", init_file)
+        rank = f"rank{m.group(1)}" if m else "unknown"
 
-        # if the formulation is "GTSAM" then the times need to be cumulative
-        if formulation == "GTSAM":
-            # add a zero to the beginning of times
-            times = np.insert(times, 0, 0.0)
+        times = np.asarray(entry.get("times", []), dtype=float)
+        costs = np.asarray(entry.get("costs", []), dtype=float)
+
+        # Keep lengths consistent
+        L = min(times.size, costs.size)
+        times, costs = times[:L], costs[:L]
+
+        # GTSAM: make times cumulative, and prepend initial sample so lengths stay equal
+        if formulation == "GTSAM" and times.size > 0:
             times = np.cumsum(times)
+            # align with an initial "t=0, cost=cost[0]" sample
+            times = np.concatenate(([0.0], times))
+            costs = np.concatenate(([costs[0]], costs))
 
+        # Ensure strictly increasing times for interpolation stability
+        if times.size > 1:
+            order = np.argsort(times)
+            times, costs = times[order], costs[order]
+            times = _ensure_strictly_increasing(times)
 
-        groups[(formulation, rank)].append((times, costs))
+        if times.size and costs.size:
+            groups[(formulation, rank)].append((times, costs))
 
     return groups
 
-def check_intragroup_time_consistency(groups: dict):
-    for (form, rank), runs1 in groups.items():
-        times_list = [t for t, _ in runs1]
-
-        # clip all to be the same length
-        min_len = min(len(t) for t in times_list)
-        times_list = [t[:min_len] for t in times_list]
-
-        # Check pairwise consistency
-        for i in range(len(times_list)):
-            for j in range(i + 1, len(times_list)):
-                diff = np.abs(times_list[i] - times_list[j])
-                if not np.all(diff < 1e-6):
-                    print(f"Warning: Inconsistent times in group ({form}, {rank}) between runs {i} and {j}")
-                    print(f"Max time difference: {diff.max()}")
-                    print(f"Min time difference: {diff.min()}")
-                    print(f"Mean time difference: {diff.mean()}")
-
-def visualize_data(varpro_data_fpath: str, gstam_data_fpath: str = ""):
-    group_varpro = get_groups_from_data(varpro_data_fpath)
-    if gstam_data_fpath != "":
-        group_gstam = get_groups_from_data(gstam_data_fpath)
-        groups = {**group_varpro, **group_gstam}
+def _common_time_grid(runs, n_points=400, mode="linspace"):
+    """
+    Build a common time grid over the intersection of all runs' time ranges.
+    """
+    tmins = [t[0] for (t, _) in runs if t.size]
+    tmaxs = [t[-1] for (t, _) in runs if t.size]
+    if not tmins or not tmaxs:
+        return None
+    t0 = max(tmins)
+    t1 = min(tmaxs)
+    if not np.isfinite(t0) or not np.isfinite(t1) or t1 <= t0:
+        return None
+    if mode == "linspace":
+        return np.linspace(t0, t1, n_points)
+    elif mode == "union":
+        # union of all time stamps, clipped to [t0,t1], then unique & sorted
+        T = np.unique(np.concatenate([t[(t >= t0) & (t <= t1)] for (t, _) in runs]))
+        # cap cardinality if it explodes
+        if T.size > 2000:
+            # downsample uniformly
+            idx = np.linspace(0, T.size - 1, 2000).round().astype(int)
+            T = T[idx]
+        return T
     else:
-        groups = group_varpro
+        raise ValueError("Unknown grid mode")
 
-    check_intragroup_time_consistency(groups)
+def _interp_run_to_grid(times, costs, grid):
+    """
+    Linearly interpolate costs(t) onto 'grid'.
+    Extrapolation is clamped to endpoints (np.interp behavior).
+    """
+    if times.size == 0:
+        return np.full_like(grid, np.nan, dtype=float)
+    # safety: equalize length
+    L = min(times.size, costs.size)
+    times, costs = times[:L], costs[:L]
+    times = _ensure_strictly_increasing(times)
+    return np.interp(grid, times, costs)
 
-    # Plot two subplots: costs vs iterations and costs vs time
-    fig, axs = plt.subplots(1, 2, figsize=(10, 6))
+def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
+    group_varpro = get_groups_from_data(varpro_data_fpath)
+    groups = dict(group_varpro)
+    if gtsam_data_fpath:
+        groups.update(get_groups_from_data(gtsam_data_fpath))
 
-    for i, ((formulation, rank), runs) in enumerate(groups.items()):
-        rank_num = int(rank.replace("rank", ""))
+    # Two panels
+    fig, axs = plt.subplots(1, 2, figsize=(11, 6))
+
+    for (formulation, rank), runs in groups.items():
+        # Filter example: only rank5; remove this if you want all ranks
+        try:
+            rank_num = int(str(rank).replace("rank", ""))
+        except ValueError:
+            continue
         if rank_num != 5:
             continue
+        if not runs:
+            continue
 
-        # Pad runs to equal length by truncating to min length
-        assert all(len(t) == len(c) for t, c in runs), "Times and costs length mismatch in a run"
-        min_len = min(len(costs) for _, costs in runs)
-        times_stack = np.array([t[:min_len] for t, _ in runs])
-        costs_stack = np.array([c[:min_len] for _, c in runs])
+        # -------- Panel 1: Costs vs Iterations (no need to interpolate) --------
+        # Align by iterations: truncate each run to min length
+        min_iter_len = min(min(len(t), len(c)) for t, c in runs)
+        if min_iter_len < 2:
+            continue
+        costs_iter = np.stack([c[:min_iter_len] for _, c in runs], axis=0)
+        iters = np.arange(min_iter_len)
 
-        # Assume times are consistent across runs (you mentioned times list is per-iterate)
-        print("WARNING: Assuming times are consistent across runs -- should test this!")
-        times = times_stack[0]
+        c_med_iter = np.nanmedian(costs_iter, axis=0)
+        c_lo_iter = np.nanpercentile(costs_iter, 10, axis=0)
+        c_hi_iter = np.nanpercentile(costs_iter, 90, axis=0)
 
-        # Compute min/max across runs
-        min_cost = costs_stack.min(axis=0)
-        max_cost = costs_stack.max(axis=0)
-
-        # Compute median cost across runs
-        median_cost = np.median(costs_stack, axis=0)
-
-        # Plot shaded area
-        color = COLORS[(rank, formulation)]
+        color = color_for((formulation, rank))
         label = f"{rank} ({formulation})"
-        # plt.fill_between(times, min_cost, max_cost, color=color, alpha=0.2)
-        # plt.plot(times, median_cost, color=color, label=label)
-        axs[0].fill_between(range(min_len), min_cost, max_cost, color=color, alpha=0.2)
-        axs[0].plot(range(min_len), median_cost, color=color, label=label)
-        axs[1].fill_between(times, min_cost, max_cost, color=color, alpha=0.2)
-        axs[1].plot(times, median_cost, color=color, label=label)
+        axs[0].fill_between(iters, c_lo_iter, c_hi_iter, alpha=0.18, label=None, color=color)
+        axs[0].plot(iters, c_med_iter, label=label, color=color)
 
-    # Costs vs Iterations
+        # -------- Panel 2: Costs vs Time (interpolate to common grid) --------
+        grid = _common_time_grid(runs, n_points=500, mode="linspace")
+        if grid is None:
+            # Not enough overlap; fall back to plotting individual runs
+            for (t, c) in runs:
+                axs[1].plot(t, c, alpha=0.35, color=color)
+        else:
+            Cs = np.stack([_interp_run_to_grid(t, c, grid) for (t, c) in runs], axis=0)
+            c_med = np.nanmedian(Cs, axis=0)
+            c_lo = np.nanpercentile(Cs, 10, axis=0)
+            c_hi = np.nanpercentile(Cs, 90, axis=0)
+
+            axs[1].fill_between(grid, c_lo, c_hi, alpha=0.18, color=color)
+            axs[1].plot(grid, c_med, color=color, label=label)
+
+    # ---- Styling ----
     axs[0].set_xlabel("Iterations")
     axs[0].set_ylabel("Cost")
-    axs[0].set_yscale("log")  # log scale often useful for optimization costs
-    axs[0].legend()
+    axs[0].set_yscale("log")
+    axs[0].grid(True, which="both", ls="--", alpha=0.5)
     axs[0].set_title("Solver Costs vs Iterations")
-    # subtitle with dataset name
-    dataset_name = varpro_data_fpath.split("/")[-2]
-    axs[0].text(0.5, 1.05, f"Dataset: {dataset_name}", fontsize=10, ha='center', transform=axs[0].transAxes)
-    axs[0].grid(True, which="both", ls="--", alpha=0.5) # grid for both major and minor ticks
+    axs[0].legend()
 
-    # Costs vs Time
     axs[1].set_xlabel("Time (s)")
     axs[1].set_ylabel("Cost")
-    axs[1].set_yscale("log")  # log scale often useful for optimization costs
-    axs[1].legend()
+    axs[1].set_yscale("log")
+    axs[1].grid(True, which="both", ls="--", alpha=0.5)
     axs[1].set_title("Solver Costs vs Time")
-    # subtitle with dataset name
-    axs[1].text(0.5, 1.05, f"Dataset    : {dataset_name}", fontsize=10, ha='center', transform=axs[1].transAxes)
-    axs[1].grid(True, which="both", ls="--", alpha=0.5) # grid for both major and minor ticks
+    axs[1].legend()
 
-    plt.tight_layout()
+    fig.tight_layout()
     plt.show()
+
 
 if __name__ == "__main__":
     for subdir in EXP_SUBDIRS:
