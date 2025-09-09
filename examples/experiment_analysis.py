@@ -4,47 +4,58 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import numpy as np
 
-BASE_DATA_DIR = "/home/alan/variable-projection/examples/data"
+BASE_VARPRO_DATA_DIR = "/home/alan/variable-projection/examples/data"
+BASE_GTSAM_DATA_DIR = "/home/alan/variable-projection/examples/data_nik"
 EXP_SUBDIRS = [
-    "/raslam/factor_graph_small/results.json",
-    "/raslam/single_drone/results.json",
-    "/raslam/plaza2/results.json",
-    "/sfm/bal-392/results.json",
-    "/sfm/TUM-desk/results.json",
-    "/sfm/MipNerf-garden/results.json",
-    "/sfm/IMC-gate/results.json",
-    "/sfm/IMC-temple/results.json",
-    "/sfm/Replica-REPoffice0_100/results.json",
-    "/sfm/TUM-room/results.json",
-    "/sfm/Replica-REProom1_100/results.json",
-    "/sfm/MipNerf-room/results.json",
-    "/sfm/Replica-REProom0_100/results.json",
-    "/sfm/TUM-computer-R/results.json",
-    "/sfm/TUM-computer-T/results.json",
-    "/sfm/bal-93/results.json",
-    "/sfm/Replica-REPoffice1_100/results.json",
-    "/sfm/MipNerf-kitchen/results.json",
-    "/pgo/results.json",
-    "/snl/intel_snl/results.json",
-    "/snl/parking-garage_snl/results.json",
-    "/snl/grid3D_snl/results.json",
-    "/snl/MIT_snl/results.json",
-    "/snl/smallGrid3D_snl/results.json",
-    "/snl/M3500_snl/results.json",
-    "/snl/city10000_snl/results.json",
-    "/snl/tinyGrid3D_snl/results.json",
-    "/snl/torus3D_snl/results.json",
-    "/snl/sphere2500_snl/results.json",
+    # "/raslam/factor_graph_small/results.json",
+    # "/raslam/mrclam/mrclam2/results.json",
+    "/raslam/mrclam/mrclam4/results.json",
+    # "/raslam/mrclam/mrclam6/results.json",
+    # "/raslam/mrclam/mrclam7/results.json",
+    # "/raslam/single_drone/results.json",
+    # "/raslam/plaza2/results.json",
+    # "/sfm/bal-392/results.json",
+    # "/sfm/TUM-desk/results.json",
+    # "/sfm/MipNerf-garden/results.json",
+    # "/sfm/IMC-gate/results.json",
+    # "/sfm/IMC-temple/results.json",
+    # "/sfm/Replica-REPoffice0_100/results.json",
+    # "/sfm/TUM-room/results.json",
+    # "/sfm/Replica-REProom1_100/results.json",
+    # "/sfm/MipNerf-room/results.json",
+    # "/sfm/Replica-REProom0_100/results.json",
+    # "/sfm/TUM-computer-R/results.json",
+    # "/sfm/TUM-computer-T/results.json",
+    # "/sfm/bal-93/results.json",
+    # "/sfm/Replica-REPoffice1_100/results.json",
+    # "/sfm/MipNerf-kitchen/results.json",
+    # "/pgo/results.json",
+    # "/snl/intel_snl/results.json",
+    # "/snl/parking-garage_snl/results.json",
+    # "/snl/grid3D_snl/results.json",
+    # "/snl/MIT_snl/results.json",
+    # "/snl/smallGrid3D_snl/results.json",
+    # "/snl/M3500_snl/results.json",
+    # "/snl/city10000_snl/results.json",
+    # "/snl/tinyGrid3D_snl/results.json",
+    # "/snl/torus3D_snl/results.json",
+    # "/snl/sphere2500_snl/results.json",
 ]
 
 COLOR_SCHEME = plt.get_cmap("tab10")
-COLOR_KEYS = [(rank, form) for rank in ["rank3", "rank4", "rank5"] for form in ["Explicit", "Explicit VarPro", "Implicit"]]
-COLORS = {key: COLOR_SCHEME(i) for i, key in enumerate(COLOR_KEYS)}
+num_colors = COLOR_SCHEME.N
+COLOR_KEYS = [(rank, form) for rank in ["rank3", "rank4", "rank5"] for form in ["Explicit", "Explicit VarPro", "Implicit", "GTSAM"]]
+COLORS = {key: COLOR_SCHEME(i % num_colors) for i, key in enumerate(COLOR_KEYS)}
 
 
-def visualize_data(data_fpath: str):
-    if "sfm" not in data_fpath:
-        return
+def get_groups_from_data(data_fpath: str) -> dict:
+    # check that the file exists
+    try:
+        with open(data_fpath, "r") as f:
+            pass
+    except FileNotFoundError:
+        print(f"File not found: {data_fpath}")
+        return {}
 
     with open(data_fpath, "r") as f:
         data = json.load(f)
@@ -52,7 +63,7 @@ def visualize_data(data_fpath: str):
     # Group by (formulation, rank)
     groups = defaultdict(list)
 
-    FORMULATION_MAP = {0: "Explicit", 1: "Explicit VarPro", 2: "Implicit"}
+    FORMULATION_MAP = {0: "Explicit", 1: "Explicit VarPro", 2: "Implicit", "gtsam": "GTSAM"}
 
     for entry in data:
         formulation = FORMULATION_MAP[entry["formulation"]]
@@ -62,7 +73,45 @@ def visualize_data(data_fpath: str):
 
         times = np.array(entry["times"])
         costs = np.array(entry["costs"])
+
+        # if the formulation is "GTSAM" then the times need to be cumulative
+        if formulation == "GTSAM":
+            # add a zero to the beginning of times
+            times = np.insert(times, 0, 0.0)
+            times = np.cumsum(times)
+
+
         groups[(formulation, rank)].append((times, costs))
+
+    return groups
+
+def check_intragroup_time_consistency(groups: dict):
+    for (form, rank), runs1 in groups.items():
+        times_list = [t for t, _ in runs1]
+
+        # clip all to be the same length
+        min_len = min(len(t) for t in times_list)
+        times_list = [t[:min_len] for t in times_list]
+
+        # Check pairwise consistency
+        for i in range(len(times_list)):
+            for j in range(i + 1, len(times_list)):
+                diff = np.abs(times_list[i] - times_list[j])
+                if not np.all(diff < 1e-6):
+                    print(f"Warning: Inconsistent times in group ({form}, {rank}) between runs {i} and {j}")
+                    print(f"Max time difference: {diff.max()}")
+                    print(f"Min time difference: {diff.min()}")
+                    print(f"Mean time difference: {diff.mean()}")
+
+def visualize_data(varpro_data_fpath: str, gstam_data_fpath: str = ""):
+    group_varpro = get_groups_from_data(varpro_data_fpath)
+    if gstam_data_fpath != "":
+        group_gstam = get_groups_from_data(gstam_data_fpath)
+        groups = {**group_varpro, **group_gstam}
+    else:
+        groups = group_varpro
+
+    check_intragroup_time_consistency(groups)
 
     # Plot two subplots: costs vs iterations and costs vs time
     fig, axs = plt.subplots(1, 2, figsize=(10, 6))
@@ -73,6 +122,7 @@ def visualize_data(data_fpath: str):
             continue
 
         # Pad runs to equal length by truncating to min length
+        assert all(len(t) == len(c) for t, c in runs), "Times and costs length mismatch in a run"
         min_len = min(len(costs) for _, costs in runs)
         times_stack = np.array([t[:min_len] for t, _ in runs])
         costs_stack = np.array([c[:min_len] for _, c in runs])
@@ -105,7 +155,7 @@ def visualize_data(data_fpath: str):
     axs[0].legend()
     axs[0].set_title("Solver Costs vs Iterations")
     # subtitle with dataset name
-    dataset_name = data_fpath.split("/")[-2]
+    dataset_name = varpro_data_fpath.split("/")[-2]
     axs[0].text(0.5, 1.05, f"Dataset: {dataset_name}", fontsize=10, ha='center', transform=axs[0].transAxes)
     axs[0].grid(True, which="both", ls="--", alpha=0.5) # grid for both major and minor ticks
 
@@ -122,19 +172,10 @@ def visualize_data(data_fpath: str):
     plt.tight_layout()
     plt.show()
 
-    # plt.xlabel("Time (s)")
-    # plt.ylabel("Cost")
-    # plt.yscale("log")  # log scale often useful for optimization costs
-    # plt.legend()
-    # plt.title("Solver Costs vs Time")
-    # # subtitle with dataset name
-    # dataset_name = data_fpath.split("/")[-2]
-    # plt.suptitle(f"Dataset: {dataset_name}", fontsize=10)
-    # plt.grid(True, which="both", ls="--", alpha=0.5)
-    # plt.tight_layout()
-    # plt.show()
-
 if __name__ == "__main__":
     for subdir in EXP_SUBDIRS:
-        data_fpath = BASE_DATA_DIR + subdir
-        visualize_data(data_fpath)
+        varpro_data_fpath = BASE_VARPRO_DATA_DIR + subdir
+        gtsam_data_fpath = BASE_GTSAM_DATA_DIR + subdir
+
+        print(f"Processing {varpro_data_fpath} and {gtsam_data_fpath}...")
+        visualize_data(varpro_data_fpath, gtsam_data_fpath)

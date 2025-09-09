@@ -2,6 +2,6 @@
   "verbose": false,
   "min_rank": 5,
   "max_rank": 5,
-  "abs_data_path": "/home/alan/variable-projection/examples/data",
+  "abs_data_path": "/home/alan/variable-projection/examples/data/raslam/mrclam",
   "num_inits": 5
 }
