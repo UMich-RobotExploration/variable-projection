@@ -7,14 +7,16 @@ import numpy as np
 
 # --- Paths ---
 BASE_DIRS = [
-    "/home/nikolas/variable-projection/examples/data",      # Explicit / Implicit / VarPro
-    "/home/nikolas/variable-projection/examples/data_nik",  # GTSAM
+    "/home/pumbaa/variable-projection/examples/data",      # Explicit / Implicit / VarPro
+    "/home/pumbaa/variable-projection/examples/data_nik",  # GTSAM
 ]
 
 EXP_SUBDIRS = [
    # "/raslam/factor_graph_small/results.json",
-    "/raslam/single_drone/results.json",
-    "/raslam/plaza2/results.json",
+    #"/raslam/single_drone/results.json",
+    #"/raslam/plaza2/results.json",
+    "/raslam/mrclam2/results.json",
+    "/raslam/mrclam4/results.json",
     #"/sfm/bal-392/results.json",
     # "/sfm/TUM-desk/results.json",
     # "/sfm/MipNerf-garden/results.json",
@@ -27,20 +29,20 @@ EXP_SUBDIRS = [
     # "/sfm/Replica-REProom0_100/results.json",
     # "/sfm/TUM-computer-R/results.json",
     # "/sfm/TUM-computer-T/results.json",
-    "/sfm/bal-93/results.json",
+   # "/sfm/bal-93/results.json",
     # "/sfm/Replica-REPoffice1_100/results.json",
   #  "/sfm/MipNerf-kitchen/results.json",
  #   "/pgo/results.json",
-    "/snl/intel_snl/results.json",
-    "/snl/parking-garage_snl/results.json",
-    "/snl/grid3D_snl/results.json",
-    "/snl/MIT_snl/results.json",
+   # "/snl/intel_snl/results.json",
+   # "/snl/parking-garage_snl/results.json",
+   # "/snl/grid3D_snl/results.json",
+   # "/snl/MIT_snl/results.json",
    # "/snl/smallGrid3D_snl/results.json",
    # "/snl/M3500_snl/results.json",
-    "/snl/city10000_snl/results.json",
+  #  "/snl/city10000_snl/results.json",
    # "/snl/tinyGrid3D_snl/results.json",
    # "/snl/torus3D_snl/results.json",
-    "/snl/sphere2500_snl/results.json",
+   # "/snl/sphere2500_snl/results.json",
 ]
 
 # --- Labeling / normalization ---
@@ -48,8 +50,8 @@ FORMULATION_MAP = {0: "Explicit", 1: "Explicit VarPro", 2: "Implicit"}
 FORM_ORDER = ["Implicit", "Explicit", "Explicit VarPro", "GTSAM"]  # fixed legend order
 
 # ---- at top-level (config) ----
-MAX_ITERS = 100      # e.g., 150; None = no cap
-MAX_TIME_S = 100     # e.g., 0.75; None = no cap
+MAX_ITERS = 10000      # e.g., 150; None = no cap
+MAX_TIME_S = 10000     # e.g., 0.75; None = no cap
 
 RANK_TARGET = "rank5"
 
@@ -109,9 +111,6 @@ def visualize_dataset(dataset_name: str, entries: list):
     Only plots rank5, and only the four formulations in FORM_ORDER.
     Aggregates multiple runs (min/max band + median) and uses cumulative time.
     """
-    if "bal-93" not in dataset_name:
-        print(dataset_name)
-        return
     groups = defaultdict(list)  # {formulation: [(cum_times, costs), ...]}
     for e in entries:
         form = normalize_formulation(e.get("formulation"), e.get("_source_path", ""))
@@ -136,7 +135,10 @@ def visualize_dataset(dataset_name: str, entries: list):
 
         # Convert per-iterate durations -> cumulative time
         L0 = min(len(times), len(costs))
-        cum_times_full = np.cumsum(times[:L0])
+        if form =="GTSAM":
+            cum_times_full = np.cumsum(times[:L0])
+        else:
+            cum_times_full = times[:L0]
 
         # Apply caps
         L = L0
@@ -651,15 +653,15 @@ if __name__ == "__main__":
 
     for ds, entries in dataset_to_entries.items():
         visualize_dataset(ds, entries)
-    visualize_all_tasks_runtime_shadedbox(
-    dataset_to_entries,
-    tasks=("RA-SLAM","SNL","PGO","SFM"),   # choose the ones you want
-    rank_target=RANK_TARGET,               # e.g., "rank5"
-    y_log=True                           # or True if ranges span orders of magnitude
-)
+#     visualize_all_tasks_runtime_shadedbox(
+#     dataset_to_entries,
+#     tasks=("RA-SLAM","SNL","PGO","SFM"),   # choose the ones you want
+#     rank_target=RANK_TARGET,               # e.g., "rank5"
+#     y_log=True                           # or True if ranges span orders of magnitude
+# )
 
-    export_cumtime_csv(
-    dataset_to_entries,
-    long_out="cumtime_summary_long.csv",
-    wide_out="cumtime_summary_wide.csv",
-    rank_filter="rank5")   
+#     export_cumtime_csv(
+#     dataset_to_entries,
+#     long_out="cumtime_summary_long.csv",
+#     wide_out="cumtime_summary_wide.csv",
+#     rank_filter="rank5")   
