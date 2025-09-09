@@ -42,17 +42,25 @@ EXP_SUBDIRS = [
     # "/snl/sphere2500_snl/results.json",
 ]
 
+# Define a color scheme for the plots using a standard matplotlib colormap.
 COLOR_SCHEME = plt.get_cmap("tab10")
 num_colors = COLOR_SCHEME.N
+# Create a list of keys to assign unique colors to each combination of rank and formulation.
 COLOR_KEYS = [(rank, form) for rank in ["rank5"] for form in ["Explicit", "Explicit VarPro", "Implicit", "GTSAM"]]
+# Generate a dictionary mapping each key to a color from the color scheme.
 COLORS = {key: COLOR_SCHEME(i % num_colors) for i, key in enumerate(COLOR_KEYS)}
 
 # Optional fallback colors
 def color_for(key):
+    """
+    Retrieves a color for a given (formulation, rank) key.
+    This function provides a consistent color for each data series in the plots.
+    """
     # key is (formulation, rank)
     try :
         return COLORS[key[1], key[0]]
     except KeyError:
+        # If the key is not in the pre-defined color map, use a fallback color.
         base = {
             "Explicit": "#1f77b4",
             "Explicit VarPro": "#ff7f0e",
@@ -62,7 +70,12 @@ def color_for(key):
         return base.get(key[0], "#9467bd")
 
 def _ensure_strictly_increasing(t):
-    """Make times strictly increasing (fix duplicates with tiny eps)."""
+    """
+    Ensures that the time values are strictly increasing.
+    This is a preprocessing step to prevent issues with interpolation,
+    which requires monotonically increasing sample points.
+    Duplicate time values are adjusted by a small epsilon.
+    """
     t = np.asarray(t, dtype=float)
     if t.ndim != 1:
         raise ValueError("times must be 1-D")
@@ -73,6 +86,10 @@ def _ensure_strictly_increasing(t):
     return t
 
 def get_groups_from_data(data_fpath: str) -> dict:
+    """
+    Loads experimental data from a JSON file and groups it by formulation and rank.
+    Each group contains a list of runs, where each run is a tuple of (times, costs).
+    """
     try:
         with open(data_fpath, "r") as f:
             data = json.load(f)
@@ -94,18 +111,18 @@ def get_groups_from_data(data_fpath: str) -> dict:
         times = np.asarray(entry.get("times", []), dtype=float)
         costs = np.asarray(entry.get("costs", []), dtype=float)
 
-        # Keep lengths consistent
+        # Ensure times and costs arrays have the same length.
         L = min(times.size, costs.size)
         times, costs = times[:L], costs[:L]
 
-        # GTSAM: make times cumulative, and prepend initial sample so lengths stay equal
+        # For GTSAM data, the reported times are per-iteration, so we compute a cumulative sum.
         if formulation == "GTSAM" and times.size > 0:
             times = np.cumsum(times)
-            # align with an initial "t=0, cost=cost[0]" sample
+            # Prepend a t=0 sample to align with other formulations that start at iteration 0.
             times = np.concatenate(([0.0], times))
             costs = np.concatenate(([costs[0]], costs))
 
-        # Ensure strictly increasing times for interpolation stability
+        # Sort data points by time and ensure time is strictly increasing for interpolation.
         if times.size > 1:
             order = np.argsort(times)
             times, costs = times[order], costs[order]
@@ -118,24 +135,27 @@ def get_groups_from_data(data_fpath: str) -> dict:
 
 def _common_time_grid(runs, n_points=400, mode="linspace"):
     """
-    Build a common time grid over the intersection of all runs' time ranges.
+    Constructs a common time grid for a set of runs.
+    This grid is used to interpolate the cost data from different runs
+    so they can be aggregated (e.g., to compute median and percentiles).
+    The grid spans the time interval where all runs overlap.
     """
     tmins = [t[0] for (t, _) in runs if t.size]
     tmaxs = [t[-1] for (t, _) in runs if t.size]
     if not tmins or not tmaxs:
         return None
-    t0 = max(tmins)
-    t1 = min(tmaxs)
+    t0 = max(tmins) # The latest start time among all runs.
+    t1 = min(tmaxs) # The earliest end time among all runs.
     if not np.isfinite(t0) or not np.isfinite(t1) or t1 <= t0:
         return None
     if mode == "linspace":
+        # Create a linearly spaced grid of points.
         return np.linspace(t0, t1, n_points)
     elif mode == "union":
-        # union of all time stamps, clipped to [t0,t1], then unique & sorted
+        # Create a grid from the union of all timestamps within the overlap interval.
         T = np.unique(np.concatenate([t[(t >= t0) & (t <= t1)] for (t, _) in runs]))
-        # cap cardinality if it explodes
+        # Downsample if the number of points is too large.
         if T.size > 2000:
-            # downsample uniformly
             idx = np.linspace(0, T.size - 1, 2000).round().astype(int)
             T = T[idx]
         return T
@@ -144,28 +164,38 @@ def _common_time_grid(runs, n_points=400, mode="linspace"):
 
 def _interp_run_to_grid(times, costs, grid):
     """
-    Linearly interpolate costs(t) onto 'grid'.
-    Extrapolation is clamped to endpoints (np.interp behavior).
+    Interpolates the cost data of a single run onto a common time grid.
+    This allows for direct comparison and aggregation of costs across different runs at the same time points.
     """
     if times.size == 0:
         return np.full_like(grid, np.nan, dtype=float)
-    # safety: equalize length
+    # Ensure times and costs have the same length.
     L = min(times.size, costs.size)
     times, costs = times[:L], costs[:L]
     times = _ensure_strictly_increasing(times)
+    # np.interp performs linear interpolation.
     return np.interp(grid, times, costs)
 
 def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
+    """
+    Main function to generate and display plots comparing solver performance.
+    It creates two subplots:
+    1. Cost vs. Iterations: Shows how the cost function value evolves with each solver iteration.
+    2. Cost vs. Time: Shows how the cost function value evolves over wall-clock time.
+    """
+    # Load and group data from VarPro and (optionally) GTSAM result files.
     group_varpro = get_groups_from_data(varpro_data_fpath)
     groups = dict(group_varpro)
     if gtsam_data_fpath:
         groups.update(get_groups_from_data(gtsam_data_fpath))
 
-    # Two panels
+    # Create a figure with two subplots, side-by-side.
     fig, axs = plt.subplots(1, 2, figsize=(11, 6))
 
+    # Iterate over each group of runs (grouped by formulation and rank).
     for (formulation, rank), runs in groups.items():
-        # Filter example: only rank5; remove this if you want all ranks
+        # --- Data Filtering ---
+        # Example filter: only process runs for a specific rank (e.g., rank 5).
         try:
             rank_num = int(str(rank).replace("rank", ""))
         except ValueError:
@@ -175,46 +205,74 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
         if not runs:
             continue
 
-        # -------- Panel 1: Costs vs Iterations (no need to interpolate) --------
-        # Align by iterations: truncate each run to min length
+        # --- Panel 1: Cost vs. Iterations ---
+        # This plot shows the convergence of the solver in terms of iterations.
+        # It helps to understand the algorithmic efficiency, independent of hardware.
+
+        # To compare runs, they are aligned by iteration count.
+        # All runs are truncated to the length of the shortest run.
         min_iter_len = min(min(len(t), len(c)) for t, c in runs)
         if min_iter_len < 2:
             continue
+        # Stack costs from all runs for this group into a 2D numpy array.
         costs_iter = np.stack([c[:min_iter_len] for _, c in runs], axis=0)
         iters = np.arange(min_iter_len)
 
+        # --- Data Presented: Median and Percentiles of Cost per Iteration ---
+        # Instead of plotting every run, we plot the median cost at each iteration,
+        # with a shaded region representing the 10th to 90th percentile.
+        # This gives a statistical summary of the performance across multiple runs.
         c_med_iter = np.nanmedian(costs_iter, axis=0)
         c_lo_iter = np.nanpercentile(costs_iter, 10, axis=0)
         c_hi_iter = np.nanpercentile(costs_iter, 90, axis=0)
 
+        # --- Plotting the Data for Panel 1 ---
         color = color_for((formulation, rank))
         label = f"{rank} ({formulation})"
+        # The shaded area represents the variability (10th-90th percentile) of the cost.
         axs[0].fill_between(iters, c_lo_iter, c_hi_iter, alpha=0.18, label=None, color=color)
+        # The solid line is the median cost over all runs.
         axs[0].plot(iters, c_med_iter, label=label, color=color)
 
-        # -------- Panel 2: Costs vs Time (interpolate to common grid) --------
+        # --- Panel 2: Cost vs. Time ---
+        # This plot shows the convergence of the solver in terms of wall-clock time.
+        # It provides a practical measure of performance.
+
+        # Create a common time grid for interpolation.
         grid = _common_time_grid(runs, n_points=500, mode="linspace")
         if grid is None:
-            # Not enough overlap; fall back to plotting individual runs
+            # If runs do not overlap in time, plot them individually.
             for (t, c) in runs:
                 axs[1].plot(t, c, alpha=0.35, color=color)
         else:
+            # Interpolate each run's cost data onto the common time grid.
             Cs = np.stack([_interp_run_to_grid(t, c, grid) for (t, c) in runs], axis=0)
+
+            # --- Data Presented: Median and Percentiles of Cost over Time ---
+            # Similar to the first plot, we calculate the median and percentiles of the
+            # interpolated costs at each point in the time grid.
             c_med = np.nanmedian(Cs, axis=0)
             c_lo = np.nanpercentile(Cs, 10, axis=0)
             c_hi = np.nanpercentile(Cs, 90, axis=0)
 
+            # --- Plotting the Data for Panel 2 ---
+            # The shaded area shows the 10th-90th percentile range of costs over time.
             axs[1].fill_between(grid, c_lo, c_hi, alpha=0.18, color=color)
+            # The solid line shows the median cost over time.
             axs[1].plot(grid, c_med, color=color, label=label)
 
-    # ---- Styling ----
+    # --- Styling and Final Touches for the Plots ---
+    # Configure axes, labels, titles, and legends for clarity.
+
+    # Panel 1: Cost vs. Iterations
     axs[0].set_xlabel("Iterations")
     axs[0].set_ylabel("Cost")
-    axs[0].set_yscale("log")
+    axs[0].set_yscale("log") # Log scale for cost is common for optimization problems.
     axs[0].grid(True, which="both", ls="--", alpha=0.5)
     axs[0].set_title("Solver Costs vs Iterations")
     axs[0].legend()
 
+    # Panel 2: Cost vs. Time
     axs[1].set_xlabel("Time (s)")
     axs[1].set_ylabel("Cost")
     axs[1].set_yscale("log")
@@ -222,14 +280,19 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     axs[1].set_title("Solver Costs vs Time")
     axs[1].legend()
 
+    # Adjust layout to prevent labels from overlapping and display the plot.
     fig.tight_layout()
     plt.show()
 
 
 if __name__ == "__main__":
+    # This part of the script executes when run from the command line.
+    # It iterates through a list of specified experiment subdirectories.
     for subdir in EXP_SUBDIRS:
+        # Construct the full paths to the data files.
         varpro_data_fpath = BASE_VARPRO_DATA_DIR + subdir
         gtsam_data_fpath = BASE_GTSAM_DATA_DIR + subdir
 
         print(f"Processing {varpro_data_fpath} and {gtsam_data_fpath}...")
+        # Call the main visualization function for each experiment.
         visualize_data(varpro_data_fpath, gtsam_data_fpath)
