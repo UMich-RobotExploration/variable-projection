@@ -150,7 +150,7 @@ namespace VarPro
         VarPro::Preconditioner::RegularizedCholesky;
     VarPro::Problem problem(dim, relaxation_rank, formulation, preconditioner);
 
-    bool kTimeParsing = true;
+    bool kTimeParsing = false;
 
     const std::map<std::string, PyFGType> PyFGStringToType{
         {"VERTEX_SE2", POSE_TYPE_2D},
