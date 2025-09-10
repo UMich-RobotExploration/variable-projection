@@ -14,7 +14,6 @@ EXP_SUBDIRS = [
     # "/raslam/mrclam/mrclam7/results.json",
     # "/raslam/single_drone/results.json",
     # "/raslam/plaza2/results.json",
-    "/sfm/bal-392/results.json",
     "/sfm/TUM-desk/results.json",
     "/sfm/MipNerf-garden/results.json",
     "/sfm/IMC-gate/results.json",
@@ -27,6 +26,8 @@ EXP_SUBDIRS = [
     "/sfm/TUM-computer-R/results.json",
     "/sfm/TUM-computer-T/results.json",
     "/sfm/bal-93/results.json",
+    "/sfm/bal-392/results.json",
+    "/sfm/bal-1934/results.json",
     # "/sfm/Replica-REPoffice1_100/results.json",
     # "/sfm/MipNerf-kitchen/results.json",
     # "/pgo/results.json",
@@ -189,8 +190,28 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     if gtsam_data_fpath:
         groups.update(get_groups_from_data(gtsam_data_fpath))
 
+    # If no data is available, exit early.
+    if not groups:
+        print(f"No data to visualize for {varpro_data_fpath} and {gtsam_data_fpath}.")
+        return
+
     # Create a figure with two subplots, side-by-side.
     fig, axs = plt.subplots(1, 2, figsize=(11, 6))
+
+    def get_med_upper_lower(arr, q_lo=None, q_hi=None):
+        """
+        Computes the median and specified percentiles of an array along the first axis.
+        This is used to summarize the performance across multiple runs.
+        """
+        med = np.median(arr, axis=0)
+        lo = np.min(arr, axis=0)
+        hi = np.max(arr, axis=0)
+
+        if q_lo:
+            lo = np.nanpercentile(arr, q_lo, axis=0)
+        if q_hi:
+            hi = np.nanpercentile(arr, q_hi, axis=0)
+        return med, lo, hi
 
     # Iterate over each group of runs (grouped by formulation and rank).
     for (formulation, rank), runs in groups.items():
@@ -220,16 +241,15 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
 
         # --- Data Presented: Median and Percentiles of Cost per Iteration ---
         # Instead of plotting every run, we plot the median cost at each iteration,
-        # with a shaded region representing the 10th to 90th percentile.
+        # with a shaded region representing the upper and lower bounds. Can also do percentiles.
         # This gives a statistical summary of the performance across multiple runs.
-        c_med_iter = np.nanmedian(costs_iter, axis=0)
-        c_lo_iter = np.nanpercentile(costs_iter, 10, axis=0)
-        c_hi_iter = np.nanpercentile(costs_iter, 90, axis=0)
+        c_med_iter, c_lo_iter, c_hi_iter = get_med_upper_lower(costs_iter)
+
 
         # --- Plotting the Data for Panel 1 ---
         color = color_for((formulation, rank))
         label = f"{rank} ({formulation})"
-        # The shaded area represents the variability (10th-90th percentile) of the cost.
+        # The shaded area represents the variability of the cost.
         axs[0].fill_between(iters, c_lo_iter, c_hi_iter, alpha=0.18, label=None, color=color)
         # The solid line is the median cost over all runs.
         axs[0].plot(iters, c_med_iter, label=label, color=color)
@@ -249,14 +269,12 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
             Cs = np.stack([_interp_run_to_grid(t, c, grid) for (t, c) in runs], axis=0)
 
             # --- Data Presented: Median and Percentiles of Cost over Time ---
-            # Similar to the first plot, we calculate the median and percentiles of the
-            # interpolated costs at each point in the time grid.
-            c_med = np.nanmedian(Cs, axis=0)
-            c_lo = np.nanpercentile(Cs, 10, axis=0)
-            c_hi = np.nanpercentile(Cs, 90, axis=0)
+            # Similar to the first plot, we calculate the median and bounds of
+            # the interpolated costs at each point in the time grid.
+            c_med, c_lo, c_hi = get_med_upper_lower(Cs, q_lo=10, q_hi=90)
 
             # --- Plotting the Data for Panel 2 ---
-            # The shaded area shows the 10th-90th percentile range of costs over time.
+            # The shaded area shows the range of costs over time.
             axs[1].fill_between(grid, c_lo, c_hi, alpha=0.18, color=color)
             # The solid line shows the median cost over time.
             axs[1].plot(grid, c_med, color=color, label=label)
