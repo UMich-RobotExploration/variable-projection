@@ -116,15 +116,17 @@ namespace VarPro
   }
 
   std::unordered_map<std::string, std::chrono::high_resolution_clock::time_point> timers;
-  void tic(const std::string &desc, const bool run=true)
+  void tic(const std::string &desc, const bool run = true)
   {
-    if (!run) return;
+    if (!run)
+      return;
     timers[desc] = std::chrono::high_resolution_clock::now();
   }
 
-  void toc(const std::string &desc, const bool run=true)
+  void toc(const std::string &desc, const bool run = true)
   {
-    if (!run) return;
+    if (!run)
+      return;
     auto it = timers.find(desc);
     if (it == timers.end())
     {
@@ -198,10 +200,7 @@ namespace VarPro
     bool saw_any_prior = false;
 
     // Read line by line
-    if (kTimeParsing)
-    {
-      tic("Parsing PyFG file");
-    }
+    tic("Parsing PyFG file", kTimeParsing);
     std::string line;
     while (std::getline(in_file, line))
     {
@@ -440,57 +439,54 @@ namespace VarPro
       } // switch
     } // while getline
     in_file.close();
-    if (kTimeParsing)
-    {
-      toc("Parsing PyFG file");
-    }
+    toc("Parsing PyFG file", kTimeParsing);
 
     // --- Perform the actual inserts (each exactly once) ---
     // Variables first (so any following factors refer to existing indices)
     std::string time_poses_str = "Adding " + std::to_string(pose_vars.size()) + " pose variables";
-    tic(time_poses_str);
+    tic(time_poses_str, kTimeParsing);
     for (const auto &s : pose_vars)
       problem.addPoseVariable(s);
-    toc(time_poses_str);
+    toc(time_poses_str, kTimeParsing);
 
     std::string time_lms_str = "Adding " + std::to_string(landmark_vars.size()) + " landmark variables";
-    tic(time_lms_str);
+    tic(time_lms_str, kTimeParsing);
     for (const auto &s : landmark_vars)
       problem.addLandmarkVariable(s);
-    toc(time_lms_str);
+    toc(time_lms_str, kTimeParsing);
 
     // Priors (these may trigger addOriginPose() once inside Problem, as before)
     std::string time_priors_str = "Adding " + std::to_string(pose_priors.size()) + " pose priors and " +
                                   std::to_string(landmark_priors.size()) + " landmark priors";
-    tic(time_priors_str);
+    tic(time_priors_str, kTimeParsing);
     for (const auto &p : pose_priors)
       problem.addPosePrior(p);
     for (const auto &p : landmark_priors)
       problem.addLandmarkPrior(p);
-    toc(time_priors_str);
+    toc(time_priors_str, kTimeParsing);
 
     // Measurements
     std::string time_rp_str = "Adding " + std::to_string(rel_pose_pose_meas.size()) +
                               " relative pose measurements";
-    tic(time_rp_str);
+    tic(time_rp_str, kTimeParsing);
     for (const auto &m : rel_pose_pose_meas)
       problem.addRelativePoseMeasurement(m);
-    toc(time_rp_str);
+    toc(time_rp_str, kTimeParsing);
 
     std::string time_rpl_str = "Adding " + std::to_string(rel_pose_landmark_meas.size()) +
                                " relative pose-landmark measurements";
-    tic(time_rpl_str);
+    tic(time_rpl_str, kTimeParsing);
     problem.reserveRelativePoseLandmarkMeasurements(rel_pose_landmark_meas.size());
     for (const auto &m : rel_pose_landmark_meas)
       problem.addRelativePoseLandmarkMeasurement(m);
-    toc(time_rpl_str);
+    toc(time_rpl_str, kTimeParsing);
 
     std::string time_range_str = "Adding " + std::to_string(range_meas.size()) +
                                  " range measurements";
-    tic(time_range_str);
+    tic(time_range_str, kTimeParsing);
     for (const auto &m : range_meas)
       problem.addRangeMeasurement(m);
-    toc(time_range_str);
+    toc(time_range_str, kTimeParsing);
 
     return problem;
   }
