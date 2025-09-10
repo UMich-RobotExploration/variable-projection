@@ -76,16 +76,35 @@ namespace VarPro
   void Problem::addRelativePoseLandmarkMeasurement(
       const RelativePoseLandmarkMeasurement &rel_pose_landmark_measure)
   {
-    if (std::find(rel_pose_landmark_measurements_.begin(),
-                  rel_pose_landmark_measurements_.end(),
-                  rel_pose_landmark_measure) !=
-        rel_pose_landmark_measurements_.end())
-    {
-      throw std::invalid_argument(
-          "Relative pose landmark measurement already exists");
+    // 1) Compute bucket key from endpoints
+    const std::uint64_t key = rplm_pair_key(rel_pose_landmark_measure.first_id,
+                                            rel_pose_landmark_measure.second_id);
+
+    // 2) Look up (or create) the small bucket for this pair
+    auto &bucket = rplm_buckets_[key];
+
+    // 3) Compare ONLY against prior entries with the same endpoints (very small k)
+    for (size_t idx : bucket) {
+      // Uses your existing operator== on RelativePoseLandmarkMeasurement
+      if (rel_pose_landmark_measurements_[idx] == rel_pose_landmark_measure) {
+        // Keep the same behavior (reject exact duplicate)
+        throw std::invalid_argument("Relative pose landmark measurement already exists");
+      }
     }
+
+    // 4) Append and record index into the bucket
     rel_pose_landmark_measurements_.push_back(rel_pose_landmark_measure);
+    bucket.push_back(rel_pose_landmark_measurements_.size() - 1);
+
+    // 5) Mark dirty once per insert (unchanged)
     problem_data_up_to_date_ = false;
+  }
+
+  void Problem::reserveRelativePoseLandmarkMeasurements(size_t n)
+  {
+    rel_pose_landmark_measurements_.reserve(rel_pose_landmark_measurements_.size() + n);
+    // Reserve buckets too; heuristic: assume ~1 measurement per pair initially.
+    rplm_buckets_.reserve(rplm_buckets_.size() + n);
   }
 
   void Problem::addOriginPose()

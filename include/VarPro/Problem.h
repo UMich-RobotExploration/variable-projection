@@ -18,6 +18,8 @@
 #include <VarPro/StiefelProduct.h>
 #include <VarPro/Symbol.h>
 #include <map>
+#include <unordered_map>
+#include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
@@ -91,6 +93,22 @@ private:
 
   // the pose-landmark measurements that are used to construct the problem
   std::vector<RelativePoseLandmarkMeasurement> rel_pose_landmark_measurements_;
+  std::unordered_map<std::uint64_t, std::vector<size_t>> rplm_buckets_;
+  static inline std::uint64_t hash_combine_u64(std::uint64_t h1, std::uint64_t h2) noexcept {
+    // 64-bit mix (similar to boost::hash_combine for u64)
+    h1 ^= h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2);
+    return h1;
+  }
+
+  static inline std::uint64_t hash_symbol(const Symbol& s) {
+    // If you have a cheaper stable id, use it. Fallback: hash its string form.
+    return static_cast<std::uint64_t>(std::hash<std::string>{}(s.string()));
+  }
+
+  static inline std::uint64_t rplm_pair_key(const Symbol& pose, const Symbol& landmark) {
+    // Ordered pair on purpose: pose-landmark is directed in your factor type.
+    return hash_combine_u64(hash_symbol(pose), hash_symbol(landmark));
+  }
 
   // the symbol for the origin (is added automatically if there are any priors)
   Symbol origin_symbol_;
@@ -227,6 +245,7 @@ public:
   addRelativePoseMeasurement(const RelativePoseMeasurement &rel_pose_measure);
   void addRelativePoseLandmarkMeasurement(
       const RelativePoseLandmarkMeasurement &rel_pose_landmark_measure);
+  void reserveRelativePoseLandmarkMeasurements(size_t n);
   void addPosePrior(const PosePrior &pose_prior);
   void addLandmarkPrior(const LandmarkPrior &landmark_prior);
   inline int getNumPosePriors() const { return pose_priors_.size(); }
