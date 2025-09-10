@@ -9,24 +9,24 @@ BASE_GTSAM_DATA_DIR = "/home/alan/variable-projection/examples/data_nik"
 EXP_SUBDIRS = [
     # "/raslam/factor_graph_small/results.json",
     # "/raslam/mrclam/mrclam2/results.json",
-    "/raslam/mrclam/mrclam4/results.json",
+    # "/raslam/mrclam/mrclam4/results.json",
     # "/raslam/mrclam/mrclam6/results.json",
     # "/raslam/mrclam/mrclam7/results.json",
     # "/raslam/single_drone/results.json",
     # "/raslam/plaza2/results.json",
-    # "/sfm/bal-392/results.json",
-    # "/sfm/TUM-desk/results.json",
-    # "/sfm/MipNerf-garden/results.json",
-    # "/sfm/IMC-gate/results.json",
-    # "/sfm/IMC-temple/results.json",
-    # "/sfm/Replica-REPoffice0_100/results.json",
-    # "/sfm/TUM-room/results.json",
-    # "/sfm/Replica-REProom1_100/results.json",
-    # "/sfm/MipNerf-room/results.json",
-    # "/sfm/Replica-REProom0_100/results.json",
-    # "/sfm/TUM-computer-R/results.json",
-    # "/sfm/TUM-computer-T/results.json",
-    # "/sfm/bal-93/results.json",
+    "/sfm/bal-392/results.json",
+    "/sfm/TUM-desk/results.json",
+    "/sfm/MipNerf-garden/results.json",
+    "/sfm/IMC-gate/results.json",
+    "/sfm/IMC-temple/results.json",
+    "/sfm/Replica-REPoffice0_100/results.json",
+    "/sfm/TUM-room/results.json",
+    "/sfm/Replica-REProom1_100/results.json",
+    "/sfm/MipNerf-room/results.json",
+    "/sfm/Replica-REProom0_100/results.json",
+    "/sfm/TUM-computer-R/results.json",
+    "/sfm/TUM-computer-T/results.json",
+    "/sfm/bal-93/results.json",
     # "/sfm/Replica-REPoffice1_100/results.json",
     # "/sfm/MipNerf-kitchen/results.json",
     # "/pgo/results.json",
@@ -280,8 +280,20 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     axs[1].set_title("Solver Costs vs Time")
     axs[1].legend()
 
+    # At the top of the Figure, display the dataset name extracted from the file path.
+    dataset_name = varpro_data_fpath.split("/")[-2] if "/" in varpro_data_fpath else varpro_data_fpath
+    fig.suptitle(f"Dataset: {dataset_name}", fontsize=16)
+
     # Adjust layout to prevent labels from overlapping and display the plot.
     fig.tight_layout()
+
+    # save to /tmp/varpro/dataset_name.png
+    out_fpath = f"/tmp/varpro/{dataset_name.replace('/', '_')}.png"
+    print(f"Saving figure to {out_fpath}...")
+    import os
+    os.makedirs(os.path.dirname(out_fpath), exist_ok=True)
+    fig.savefig(out_fpath)
+
     plt.show()
 
 
