@@ -4,8 +4,8 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import numpy as np
 
-BASE_VARPRO_DATA_DIR = "/home/alan/variable-projection/examples/data"
-BASE_GTSAM_DATA_DIR = "/home/alan/variable-projection/examples/data_nik"
+BASE_VARPRO_DATA_DIR = "/home/nikolas/variable-projection/examples/data"
+BASE_GTSAM_DATA_DIR = "/home/nikolas/variable-projection/examples/data_nik"
 EXP_SUBDIRS = [
     # "/raslam/factor_graph_small/results.json",
     # "/raslam/mrclam/mrclam2/results.json",
@@ -56,6 +56,42 @@ num_colors = COLOR_SCHEME.N
 COLOR_KEYS = [(rank, form) for rank in ["rank5"] for form in ["Explicit", "Explicit VarPro", "Implicit", "GTSAM"]]
 # Generate a dictionary mapping each key to a color from the color scheme.
 COLORS = {key: COLOR_SCHEME(i % num_colors) for i, key in enumerate(COLOR_KEYS)}
+def _implicit_target_cost(groups, rank="rank5", q=0.5):
+    """Return target C* from Implicit group (median of final costs)."""
+    key = ("Implicit", rank)
+    runs = groups.get(key, [])
+    last_costs = [c[-1] for (_, c) in runs if len(c) > 0]
+    if not last_costs:
+        # fallback: across all runs/methods
+        last_costs = [c[-1] for rr in groups.values() for (_, c) in rr if len(c) > 0]
+    if not last_costs:
+        return None
+    arr = np.asarray(last_costs, dtype=float)
+    return float(np.nanmedian(arr) if q == 0.5 else np.nanpercentile(arr, q*100.0))
+
+def _first_index_within_pct(costs, target, pct):
+    """First index k where costs[k] <= (1+pct)*target; else len(costs)."""
+    if target is None or len(costs) == 0:
+        return len(costs)
+    thr = (1.0 + pct) * target
+    idx = np.argmax(costs <= thr)  # returns 0 if first is True, else 0
+    if (costs <= thr).any():
+        return int(np.where(costs <= thr)[0][0])
+    return len(costs)
+
+def _trim_groups_to_target(groups, target_cost, pct, rank="rank5"):
+    """Trim all runs in all methods to first time they reach within pct of target_cost."""
+    trimmed = {}
+    for (formulation, rnk), runs in groups.items():
+        new_runs = []
+        for (t, c) in runs:
+            k = _first_index_within_pct(c, target_cost, pct)
+            t2 = t[:k+1] if k < len(c) else t
+            c2 = c[:k+1] if k < len(c) else c
+            new_runs.append((t2, c2))
+        trimmed[(formulation, rnk)] = new_runs
+    return trimmed
+
 
 # Optional fallback colors
 def color_for(key):
@@ -201,6 +237,16 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
         print(f"No data to visualize for {varpro_data_fpath} and {gtsam_data_fpath}.")
         return
 
+    # --- Define convergence by Implicit's final cost and trim all runs ---
+    # e.g., within 1% of Implicit final cost
+    converge_pct = 0.01  # 1%; tune as needed (e.g., 0.02 for 2%)
+    target_C = _implicit_target_cost(groups, rank="rank5", q=0.5)
+    if target_C is not None:
+        groups = _trim_groups_to_target(groups, target_C, converge_pct, rank="rank5")
+        print(f"[convergence] Target C* (Implicit, rank5) = {target_C:.6g}; "
+              f"cut when cost <= {(1+converge_pct)*target_C:.6g}")
+    else:
+        print("[convergence] No target C* available (no runs); skipping trim.")
     # Create a figure with two subplots, side-by-side.
     fig, axs = plt.subplots(1, 2, figsize=(11, 6))
 
@@ -254,7 +300,8 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
 
         # --- Plotting the Data for Panel 1 ---
         color = color_for((formulation, rank))
-        label = f"{rank} ({formulation})"
+
+        label = f"{formulation}"
         # The shaded area represents the variability of the cost.
         axs[0].fill_between(iters, c_lo_iter, c_hi_iter, alpha=0.18, label=None, color=color)
         # The solid line is the median cost over all runs.
@@ -299,6 +346,7 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     # Panel 2: Cost vs. Time
     axs[1].set_xlabel("Time (s)")
     axs[1].set_ylabel("Cost")
+    axs[1].tick_params(axis='both', which='major')
     axs[1].set_yscale("log")
     axs[1].grid(True, which="both", ls="--", alpha=0.5)
     axs[1].set_title("Solver Costs vs Time")
@@ -306,7 +354,7 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
 
     # At the top of the Figure, display the dataset name extracted from the file path.
     dataset_name = varpro_data_fpath.split("/")[-2] if "/" in varpro_data_fpath else varpro_data_fpath
-    fig.suptitle(f"Dataset: {dataset_name}", fontsize=16)
+    fig.suptitle(f"Dataset: {dataset_name}", fontsize=24)
 
     # Adjust layout to prevent labels from overlapping and display the plot.
     fig.tight_layout()
@@ -316,7 +364,7 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     print(f"Saving figure to {out_fpath}...")
     import os
     os.makedirs(os.path.dirname(out_fpath), exist_ok=True)
-    fig.savefig(out_fpath)
+    fig.savefig(out_fpath, dpi=300)
 
     plt.show()
 
