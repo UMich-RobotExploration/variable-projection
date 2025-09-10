@@ -100,8 +100,7 @@ std::vector<VarPro::Formulation> getFormulationsToSweep()
   return {
       VarPro::Formulation::Explicit,
       VarPro::Formulation::ExplicitVarPro,
-      VarPro::Formulation::Implicit
-    };
+      VarPro::Formulation::Implicit};
 }
 
 std::vector<std::vector<std::string>> makeInitializationFiles(const std::string &dataset_path,
@@ -190,6 +189,18 @@ std::vector<ExperimentResult> loadResultsFromFile(const std::string &filename)
   return results;
 }
 
+std::string getIntermediateResultsFilePath(const fs::path &dataset_path,
+                                           int rank,
+                                           VarPro::Formulation formulation,
+                                            int init_idx)
+{
+  return dataset_path.string() + "/cached_results/results_rank" + std::to_string(rank) +
+         "_" + (formulation == VarPro::Formulation::Explicit ? "Explicit" : formulation == VarPro::Formulation::ExplicitVarPro ? "ExplicitVarPro"
+                                                                                                                               : "Implicit") +
+          "_init" + std::to_string(init_idx + 1) +
+         ".json";
+}
+
 /**
  * @brief Takes as input the directory that contains a .pyfg file and many different
  * initializations (e.g., rank3_init10.txt, rank4_init10.txt, etc.)
@@ -248,6 +259,22 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
           writeInitializationFile(init_fpath, problem, random_init);
         }
 
+        // have an intermediate results file that saves just the results for
+        // this experiment. If it already exists, load it and skip the
+        // experiment. Make the parent directory if it doesn't exist.
+        std::string intermediate_results_fpath = getIntermediateResultsFilePath(dataset_path, r, formulation, init_idx);
+        fs::create_directories(fs::path(intermediate_results_fpath).parent_path());
+        if (std::filesystem::exists(intermediate_results_fpath))
+        {
+          std::cout << "Intermediate results file " << intermediate_results_fpath
+                    << " already exists. Loading existing results and skipping experiment."
+                    << std::endl;
+          auto intermediate_results = loadResultsFromFile(intermediate_results_fpath);
+          current_results.insert(current_results.end(), intermediate_results.begin(),
+                                 intermediate_results.end());
+          continue;
+        }
+
         VarPro::Matrix init = readInitializationFile(init_fpath, problem);
         checkMatrixShape("sweepDataset::init",
                          problem.getExpectedVariableSize(), problem.getRelaxationRank(),
@@ -265,6 +292,15 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
           result.objective_values = {};
           std::cout << "Error solving problem: " << e.what() << std::endl;
         }
+
+        // write the intermediate results to file
+        json j = std::vector<ExperimentResult>{compileResult(dataset_path.filename().string(),
+                                                             init_fpath, result, formulation)};
+        std::ofstream file(intermediate_results_fpath);
+        file << j << std::endl;
+        std::cout << "Wrote intermediate results to file " << intermediate_results_fpath << std::endl;
+
+        // add the result to the current_results vector
         current_results.push_back(compileResult(dataset_path.filename().string(),
                                                 init_fpath, result, formulation));
       }
