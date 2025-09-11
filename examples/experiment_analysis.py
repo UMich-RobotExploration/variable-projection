@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import numpy as np
 
-BASE_VARPRO_DATA_DIR = "/home/nikolas/variable-projection/examples/data"
-BASE_GTSAM_DATA_DIR = "/home/nikolas/variable-projection/examples/data_nik"
+import os
+HOMEDIR = os.path.expanduser("~")
+BASE_VARPRO_DATA_DIR = f"{HOMEDIR}/variable-projection/examples/data"
+BASE_GTSAM_DATA_DIR = f"{HOMEDIR}/variable-projection/examples/data_nik"
 EXP_SUBDIRS = [
     # "/raslam/factor_graph_small/results.json",
     # "/raslam/mrclam/mrclam2/results.json",
@@ -79,13 +81,15 @@ def _first_index_within_pct(costs, target, pct):
         return int(np.where(costs <= thr)[0][0])
     return len(costs)
 
-def _trim_groups_to_target(groups, target_cost, pct, rank="rank5"):
-    """Trim all runs in all methods to first time they reach within pct of target_cost."""
+def _trim_groups_to_target(groups, target_cost, pct, rank="rank5", buffer=5):
+    """Trim all runs in all methods to first time they reach within pct of
+    target_cost. Buffers the trimming a bit so we have some extra points to show
+     convergence behavior."""
     trimmed = {}
     for (formulation, rnk), runs in groups.items():
         new_runs = []
         for (t, c) in runs:
-            k = _first_index_within_pct(c, target_cost, pct)
+            k = _first_index_within_pct(c, target_cost, pct) + buffer
             t2 = t[:k+1] if k < len(c) else t
             c2 = c[:k+1] if k < len(c) else c
             new_runs.append((t2, c2))
