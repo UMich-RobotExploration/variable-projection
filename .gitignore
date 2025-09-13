@@ -46,3 +46,4 @@ build*/
 
 examples/data_nik/*
 *.mtx
+*.asv
