@@ -45,3 +45,4 @@ build*/
 *.app
 
 examples/data_nik/*
+*.mtx
