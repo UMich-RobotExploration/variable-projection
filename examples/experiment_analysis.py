@@ -9,46 +9,57 @@ HOMEDIR = os.path.expanduser("~")
 BASE_VARPRO_DATA_DIR = f"{HOMEDIR}/variable-projection/examples/data"
 BASE_GTSAM_DATA_DIR = f"{HOMEDIR}/variable-projection/examples/data_nik"
 EXP_SUBDIRS = [
-    # "/raslam/factor_graph_small/results.json",
+    # "/raslam/tiers/results.json",
     # "/raslam/mrclam/mrclam2/results.json",
     # "/raslam/mrclam/mrclam4/results.json",
     # "/raslam/mrclam/mrclam6/results.json",
     # "/raslam/mrclam/mrclam7/results.json",
-    # "/raslam/single_drone/results.json",
+    "/raslam/single_drone/results.json",
     # "/raslam/plaza2/results.json",
-    "/sfm/TUM-desk/results.json",
-    "/sfm/MipNerf-garden/results.json",
-    "/sfm/IMC-gate/results.json",
-    "/sfm/IMC-temple/results.json",
-    "/sfm/IMC-rome/results.json",
-    "/sfm/Replica-REPoffice0/results.json",
-    "/sfm/Replica-REPoffice0_100/results.json",
-    "/sfm/Replica-REPoffice1/results.json",
-    "/sfm/Replica-REPoffice1_100/results.json",
-    "/sfm/Replica-REProom0/results.json",
-    "/sfm/Replica-REProom0_100/results.json",
-    "/sfm/Replica-REProom1/results.json",
-    "/sfm/Replica-REProom1_100/results.json",
-    "/sfm/TUM-room/results.json",
-    "/sfm/MipNerf-room/results.json",
-    "/sfm/TUM-computer-R/results.json",
-    "/sfm/TUM-computer-T/results.json",
-    "/sfm/bal-93/results.json",
-    "/sfm/bal-392/results.json",
-    "/sfm/bal-1934/results.json",
-    # "/sfm/Replica-REPoffice1_100/results.json",
-    # "/sfm/MipNerf-kitchen/results.json",
-    # "/pgo/results.json",
-    # "/snl/intel_snl/results.json",
+    # "/raslam/plaza1/results.json",
+#     "/sfm/TUM-desk/results.json",
+     "/sfm/MipNerf-garden/results.json",
+#     "/sfm/IMC-gate/results.json",
+#     "/sfm/IMC-temple/results.json",
+#     "/sfm/IMC-rome/results.json",
+#     "/sfm/Replica-REPoffice0/results.json",
+#     "/sfm/Replica-REPoffice0_100/results.json",
+#     #"/sfm/Replica-REPoffice1/results.json",
+#     "/sfm/Replica-REPoffice1_100/results.json",
+#     #"/sfm/Replica-REProom0/results.json",
+#     "/sfm/Replica-REProom0_100/results.json",
+#    # "/sfm/Replica-REProom1/results.json",
+#     "/sfm/Replica-REProom1_100/results.json",
+#     "/sfm/TUM-room/results.json",
+#     "/sfm/MipNerf-room/results.json",
+#     "/sfm/TUM-computer-R/results.json",
+#     "/sfm/TUM-computer-T/results.json",
+#     "/sfm/bal-93/results.json",
+#     "/sfm/bal-392/results.json",
+#    "/sfm/bal-1934/results.json",
+#     "/sfm/Replica-REPoffice1_100/results.json",
+#     "/sfm/MipNerf-kitchen/results.json",
+   # "/pgo/results.json",
+   # "/snl/intel_snl/results.json",
     # "/snl/parking-garage_snl/results.json",
     # "/snl/grid3D_snl/results.json",
-    # "/snl/MIT_snl/results.json",
-    # "/snl/smallGrid3D_snl/results.json",
+    "/snl/MIT_snl/results.json",
+    # #"/snl/smallGrid3D_snl/results.json",
     # "/snl/M3500_snl/results.json",
     # "/snl/city10000_snl/results.json",
-    # "/snl/tinyGrid3D_snl/results.json",
+    # #"/snl/tinyGrid3D_snl/results.json",
     # "/snl/torus3D_snl/results.json",
     # "/snl/sphere2500_snl/results.json",
+    "/pgo/intel/results.json",
+    # "/pgo/parking-garage/results.json",
+    # "/pgo/grid3D/results.json",
+    # "/pgo/MIT/results.json",
+    # #"/snl/smallGrid3D_snl/results.json",
+    # "/pgo/M3500/results.json",
+    # "/pgo/city10000/results.json",
+    # #"/snl/tinyGrid3D_snl/results.json",
+    # "/pgo/torus3D/results.json",
+    # "/pgo/sphere2500/results.json",
 ]
 
 # Define a color scheme for the plots using a standard matplotlib colormap.
@@ -222,28 +233,50 @@ def _interp_run_to_grid(times, costs, grid):
     times = _ensure_strictly_increasing(times)
     # np.interp performs linear interpolation.
     return np.interp(grid, times, costs)
+# --- Paste this whole function (and the imports) over your current version ---
+
+import os
+import numpy as np
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from matplotlib.ticker import LogLocator, LogFormatterMathtext
 
 def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     """
-    Main function to generate and display plots comparing solver performance.
-    It creates two subplots:
-    1. Cost vs. Iterations: Shows how the cost function value evolves with each solver iteration.
-    2. Cost vs. Time: Shows how the cost function value evolves over wall-clock time.
+    Generate two readability-optimized plots (for LaTeX):
+      1) Cost vs Iterations  2) Cost vs Time
+    Saves both PNG (300 dpi) and PDF (vector) with tight bounding box.
     """
-    # Load and group data from VarPro and (optionally) GTSAM result files.
+    # -------- Paper-friendly defaults --------
+    mpl.rcParams.update({
+        "font.size": 20,            # base
+        "font.serif": "Times New Roman",
+        "axes.titlesize": 20,
+        "axes.labelsize": 20,
+        "xtick.labelsize": 15,
+        "ytick.labelsize": 15,
+        "legend.fontsize": 18,
+        "lines.linewidth": 2.2,
+        "lines.markersize": 5,
+        "figure.dpi": 150,
+        "savefig.dpi": 300,
+        "pdf.fonttype": 42,         # embed TrueType; safer in some LaTeX setups
+        "ps.fonttype": 42,
+    })
+    # Optional: uncomment if you have LaTeX installed and want LaTeX text rendering
+    # mpl.rcParams.update({"text.usetex": True})
+
+    # -------- Load/group data (your existing helpers) --------
     group_varpro = get_groups_from_data(varpro_data_fpath)
     groups = dict(group_varpro)
     if gtsam_data_fpath:
         groups.update(get_groups_from_data(gtsam_data_fpath))
 
-    # If no data is available, exit early.
     if not groups:
         print(f"No data to visualize for {varpro_data_fpath} and {gtsam_data_fpath}.")
         return
 
-    # --- Define convergence by Implicit's final cost and trim all runs ---
-    # e.g., within 1% of Implicit final cost
-    converge_pct = 0.01  # 1%; tune as needed (e.g., 0.02 for 2%)
+    converge_pct = 0.01  # 1%
     target_C = _implicit_target_cost(groups, rank="rank5", q=0.5)
     if target_C is not None:
         groups = _trim_groups_to_target(groups, target_C, converge_pct, rank="rank5")
@@ -251,124 +284,134 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
               f"cut when cost <= {(1+converge_pct)*target_C:.6g}")
     else:
         print("[convergence] No target C* available (no runs); skipping trim.")
-    # Create a figure with two subplots, side-by-side.
-    fig, axs = plt.subplots(1, 2, figsize=(11, 6))
+
+    # -------- Wider figure; share y so log ticks align --------
+    fig, axs = plt.subplots(
+        1, 2,
+        figsize=(14.8, 5.2),      # wider & a touch shorter
+        constrained_layout=False,
+        sharey=True               # align log y-ticks across panels
+    )
+
+    # Consistent palette + emphasis for Ours (Implicit)
+    palette = {"Explicit": "C0", "Explicit VarPro": "C1", "Implicit": "C2", "GTSAM": "C3"}
+    def style_for(method):
+        if method == "Implicit":
+            return dict(color=palette[method], lw=3.0, zorder=4, band_alpha=0.14)
+        return dict(color=palette.get(method, "C7"), lw=2.0, zorder=3, band_alpha=0.10)
 
     def get_med_upper_lower(arr, q_lo=None, q_hi=None):
-        """
-        Computes the median and specified percentiles of an array along the first axis.
-        This is used to summarize the performance across multiple runs.
-        """
         med = np.median(arr, axis=0)
         lo = np.min(arr, axis=0)
         hi = np.max(arr, axis=0)
-
-        if q_lo:
+        if q_lo is not None:
             lo = np.nanpercentile(arr, q_lo, axis=0)
-        if q_hi:
+        if q_hi is not None:
             hi = np.nanpercentile(arr, q_hi, axis=0)
         return med, lo, hi
-
-    # Iterate over each group of runs (grouped by formulation and rank).
+    # Legend text mapping
+    LEGEND_LABELS = {
+        "Implicit": "Ours",           # (Reduced)
+        "Explicit": "Original",
+        "Explicit VarPro": "Orig. + VP",
+        "GTSAM": "GTSAM",
+    }
+    # -------- Plot each formulation --------
     for (formulation, rank), runs in groups.items():
-        # --- Data Filtering ---
-        # Example filter: only process runs for a specific rank (e.g., rank 5).
         try:
             rank_num = int(str(rank).replace("rank", ""))
         except ValueError:
             continue
-        if rank_num != 5:
-            continue
-        if not runs:
+        if rank_num != 5 or not runs:
             continue
 
-        # --- Panel 1: Cost vs. Iterations ---
-        # This plot shows the convergence of the solver in terms of iterations.
-        # It helps to understand the algorithmic efficiency, independent of hardware.
+        sty = style_for(formulation)
+        color, lw, z = sty["color"], sty["lw"], sty["zorder"]
+        band_alpha = sty["band_alpha"]
 
-        # To compare runs, they are aligned by iteration count.
-        # All runs are truncated to the length of the shortest run.
+        # ----- Panel 1: Cost vs Iterations -----
         min_iter_len = min(min(len(t), len(c)) for t, c in runs)
         if min_iter_len < 2:
             continue
-        # Stack costs from all runs for this group into a 2D numpy array.
         costs_iter = np.stack([c[:min_iter_len] for _, c in runs], axis=0)
         iters = np.arange(min_iter_len)
+        c_med_iter, c_lo_iter, c_hi_iter = get_med_upper_lower(costs_iter, q_lo=10, q_hi=90)
 
-        # --- Data Presented: Median and Percentiles of Cost per Iteration ---
-        # Instead of plotting every run, we plot the median cost at each iteration,
-        # with a shaded region representing the upper and lower bounds. Can also do percentiles.
-        # This gives a statistical summary of the performance across multiple runs.
-        c_med_iter, c_lo_iter, c_hi_iter = get_med_upper_lower(costs_iter)
-
-
-        # --- Plotting the Data for Panel 1 ---
-        color = color_for((formulation, rank))
-
-        label = f"{formulation}"
-        # The shaded area represents the variability of the cost.
-        axs[0].fill_between(iters, c_lo_iter, c_hi_iter, alpha=0.18, label=None, color=color)
-        # The solid line is the median cost over all runs.
-        axs[0].plot(iters, c_med_iter, label=label, color=color)
-
-        # --- Panel 2: Cost vs. Time ---
-        # This plot shows the convergence of the solver in terms of wall-clock time.
-        # It provides a practical measure of performance.
-
-        # Create a common time grid for interpolation.
+        axs[0].fill_between(iters, c_lo_iter, c_hi_iter, alpha=band_alpha, color=color, linewidth=0)
+        axs[0].plot(iters, c_med_iter,
+            label=LEGEND_LABELS.get(formulation, formulation),
+            color=color, lw=lw, zorder=z)
+        # ----- Panel 2: Cost vs Time -----
         grid = _common_time_grid(runs, n_points=500, mode="linspace")
         if grid is None:
-            # If runs do not overlap in time, plot them individually.
             for (t, c) in runs:
-                axs[1].plot(t, c, alpha=0.35, color=color)
+                axs[1].plot(t, c, alpha=0.35, color=color, lw=1.5)
         else:
-            # Interpolate each run's cost data onto the common time grid.
             Cs = np.stack([_interp_run_to_grid(t, c, grid) for (t, c) in runs], axis=0)
-
-            # --- Data Presented: Median and Percentiles of Cost over Time ---
-            # Similar to the first plot, we calculate the median and bounds of
-            # the interpolated costs at each point in the time grid.
             c_med, c_lo, c_hi = get_med_upper_lower(Cs, q_lo=10, q_hi=90)
+            axs[1].fill_between(grid, c_lo, c_hi, alpha=band_alpha, color=color, linewidth=0)
+            axs[1].plot(grid, c_med, color=color, lw=lw, zorder=z)
 
-            # --- Plotting the Data for Panel 2 ---
-            # The shaded area shows the range of costs over time.
-            axs[1].fill_between(grid, c_lo, c_hi, alpha=0.18, color=color)
-            # The solid line shows the median cost over time.
-            axs[1].plot(grid, c_med, color=color, label=label)
+    # -------- Styling --------
+    for ax in axs:
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.grid(True, which="both", ls="--", alpha=0.35)
+        ax.tick_params(axis="both", which="major", length=6, width=1)
+        ax.tick_params(axis="both", which="minor", length=3, width=0.8)
 
-    # --- Styling and Final Touches for the Plots ---
-    # Configure axes, labels, titles, and legends for clarity.
+        # Better log ticks
+        ax.set_yscale("log")
+        ax.yaxis.set_major_locator(LogLocator(base=10.0, numticks=6))
+        ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs=(1, 2, 5), numticks=12))
+        ax.yaxis.set_major_formatter(LogFormatterMathtext())
+    
 
-    # Panel 1: Cost vs. Iterations
     axs[0].set_xlabel("Iterations")
     axs[0].set_ylabel("Cost")
-    axs[0].set_yscale("log") # Log scale for cost is common for optimization problems.
-    axs[0].grid(True, which="both", ls="--", alpha=0.5)
     axs[0].set_title("Solver Costs vs Iterations")
-    axs[0].legend()
 
-    # Panel 2: Cost vs. Time
     axs[1].set_xlabel("Time (s)")
-    axs[1].set_ylabel("Cost")
-    axs[1].tick_params(axis='both', which='major')
-    axs[1].set_yscale("log")
-    axs[1].grid(True, which="both", ls="--", alpha=0.5)
     axs[1].set_title("Solver Costs vs Time")
-    axs[1].legend()
+    axs[1].legend(loc="upper right", frameon=False)
 
-    # At the top of the Figure, display the dataset name extracted from the file path.
+
+    # -------- Single, figure-level legend --------
+    # Dedupe handles/labels collected from the left axis
+    handles, labels = axs[0].get_legend_handles_labels()
+    by_label = dict(zip(labels, handles))
+
+    # Reserve space: more bottom, a bit less top (tweak if needed)
+    fig.subplots_adjust(left=0.07, right=0.985, top=0.86, bottom=0.24, wspace=0.08)
+
+    # Add a small, empty axes for the legend at the bottom
+    leg_ax = fig.add_axes([0.05, 0.02, 0.90, 0.12])  # [left, bottom, width, height] in figure coords
+    leg_ax.axis("off")
+    leg_ax.legend(
+        by_label.values(), by_label.keys(),
+        ncol=len(by_label),
+        loc="center",
+        frameon=False,
+    )
+
+   # -------- Title + Save --------
     dataset_name = varpro_data_fpath.split("/")[-2] if "/" in varpro_data_fpath else varpro_data_fpath
-    fig.suptitle(f"Dataset: {dataset_name}", fontsize=24)
+    # fig.suptitle(dataset_name, fontsize=22, fontweight="bold", y=1.12)
 
-    # Adjust layout to prevent labels from overlapping and display the plot.
-    fig.tight_layout()
+    out_dir = "/home/nikolas/variable-projection/pics"
+    os.makedirs(out_dir, exist_ok=True)
+    base = os.path.join(out_dir, dataset_name.replace("/", "_"))
+    png_path = f"{base}.png"
+    pdf_path = f"{base}.pdf"
+    svg_path = f"{base}.svg"
 
-    # save to /tmp/varpro/dataset_name.png
-    out_fpath = f"/tmp/varpro/{dataset_name.replace('/', '_')}.png"
-    print(f"Saving figure to {out_fpath}...")
-    import os
-    os.makedirs(os.path.dirname(out_fpath), exist_ok=True)
-    fig.savefig(out_fpath, dpi=300)
+    print(f"Saving figure to {png_path}, {pdf_path}, and {svg_path} ...")
+
+
+    fig.savefig(png_path, dpi=300, bbox_inches="tight", pad_inches=0.02)
+    fig.savefig(pdf_path, bbox_inches="tight", pad_inches=0.02)
+    fig.savefig(svg_path, bbox_inches="tight", pad_inches=0.02)  # or: format="svg"
+
 
     plt.show()
 
