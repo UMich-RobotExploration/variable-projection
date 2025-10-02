@@ -14,11 +14,12 @@ EXP_SUBDIRS = [
     # "/raslam/mrclam/mrclam4/results.json",
     # "/raslam/mrclam/mrclam6/results.json",
     # "/raslam/mrclam/mrclam7/results.json",
-    "/raslam/single_drone/results.json",
+    # "/raslam/single_drone/results.json",
+    "/raslam/mit_outfinite/results.json",
     # "/raslam/plaza2/results.json",
     # "/raslam/plaza1/results.json",
 #     "/sfm/TUM-desk/results.json",
-     "/sfm/MipNerf-garden/results.json",
+    #  "/sfm/MipNerf-garden/results.json",
 #     "/sfm/IMC-gate/results.json",
 #     "/sfm/IMC-temple/results.json",
 #     "/sfm/IMC-rome/results.json",
@@ -43,14 +44,14 @@ EXP_SUBDIRS = [
    # "/snl/intel_snl/results.json",
     # "/snl/parking-garage_snl/results.json",
     # "/snl/grid3D_snl/results.json",
-    "/snl/MIT_snl/results.json",
+    # "/snl/MIT_snl/results.json",
     # #"/snl/smallGrid3D_snl/results.json",
     # "/snl/M3500_snl/results.json",
     # "/snl/city10000_snl/results.json",
     # #"/snl/tinyGrid3D_snl/results.json",
     # "/snl/torus3D_snl/results.json",
     # "/snl/sphere2500_snl/results.json",
-    "/pgo/intel/results.json",
+    # "/pgo/intel/results.json",
     # "/pgo/parking-garage/results.json",
     # "/pgo/grid3D/results.json",
     # "/pgo/MIT/results.json",
@@ -252,12 +253,12 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
         "font.size": 20,            # base
         "font.serif": "Times New Roman",
         "axes.titlesize": 20,
-        "axes.labelsize": 20,
-        "xtick.labelsize": 15,
-        "ytick.labelsize": 15,
-        "legend.fontsize": 18,
-        "lines.linewidth": 2.2,
-        "lines.markersize": 5,
+        "axes.labelsize": 30,
+        "xtick.labelsize": 22,
+        "ytick.labelsize": 22,
+        "legend.fontsize": 25,
+        "lines.linewidth": 6.2,
+        "lines.markersize": 10,
         "figure.dpi": 150,
         "savefig.dpi": 300,
         "pdf.fonttype": 42,         # embed TrueType; safer in some LaTeX setups
@@ -296,9 +297,14 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     # Consistent palette + emphasis for Ours (Implicit)
     palette = {"Explicit": "C0", "Explicit VarPro": "C1", "Implicit": "C2", "GTSAM": "C3"}
     def style_for(method):
+
+        if method not in ["GTSAM", "Explicit"]:
+            print(f"Warning: Making {method} invisible in plots.")
+            return dict(color=palette[method], lw=0.0, zorder=0, band_alpha=0.00)
+
         if method == "Implicit":
-            return dict(color=palette[method], lw=3.0, zorder=4, band_alpha=0.14)
-        return dict(color=palette.get(method, "C7"), lw=2.0, zorder=3, band_alpha=0.10)
+            return dict(color=palette[method], lw=4.0, zorder=4, band_alpha=0.14)
+        return dict(color=palette.get(method, "C7"), lw=3.0, zorder=3, band_alpha=0.10)
 
     def get_med_upper_lower(arr, q_lo=None, q_hi=None):
         med = np.median(arr, axis=0)
@@ -316,13 +322,22 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
         "Explicit VarPro": "Orig. + VP",
         "GTSAM": "GTSAM",
     }
+    # order results we will plot to match LEGEND_LABELS order
+    ordered_keys = [(form, rank) for form in LEGEND_LABELS.keys() for rank in ["rank5"]]
+    ordered_groups = {k: groups[k] for k in ordered_keys if k in groups}
+
     # -------- Plot each formulation --------
-    for (formulation, rank), runs in groups.items():
+    for (formulation, rank), runs in ordered_groups.items():
         try:
             rank_num = int(str(rank).replace("rank", ""))
         except ValueError:
             continue
         if rank_num != 5 or not runs:
+            continue
+
+        # if formulation is Explicit VarPro, skip
+        if formulation == "Explicit VarPro":
+            print(f"Skipping {formulation} in plots.")
             continue
 
         sty = style_for(formulation)
@@ -365,14 +380,21 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
         ax.yaxis.set_major_locator(LogLocator(base=10.0, numticks=6))
         ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs=(1, 2, 5), numticks=12))
         ax.yaxis.set_major_formatter(LogFormatterMathtext())
-    
+
+        # add a line indicating the optimal cost if available
+        if target_C is not None:
+            ax.axhline(target_C, color="k", lw=1.5, ls="--", alpha=0.8)
+
+    # set right plot (cost vs time) to run from 0 to 40 seconds
+    print(f"Setting xlim of time plot to [0, 20] seconds.")
+    axs[1].set_xlim(left=0, right=20)
 
     axs[0].set_xlabel("Iterations")
     axs[0].set_ylabel("Cost")
-    axs[0].set_title("Solver Costs vs Iterations")
+    # axs[0].set_title("Solver Costs vs Iterations")
 
     axs[1].set_xlabel("Time (s)")
-    axs[1].set_title("Solver Costs vs Time")
+    # axs[1].set_title("Solver Costs vs Time")
     axs[1].legend(loc="upper right", frameon=False)
 
 
@@ -382,10 +404,10 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     by_label = dict(zip(labels, handles))
 
     # Reserve space: more bottom, a bit less top (tweak if needed)
-    fig.subplots_adjust(left=0.07, right=0.985, top=0.86, bottom=0.24, wspace=0.08)
+    fig.subplots_adjust(left=0.12, right=0.985, top=0.96, bottom=0.35, wspace=0.08)
 
     # Add a small, empty axes for the legend at the bottom
-    leg_ax = fig.add_axes([0.05, 0.02, 0.90, 0.12])  # [left, bottom, width, height] in figure coords
+    leg_ax = fig.add_axes([0.05, 0.00, 0.90, 0.12])  # [left, bottom, width, height] in figure coords
     leg_ax.axis("off")
     leg_ax.legend(
         by_label.values(), by_label.keys(),
@@ -398,7 +420,7 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     dataset_name = varpro_data_fpath.split("/")[-2] if "/" in varpro_data_fpath else varpro_data_fpath
     # fig.suptitle(dataset_name, fontsize=22, fontweight="bold", y=1.12)
 
-    out_dir = "/home/nikolas/variable-projection/pics"
+    out_dir = f"{HOMEDIR}/variable-projection/pics"
     os.makedirs(out_dir, exist_ok=True)
     base = os.path.join(out_dir, dataset_name.replace("/", "_"))
     png_path = f"{base}.png"
