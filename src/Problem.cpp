@@ -30,7 +30,14 @@ namespace VarPro
     }
     pose_symbol_idxs_.insert(std::make_pair(pose_id, pose_symbol_idxs_.size()));
     problem_data_up_to_date_ = false;
-    manifolds_.stiefel_prod_manifold_.addNewFrame();
+    if (manifolds_.use_scaled_stiefel_)
+    {
+      manifolds_.scaled_stiefel_prod_manifold_.addNewFrame();
+    }
+    else
+    {
+      manifolds_.stiefel_prod_manifold_.addNewFrame();
+    }
   }
 
   void Problem::addLandmarkVariable(const Symbol &landmark_id)
@@ -84,9 +91,11 @@ namespace VarPro
     auto &bucket = rplm_buckets_[key];
 
     // 3) Compare ONLY against prior entries with the same endpoints (very small k)
-    for (size_t idx : bucket) {
+    for (size_t idx : bucket)
+    {
       // Uses your existing operator== on RelativePoseLandmarkMeasurement
-      if (rel_pose_landmark_measurements_[idx] == rel_pose_landmark_measure) {
+      if (rel_pose_landmark_measurements_[idx] == rel_pose_landmark_measure)
+      {
         // Keep the same behavior (reject exact duplicate)
         throw std::invalid_argument("Relative pose landmark measurement already exists");
       }
@@ -943,12 +952,22 @@ namespace VarPro
 
     // Stiefel component
     auto rot_mat_sz = numPosesDim();
+    if(manifolds_.use_scaled_stiefel_){
+    result.block(0, 0, rot_mat_sz, relaxation_rank_) =
+        manifolds_.scaled_stiefel_prod_manifold_
+            .projectToTangentSpace(
+                Y.block(0, 0, rot_mat_sz, relaxation_rank_).transpose(),
+                result.block(0, 0, rot_mat_sz, relaxation_rank_).transpose())
+            .transpose();
+    }
+    else{
     result.block(0, 0, rot_mat_sz, relaxation_rank_) =
         manifolds_.stiefel_prod_manifold_
             .projectToTangentSpace(
                 Y.block(0, 0, rot_mat_sz, relaxation_rank_).transpose(),
                 result.block(0, 0, rot_mat_sz, relaxation_rank_).transpose())
             .transpose();
+    }
 
     // Oblique component
     int r = numRangeMeasurements();
