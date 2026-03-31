@@ -307,12 +307,23 @@ namespace VarPro
       data_submatrices_.rel_pose_incidence_matrix.insert(measure_idx, id1) = -1.0;
       data_submatrices_.rel_pose_incidence_matrix.insert(measure_idx, id2) = 1.0;
 
+      // For ScaledStiefel, unit-normalise the bearing so that s_i absorbs
+      // only depth (not bearing magnitude). Raw bearings are used for
+      // standard Stiefel where depth is already encoded in the vector norm.
+      Vector t_used = rplm.t;
+      if (manifolds_.use_scaled_stiefel_)
+      {
+        double n = t_used.norm();
+        if (n > 1e-10)
+          t_used /= n;
+      }
+
       // fill in translation data matrix where the id1-th (1 x dim_) block is
-      // -rpm.t and all other blocks are 0
+      // -t_used and all other blocks are 0
       for (int k = 0; k < dim_; k++)
       {
         data_submatrices_.rel_pose_translation_data_matrix.insert(
-            measure_idx, id1 * dim_ + k) = -rplm.t(k);
+            measure_idx, id1 * dim_ + k) = -t_used(k);
       }
     }
     measures_added += num_pose_landmark_measurements;
@@ -868,9 +879,12 @@ namespace VarPro
     // Cholesky solve)
     // Ltrans = Q33;
     // LtransCholRed_ = chol(Ltrans(1:end-1, 1:end-1), 'lower');
-    LtransCholRed_ = std::make_shared<CholeskyFactorization>(data_matrix_.block(
-        rotAndRangeMatrixSize(), rotAndRangeMatrixSize(),
-        numTranslationalStates() - 1, numTranslationalStates() - 1));
+    {
+      int n = numTranslationalStates() - 1;
+      SparseMatrix Q33_red = data_matrix_.block(
+          rotAndRangeMatrixSize(), rotAndRangeMatrixSize(), n, n);
+      LtransCholRed_ = std::make_shared<CholeskyFactorization>(Q33_red);
+    }
 
     // // save the block used for LtransCholRed_ for debugging
     // std::string LtransCholRed_fpath = "/tmp/LtransCholRed_.mtx";
@@ -907,13 +921,41 @@ namespace VarPro
   Scalar Problem::evaluateObjective(const Matrix &Y) const
   {
     checkUpToDate();
-    return 0.5 * (Y.transpose() * dataMatrixProduct(Y)).trace();
+    Scalar cost = 0.5 * (Y.transpose() * dataMatrixProduct(Y)).trace();
+    if (manifolds_.use_scaled_stiefel_ && scale_reg_weight_ > 0)
+    {
+      // Add -lambda * sum_i log(s_i), where s_i = ||Y_i||_F / sqrt(dim_).
+      // Equivalent to -lambda/2 * sum_i log(||Y_i||_F^2 / dim_).
+      const int d = dim_;
+      const int r = relaxation_rank_;
+      const int n = numPoses();
+      for (int i = 0; i < n; ++i)
+      {
+        Scalar norm_sq = Y.block(i * d, 0, d, r).squaredNorm();
+        // log(s_i) = 0.5*(log(norm_sq) - log(d))
+        cost -= scale_reg_weight_ * 0.5 * std::log(norm_sq / static_cast<Scalar>(d));
+      }
+    }
+    return cost;
   }
 
   Matrix Problem::Euclidean_gradient(const Matrix &Y) const
   {
     checkUpToDate();
     Matrix egrad = dataMatrixProduct(Y);
+    if (manifolds_.use_scaled_stiefel_ && scale_reg_weight_ > 0)
+    {
+      // Gradient of -lambda * sum_i log(s_i) w.r.t. Y_block_i:
+      //   d/dY_i [-lambda * log(||Y_i||_F/sqrt(d))] = -lambda * Y_i / ||Y_i||_F^2
+      const int d = dim_;
+      const int r = relaxation_rank_;
+      const int n = numPoses();
+      for (int i = 0; i < n; ++i)
+      {
+        Scalar norm_sq = Y.block(i * d, 0, d, r).squaredNorm();
+        egrad.block(i * d, 0, d, r) -= scale_reg_weight_ * Y.block(i * d, 0, d, r) / norm_sq;
+      }
+    }
     checkMatrixShape("Problem::Euclidean_gradient", Y.rows(), Y.cols(),
                      egrad.rows(), egrad.cols());
     return egrad;
@@ -950,23 +992,25 @@ namespace VarPro
 
     Matrix result = Ydot;
 
-    // Stiefel component
+    // Stiefel / ScaledStiefel component
     auto rot_mat_sz = numPosesDim();
-    if(manifolds_.use_scaled_stiefel_){
-    result.block(0, 0, rot_mat_sz, relaxation_rank_) =
-        manifolds_.scaled_stiefel_prod_manifold_
-            .projectToTangentSpace(
-                Y.block(0, 0, rot_mat_sz, relaxation_rank_).transpose(),
-                result.block(0, 0, rot_mat_sz, relaxation_rank_).transpose())
-            .transpose();
+    if (manifolds_.use_scaled_stiefel_)
+    {
+      result.block(0, 0, rot_mat_sz, relaxation_rank_) =
+          manifolds_.scaled_stiefel_prod_manifold_
+              .projectToTangentSpace(
+                  Y.block(0, 0, rot_mat_sz, relaxation_rank_).transpose(),
+                  result.block(0, 0, rot_mat_sz, relaxation_rank_).transpose())
+              .transpose();
     }
-    else{
-    result.block(0, 0, rot_mat_sz, relaxation_rank_) =
-        manifolds_.stiefel_prod_manifold_
-            .projectToTangentSpace(
-                Y.block(0, 0, rot_mat_sz, relaxation_rank_).transpose(),
-                result.block(0, 0, rot_mat_sz, relaxation_rank_).transpose())
-            .transpose();
+    else
+    {
+      result.block(0, 0, rot_mat_sz, relaxation_rank_) =
+          manifolds_.stiefel_prod_manifold_
+              .projectToTangentSpace(
+                  Y.block(0, 0, rot_mat_sz, relaxation_rank_).transpose(),
+                  result.block(0, 0, rot_mat_sz, relaxation_rank_).transpose())
+              .transpose();
     }
 
     // Oblique component
@@ -999,19 +1043,55 @@ namespace VarPro
     Matrix H_dotY = dataMatrixProduct(dotY);
 
     auto rot_mat_sz = numPosesDim();
-    // Stiefel component
-    H_dotY.block(0, 0, rot_mat_sz, relaxation_rank_) =
-        manifolds_.stiefel_prod_manifold_
-            .projectToTangentSpace(
-                Y.block(0, 0, rot_mat_sz, relaxation_rank_).transpose(),
-                H_dotY.block(0, 0, rot_mat_sz, relaxation_rank_).transpose() -
-                    manifolds_.stiefel_prod_manifold_.SymBlockDiagProduct(
-                        dotY.block(0, 0, rot_mat_sz, relaxation_rank_)
-                            .transpose(),
-                        Y.block(0, 0, rot_mat_sz, relaxation_rank_),
-                        nablaF_Y.block(0, 0, rot_mat_sz, relaxation_rank_)
-                            .transpose()))
-            .transpose();
+    // Stiefel / ScaledStiefel component
+    if (manifolds_.use_scaled_stiefel_)
+    {
+      if (scale_reg_weight_ > 0)
+      {
+        // Add Euclidean Hessian of -lambda*sum_i log(s_i) applied to dotY.
+        // At block i: H_reg[V_i] = -lambda*(V_i/n_i^2 - 2*Y_i*<Y_i,V_i>/n_i^4)
+        const int d = dim_;
+        const int r = relaxation_rank_;
+        const int n = numPoses();
+        for (int i = 0; i < n; ++i)
+        {
+          auto Y_i   = Y.block(i * d, 0, d, r);
+          auto V_i   = dotY.block(i * d, 0, d, r);
+          Scalar n_sq = Y_i.squaredNorm();
+          Scalar inner = (Y_i.array() * V_i.array()).sum();
+          H_dotY.block(i * d, 0, d, r) -=
+              scale_reg_weight_ * (V_i / n_sq - 2.0 * Y_i * inner / (n_sq * n_sq));
+        }
+      }
+      H_dotY.block(0, 0, rot_mat_sz, relaxation_rank_) =
+          manifolds_.scaled_stiefel_prod_manifold_
+              .projectToTangentSpace(
+                  Y.block(0, 0, rot_mat_sz, relaxation_rank_).transpose(),
+                  H_dotY.block(0, 0, rot_mat_sz, relaxation_rank_).transpose() -
+                      manifolds_.scaled_stiefel_prod_manifold_
+                          .SymBlockDiagProduct_aniso(
+                              dotY.block(0, 0, rot_mat_sz, relaxation_rank_)
+                                  .transpose(),
+                              Y.block(0, 0, rot_mat_sz, relaxation_rank_),
+                              nablaF_Y.block(0, 0, rot_mat_sz, relaxation_rank_)
+                                  .transpose()))
+              .transpose();
+    }
+    else
+    {
+      H_dotY.block(0, 0, rot_mat_sz, relaxation_rank_) =
+          manifolds_.stiefel_prod_manifold_
+              .projectToTangentSpace(
+                  Y.block(0, 0, rot_mat_sz, relaxation_rank_).transpose(),
+                  H_dotY.block(0, 0, rot_mat_sz, relaxation_rank_).transpose() -
+                      manifolds_.stiefel_prod_manifold_.SymBlockDiagProduct(
+                          dotY.block(0, 0, rot_mat_sz, relaxation_rank_)
+                              .transpose(),
+                          Y.block(0, 0, rot_mat_sz, relaxation_rank_),
+                          nablaF_Y.block(0, 0, rot_mat_sz, relaxation_rank_)
+                              .transpose()))
+              .transpose();
+    }
 
     // Oblique component
     int r = numRangeMeasurements();
@@ -1091,11 +1171,22 @@ namespace VarPro
     // manifolds_.stiefel_prod.projectToManifoldresult(1:n*d, :))
 
     auto rot_mat_sz = numPosesDim();
-    result.block(0, 0, rot_mat_sz, relaxation_rank_) =
-        manifolds_.stiefel_prod_manifold_
-            .projectToManifold(
-                result.block(0, 0, rot_mat_sz, relaxation_rank_).transpose())
-            .transpose();
+    if (manifolds_.use_scaled_stiefel_)
+    {
+      result.block(0, 0, rot_mat_sz, relaxation_rank_) =
+          manifolds_.scaled_stiefel_prod_manifold_
+              .projectToManifold(
+                  result.block(0, 0, rot_mat_sz, relaxation_rank_).transpose())
+              .transpose();
+    }
+    else
+    {
+      result.block(0, 0, rot_mat_sz, relaxation_rank_) =
+          manifolds_.stiefel_prod_manifold_
+              .projectToManifold(
+                  result.block(0, 0, rot_mat_sz, relaxation_rank_).transpose())
+              .transpose();
+    }
 
     // the next r rows are obtained from
     // manifolds_.oblique_manifold.retract(Y(n*d+1:n*d+r, :), V(n*d+1:n*d+r, :))

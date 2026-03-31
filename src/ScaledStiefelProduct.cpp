@@ -100,4 +100,77 @@ ScaledStiefelProduct::random_sample(const std::default_random_engine::result_typ
   return projectToManifold(X.R, X.s, Vector::Zero(static_cast<Eigen::Index>(n_)));
 }
 
-} // namespace VarPro 88
+Matrix ScaledStiefelProduct::projectToManifold(const Matrix &A) const {
+  // Each p×k block: SVD → s_i = mean(singular values), R_i = U V^T, return s_i * R_i.
+  Matrix P(p_, k_ * n_);
+
+  if (A.rows() != static_cast<Eigen::Index>(p_) ||
+      A.cols() != static_cast<Eigen::Index>(k_ * n_)) {
+    throw std::runtime_error(
+        "ScaledStiefelProduct::projectToManifold (packed): bad shape.");
+  }
+
+  for (size_t i = 0; i < n_; ++i) {
+    auto c0 = static_cast<Eigen::Index>(i * k_);
+    Matrix Ai = A.block(0, c0, p_, k_);
+    Eigen::JacobiSVD<Matrix> svd(Ai, Eigen::ComputeThinU | Eigen::ComputeThinV);
+    Scalar s_i = svd.singularValues().sum() / static_cast<Scalar>(k_);
+    P.block(0, c0, p_, k_) = s_i * (svd.matrixU() * svd.matrixV().transpose());
+  }
+  return P;
+}
+
+Matrix ScaledStiefelProduct::projectToTangentSpace(const Matrix &Y,
+                                                    const Matrix &V) const {
+  // At Y_i = s_i R_i, tangent condition: sym(Y_i^T V_i) = mu_i I_k.
+  // proj(V_i) = V_i - Y_i * aniso_sym(Y_i^T V_i) / s_i^2
+  Matrix result = V;
+  const Eigen::Index ki = static_cast<Eigen::Index>(k_);
+  const Matrix I_k = Matrix::Identity(ki, ki);
+
+  for (size_t i = 0; i < n_; ++i) {
+    auto c0 = static_cast<Eigen::Index>(i * k_);
+    const Matrix Yi = Y.block(0, c0, p_, ki);
+    const Matrix Vi = V.block(0, c0, p_, ki);
+
+    Scalar s_i_sq = Yi.squaredNorm() / static_cast<Scalar>(k_);
+
+    Matrix P = Yi.transpose() * Vi;              // k×k
+    Matrix S = Scalar(0.5) * (P + P.transpose()); // sym
+    S -= (S.trace() / static_cast<Scalar>(k_)) * I_k; // remove isotropic part
+
+    result.block(0, c0, p_, ki) = Vi - Yi * S / s_i_sq;
+  }
+  return result;
+}
+
+Matrix ScaledStiefelProduct::SymBlockDiagProduct_aniso(const Matrix &A,
+                                                        const Matrix &BT,
+                                                        const Matrix &C) const {
+  // A:  p × k*n,  BT: k*n × p (= Y in Problem coords, block i is Y_i = k×p),
+  // C:  p × k*n
+  // Computes A_i * aniso_sym(BT_i * C_i) / s_i^2 per block.
+  // s_i^2 = ||BT_i||_F^2 / k where BT_i = BT.block(i*k, 0, k, p).
+  Matrix R(p_, k_ * n_);
+  const Eigen::Index ki = static_cast<Eigen::Index>(k_);
+  const Matrix I_k = Matrix::Identity(ki, ki);
+
+  for (size_t i = 0; i < n_; ++i) {
+    auto c0 = static_cast<Eigen::Index>(i * k_);
+    const Matrix BTi = BT.block(c0, 0, ki, p_);      // k×p
+    const Matrix Ci  = C.block(0, c0, p_, ki);        // p×k
+    const Matrix Ai  = A.block(0, c0, p_, ki);        // p×k
+
+    Scalar s_i_sq = BTi.squaredNorm() / static_cast<Scalar>(k_);
+
+    Matrix P = BTi * Ci;                                // k×k
+    Matrix S = Scalar(0.5) * (P + P.transpose());      // sym
+    S -= (S.trace() / static_cast<Scalar>(k_)) * I_k;  // aniso_sym
+    S /= s_i_sq;
+
+    R.block(0, c0, p_, ki) = Ai * S;
+  }
+  return R;
+}
+
+} // namespace VarPro

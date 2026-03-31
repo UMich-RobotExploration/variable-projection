@@ -68,11 +68,15 @@ namespace VarPro
     {
       stiefel_prod_manifold_.incrementRank();
       oblique_manifold_.incrementRank();
+      if (use_scaled_stiefel_)
+        scaled_stiefel_prod_manifold_.incrementRank();
     }
     void setRank(int r)
     {
       stiefel_prod_manifold_.setRank(r);
       oblique_manifold_.setRank(r);
+      if (use_scaled_stiefel_)
+        scaled_stiefel_prod_manifold_.setRank(static_cast<size_t>(r));
     }
     void convertStiefelToScaled()
     {
@@ -164,6 +168,10 @@ namespace VarPro
 
     // a flag to check if there are any priors
     bool has_priors_ = false;
+
+    // log-barrier weight on scales: adds -scale_reg_weight_ * sum_i log(s_i)
+    // to prevent scale collapse in VarPro with ScaledStiefel
+    Scalar scale_reg_weight_ = 0.0;
 
     // a flag to check if any data has been modified since last call to
     // updateProblemData()
@@ -416,6 +424,16 @@ namespace VarPro
       preconditioner_ = preconditioner;
     }
     void setFormulation(Formulation formulation) { formulation_ = formulation; }
+    void setScaleRegWeight(Scalar lambda) { scale_reg_weight_ = lambda; }
+    Scalar getScaleRegWeight() const { return scale_reg_weight_; }
+
+    // SfM problems have pose-landmark measurements (bearing observations).
+    bool isSfmProblem() const { return numPoseLandmarkMeasurements() > 0; }
+
+    // Switch the rotation manifold from St(p,k)^n to (R_{>0} × St(p,k))^n.
+    // Call this after all variables have been added (i.e., after parsing) and
+    // before any optimization. Only needed for SfM.
+    void convertToScaledStiefel() { manifolds_.convertStiefelToScaled(); }
 
     Scalar evaluateObjective(const Matrix &Y) const;
     Matrix Euclidean_gradient(const Matrix &Y) const;

@@ -284,16 +284,29 @@ namespace VarPro
       case LANDMARK_TYPE_2D:
       case LANDMARK_TYPE_3D:
       {
-        if (iss >> sym1)
-        {
-          if (seen_landmark_syms.insert(sym1).second)
-          {
-            landmark_vars.emplace_back(Symbol(sym1));
-          }
-        }
-        else
+        // Support both formats:
+        //   with timestamp:    VERTEX_XY <timestamp> <symbol> <x> <y>
+        //   without timestamp: VERTEX_XY <symbol> <x> <y>
+        std::string first_token;
+        if (!(iss >> first_token))
         {
           throw std::runtime_error("Could not read landmark variable from line " + line);
+        }
+        // Try to parse first_token as a double (timestamp).
+        // If it fails, first_token is the symbol itself.
+        try {
+          std::stod(first_token);
+          // It's a timestamp; read the actual symbol next
+          if (!(iss >> sym1))
+          {
+            throw std::runtime_error("Could not read landmark variable from line " + line);
+          }
+        } catch (const std::invalid_argument &) {
+          sym1 = first_token;
+        }
+        if (seen_landmark_syms.insert(sym1).second)
+        {
+          landmark_vars.emplace_back(Symbol(sym1));
         }
       }
       break;
@@ -440,6 +453,105 @@ namespace VarPro
     } // while getline
     in_file.close();
     toc("Parsing PyFG file", kTimeParsing);
+
+    // --- Remap undeclared edge symbols to orphaned declared symbols.
+    //
+    // Some datasets have a systematic off-by-one: vertices are 0-indexed
+    // (L0..L(N-1)) but edge references are 1-indexed (L1..L(N)).  This leaves
+    // one declared symbol unreferenced ("orphan") and one referenced symbol
+    // undeclared.  Adding the undeclared symbol as a NEW variable would create
+    // an isolated node in the translational graph, making Q33 singular and
+    // breaking the VarPro/Implicit Cholesky.  Instead, we remap each undeclared
+    // symbol to the corresponding orphan so every declared variable is connected.
+
+    // Collect all symbols that appear in at least one edge.
+    std::unordered_set<std::string> all_ref_pose_syms, all_ref_lm_syms;
+    for (const auto &m : rel_pose_landmark_meas)
+    {
+      all_ref_pose_syms.insert(m.first_id.string());
+      all_ref_lm_syms.insert(m.second_id.string());
+    }
+    for (const auto &m : rel_pose_pose_meas)
+    {
+      all_ref_pose_syms.insert(m.first_id.string());
+      all_ref_pose_syms.insert(m.second_id.string());
+    }
+    for (const auto &m : range_meas)
+    {
+      all_ref_pose_syms.insert(m.first_id.string());
+      // second_id can be either a pose or a landmark
+      if (seen_landmark_syms.count(m.second_id.string()))
+        all_ref_lm_syms.insert(m.second_id.string());
+      else
+        all_ref_pose_syms.insert(m.second_id.string());
+    }
+
+    // Orphans: declared as a vertex but referenced by no edge.
+    std::vector<Symbol> orphan_pose_vars, orphan_lm_vars;
+    for (const auto &s : pose_vars)
+      if (!all_ref_pose_syms.count(s.string()))
+        orphan_pose_vars.push_back(s);
+    for (const auto &s : landmark_vars)
+      if (!all_ref_lm_syms.count(s.string()))
+        orphan_lm_vars.push_back(s);
+
+    // Undeclared: referenced by an edge but not declared as a vertex.
+    std::vector<Symbol> undecl_pose_syms, undecl_lm_syms;
+    for (const auto &sym : all_ref_pose_syms)
+      if (!seen_pose_syms.count(sym))
+        undecl_pose_syms.emplace_back(Symbol(sym));
+    for (const auto &sym : all_ref_lm_syms)
+      if (!seen_landmark_syms.count(sym))
+        undecl_lm_syms.emplace_back(Symbol(sym));
+
+    // Sort both lists by Symbol index so the pairing is deterministic.
+    auto sym_cmp = [](const Symbol &a, const Symbol &b) { return a.key() < b.key(); };
+    std::sort(orphan_pose_vars.begin(), orphan_pose_vars.end(), sym_cmp);
+    std::sort(orphan_lm_vars.begin(),   orphan_lm_vars.end(),   sym_cmp);
+    std::sort(undecl_pose_syms.begin(), undecl_pose_syms.end(), sym_cmp);
+    std::sort(undecl_lm_syms.begin(),   undecl_lm_syms.end(),   sym_cmp);
+
+    // Build remap tables: undeclared → orphan (paired by sorted order).
+    std::unordered_map<std::string, Symbol> pose_remap, lm_remap;
+    for (size_t i = 0; i < std::min(undecl_pose_syms.size(), orphan_pose_vars.size()); ++i)
+      pose_remap.emplace(undecl_pose_syms[i].string(), orphan_pose_vars[i]);
+    for (size_t i = 0; i < std::min(undecl_lm_syms.size(), orphan_lm_vars.size()); ++i)
+      lm_remap.emplace(undecl_lm_syms[i].string(), orphan_lm_vars[i]);
+
+    // Apply remaps to all measurements.
+    auto remap_sym = [](const Symbol &s,
+                        const std::unordered_map<std::string, Symbol> &tbl) -> Symbol
+    {
+      auto it = tbl.find(s.string());
+      return (it != tbl.end()) ? it->second : s;
+    };
+    for (auto &m : rel_pose_landmark_meas)
+    {
+      m.first_id  = remap_sym(m.first_id,  pose_remap);
+      m.second_id = remap_sym(m.second_id, lm_remap);
+    }
+    for (auto &m : rel_pose_pose_meas)
+    {
+      m.first_id  = remap_sym(m.first_id,  pose_remap);
+      m.second_id = remap_sym(m.second_id, pose_remap);
+    }
+    for (auto &m : range_meas)
+    {
+      m.first_id = remap_sym(m.first_id, pose_remap);
+      // second_id can be either a pose or a landmark
+      if (seen_landmark_syms.count(m.second_id.string()))
+        m.second_id = remap_sym(m.second_id, lm_remap);
+      else
+        m.second_id = remap_sym(m.second_id, pose_remap);
+    }
+    // Any undeclared symbols that had no orphan to pair with are added as new
+    // variables (fallback for datasets without orphans).
+    for (size_t i = orphan_pose_vars.size(); i < undecl_pose_syms.size(); ++i)
+      if (seen_pose_syms.insert(undecl_pose_syms[i].string()).second)
+        pose_vars.emplace_back(undecl_pose_syms[i]);
+    for (size_t i = orphan_lm_vars.size(); i < undecl_lm_syms.size(); ++i)
+      if (seen_landmark_syms.insert(undecl_lm_syms[i].string()).second)
+        landmark_vars.emplace_back(undecl_lm_syms[i]);
 
     // --- Perform the actual inserts (each exactly once) ---
     // Variables first (so any following factors refer to existing indices)

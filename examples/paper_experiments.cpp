@@ -28,6 +28,7 @@ struct Config
   int min_rank;
   int max_rank;
   int num_inits;
+  double scale_reg_weight = 1e-2;
 };
 
 struct ExperimentResult
@@ -81,6 +82,8 @@ Config parseConfig(const std::string &filename)
   config.max_rank = j["max_rank"];
   config.abs_data_path = j["abs_data_path"];
   config.num_inits = j["num_inits"];
+  if (j.contains("scale_reg_weight"))
+    config.scale_reg_weight = j["scale_reg_weight"];
 
   return config;
 }
@@ -222,12 +225,17 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
 
   // find the .pyfg file in the directory
   std::string pyfg_fpath = findPyfgInDir(dataset_path).string();
-  Config config = parseConfig("/home/alan/variable-projection/examples/config.json");
+  Config config = parseConfig("/home/nikolas/variable-projection/examples/config.json");
 
   VarPro::Problem problem =
       std::filesystem::exists(pyfg_fpath)
           ? VarPro::parsePyfgTextToProblem(pyfg_fpath)
           : VarPro::parsePyfgTextToProblem("./bin/" + pyfg_fpath);
+  if (problem.isSfmProblem())
+  {
+    problem.convertToScaledStiefel();
+    problem.setScaleRegWeight(static_cast<VarPro::Scalar>(config.scale_reg_weight));
+  }
   problem.updateProblemData();
 
   std::vector<int> ranks = getRanksToSweep(config.min_rank, config.max_rank);
@@ -318,7 +326,7 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
 
 int main(int argc, char **argv)
 {
-  Config config = parseConfig("/home/alan/variable-projection/examples/config.json");
+  Config config = parseConfig("/home/nikolas/variable-projection/examples/config.json");
   std::vector<fs::path> experiment_dirs = {};
   getExperimentDirsRecursive(config.abs_data_path, experiment_dirs);
 

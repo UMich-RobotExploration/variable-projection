@@ -9,37 +9,37 @@ HOMEDIR = os.path.expanduser("~")
 BASE_VARPRO_DATA_DIR = f"{HOMEDIR}/variable-projection/examples/data"
 BASE_GTSAM_DATA_DIR = f"{HOMEDIR}/variable-projection/examples/data_nik"
 EXP_SUBDIRS = [
-    # "/raslam/tiers/results.json",
-    # "/raslam/mrclam/mrclam2/results.json",
-    # "/raslam/mrclam/mrclam4/results.json",
-    # "/raslam/mrclam/mrclam6/results.json",
-    # "/raslam/mrclam/mrclam7/results.json",
-    # "/raslam/single_drone/results.json",
+    "/raslam/tiers/results.json",
+    "/raslam/mrclam/mrclam2/results.json",
+    "/raslam/mrclam/mrclam4/results.json",
+    "/raslam/mrclam/mrclam6/results.json",
+    "/raslam/mrclam/mrclam7/results.json",
+    "/raslam/single_drone/results.json",
     "/raslam/mit_outfinite/results.json",
-    # "/raslam/plaza2/results.json",
-    # "/raslam/plaza1/results.json",
-#     "/sfm/TUM-desk/results.json",
-    #  "/sfm/MipNerf-garden/results.json",
-#     "/sfm/IMC-gate/results.json",
-#     "/sfm/IMC-temple/results.json",
-#     "/sfm/IMC-rome/results.json",
-#     "/sfm/Replica-REPoffice0/results.json",
-#     "/sfm/Replica-REPoffice0_100/results.json",
-#     #"/sfm/Replica-REPoffice1/results.json",
-#     "/sfm/Replica-REPoffice1_100/results.json",
-#     #"/sfm/Replica-REProom0/results.json",
-#     "/sfm/Replica-REProom0_100/results.json",
-#    # "/sfm/Replica-REProom1/results.json",
-#     "/sfm/Replica-REProom1_100/results.json",
-#     "/sfm/TUM-room/results.json",
-#     "/sfm/MipNerf-room/results.json",
-#     "/sfm/TUM-computer-R/results.json",
-#     "/sfm/TUM-computer-T/results.json",
-#     "/sfm/bal-93/results.json",
-#     "/sfm/bal-392/results.json",
-#    "/sfm/bal-1934/results.json",
-#     "/sfm/Replica-REPoffice1_100/results.json",
-#     "/sfm/MipNerf-kitchen/results.json",
+    "/raslam/plaza2/results.json",
+    "/raslam/plaza1/results.json",
+    #  "/sfm/TUM-desk/results.json",
+    #   "/sfm/MipNerf-garden/results.json",
+    #  "/sfm/IMC-gate/results.json",
+    #  "/sfm/IMC-temple/results.json",
+    #  "/sfm/IMC-rome/results.json",
+    #  "/sfm/Replica-REPoffice0/results.json",
+    #  "/sfm/Replica-REPoffice0_100/results.json",
+     #"/sfm/Replica-REPoffice1/results.json",
+    #  "/sfm/Replica-REPoffice1_100/results.json",
+     #"/sfm/Replica-REProom0/results.json",
+    #  "/sfm/Replica-REProom0_100/results.json",
+    # "/sfm/Replica-REProom1/results.json",
+    #  "/sfm/Replica-REProom1_100/results.json",
+    #  "/sfm/TUM-room/results.json",
+    #  "/sfm/MipNerf-room/results.json",
+    #  "/sfm/TUM-computer-R/results.json",
+    #  "/sfm/TUM-computer-T/results.json",
+    #  "/sfm/bal-93/results.json",
+    #  "/sfm/bal-392/results.json",
+    # "/sfm/bal-1934/results.json",
+    #  "/sfm/Replica-REPoffice1_100/results.json",
+    #  "/sfm/MipNerf-kitchen/results.json",
    # "/pgo/results.json",
    # "/snl/intel_snl/results.json",
     # "/snl/parking-garage_snl/results.json",
@@ -51,16 +51,16 @@ EXP_SUBDIRS = [
     # #"/snl/tinyGrid3D_snl/results.json",
     # "/snl/torus3D_snl/results.json",
     # "/snl/sphere2500_snl/results.json",
-    # "/pgo/intel/results.json",
-    # "/pgo/parking-garage/results.json",
-    # "/pgo/grid3D/results.json",
-    # "/pgo/MIT/results.json",
-    # #"/snl/smallGrid3D_snl/results.json",
-    # "/pgo/M3500/results.json",
-    # "/pgo/city10000/results.json",
-    # #"/snl/tinyGrid3D_snl/results.json",
-    # "/pgo/torus3D/results.json",
-    # "/pgo/sphere2500/results.json",
+    "/pgo/intel/results.json",
+    "/pgo/parking-garage/results.json",
+    "/pgo/grid3D/results.json",
+    "/pgo/MIT/results.json",
+    #"/snl/smallGrid3D_snl/results.json",
+    "/pgo/M3500/results.json",
+    "/pgo/city10000/results.json",
+    #"/snl/tinyGrid3D_snl/results.json",
+    "/pgo/torus3D/results.json",
+    "/pgo/sphere2500/results.json",
 ]
 
 # Define a color scheme for the plots using a standard matplotlib colormap.
@@ -297,14 +297,15 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     # Consistent palette + emphasis for Ours (Implicit)
     palette = {"Explicit": "C0", "Explicit VarPro": "C1", "Implicit": "C2", "GTSAM": "C3"}
     def style_for(method):
-
-        if method not in ["GTSAM", "Explicit"]:
-            print(f"Warning: Making {method} invisible in plots.")
-            return dict(color=palette[method], lw=0.0, zorder=0, band_alpha=0.00)
-
         if method == "Implicit":
             return dict(color=palette[method], lw=4.0, zorder=4, band_alpha=0.14)
-        return dict(color=palette.get(method, "C7"), lw=3.0, zorder=3, band_alpha=0.10)
+        if method == "Explicit VarPro":
+            return dict(color=palette[method], lw=3.0, zorder=3, band_alpha=0.10)
+        if method == "Explicit":
+            return dict(color=palette[method], lw=3.0, zorder=3, band_alpha=0.10)
+        if method == "GTSAM":
+            return dict(color=palette[method], lw=3.0, zorder=3, band_alpha=0.10)
+        return dict(color=palette.get(method, "C7"), lw=2.0, zorder=2, band_alpha=0.08)
 
     def get_med_upper_lower(arr, q_lo=None, q_hi=None):
         med = np.median(arr, axis=0)
@@ -333,11 +334,6 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
         except ValueError:
             continue
         if rank_num != 5 or not runs:
-            continue
-
-        # if formulation is Explicit VarPro, skip
-        if formulation == "Explicit VarPro":
-            print(f"Skipping {formulation} in plots.")
             continue
 
         sty = style_for(formulation)
@@ -395,7 +391,7 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
 
     axs[1].set_xlabel("Time (s)")
     # axs[1].set_title("Solver Costs vs Time")
-    axs[1].legend(loc="upper right", frameon=False)
+    # axs[1] legend is handled by the figure-level legend below
 
 
     # -------- Single, figure-level legend --------
@@ -435,7 +431,7 @@ def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
     fig.savefig(svg_path, bbox_inches="tight", pad_inches=0.02)  # or: format="svg"
 
 
-    plt.show()
+    plt.close(fig)
 
 
 if __name__ == "__main__":

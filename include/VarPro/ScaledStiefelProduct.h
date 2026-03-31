@@ -48,6 +48,8 @@ namespace VarPro
     size_t get_p() const { return p_; }
     size_t get_n() const { return n_; }
     void addNewFrame() { n_++; }
+    void incrementRank() { p_++; }
+    void setRank(size_t p) { p_ = p; }
 
     // ---- Core API (separate s and R) ----
 
@@ -91,6 +93,26 @@ namespace VarPro
       T.s = projectSToPositive_Tangent(A.s, V.s);
       return T;
     }
+
+    // ---- Packed API (matches StiefelProduct interface) ----
+    // In the packed representation, each p×k block i stores s_i * R_i directly.
+
+    // Project flat matrix A (p × k*n) to the scaled Stiefel manifold.
+    // Each block i: SVD → R_i = U V^T, s_i = mean(singular values), returns s_i * R_i.
+    Matrix projectToManifold(const Matrix &A) const;
+
+    // Tangent space projection for the packed representation at Y (p × k*n).
+    // At X_i = s_i R_i, the tangent condition is sym(X_i^T V_i) = mu_i I_k.
+    // Projection removes the anisotropic symmetric part:
+    //   proj(V_i) = V_i - X_i * aniso_sym(X_i^T V_i) / s_i^2
+    // where aniso_sym(M) = sym(M) - (tr(M)/k) I_k.
+    Matrix projectToTangentSpace(const Matrix &Y, const Matrix &V) const;
+
+    // Analog of SymBlockDiagProduct for the scaled Stiefel Hessian.
+    // Computes A_i * aniso_sym(BT_i * C_i) / s_i^2 per block, where
+    // s_i^2 = ||BT_i||_F^2 / k (BT_i is the k×p row block of BT = Y in Problem coords).
+    Matrix SymBlockDiagProduct_aniso(const Matrix &A, const Matrix &BT,
+                                     const Matrix &C) const;
 
     // Random sample: s > 0, R ∈ St(p,k)^n.
     Point random_sample(const std::default_random_engine::result_type &seed =

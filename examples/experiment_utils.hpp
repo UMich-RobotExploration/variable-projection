@@ -335,8 +335,14 @@ VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
             Y_init.block(rot_idx * problem.dim(), 0, problem.dim(),
                          problem.getRelaxationRank()) = R.transpose();
 
-            // set the translation
-            if (problem.getFormulation() != VarPro::Formulation::Implicit)
+            // set the translation — skip for Implicit (eliminated) and for
+            // Explicit on SfM (random translations give huge starting cost;
+            // zero is a far better starting point since scales absorb depth).
+            bool skip_translation =
+                problem.getFormulation() == VarPro::Formulation::Implicit ||
+                (problem.getFormulation() == VarPro::Formulation::Explicit &&
+                 problem.isSfmProblem());
+            if (!skip_translation)
             {
                 Index tran_idx = problem.getTranslationIdx(pose_symbol);
                 Y_init.block(tran_idx, 0, 1, problem.getRelaxationRank()) = t.transpose();
@@ -357,9 +363,13 @@ VarPro::Matrix readInitializationFile(const fs::path &init_fpath,
                 p(i, 0) = std::stod(tokens[2 + i]);
             }
 
-            // set the point
-            Index point_idx = problem.getTranslationIdx(point_symbol);
-            Y_init.block(point_idx, 0, 1, problem.getRelaxationRank()) = p.transpose();
+            // set the point — skip for Explicit SfM (same reasoning as translations)
+            if (!(problem.getFormulation() == VarPro::Formulation::Explicit &&
+                  problem.isSfmProblem()))
+            {
+                Index point_idx = problem.getTranslationIdx(point_symbol);
+                Y_init.block(point_idx, 0, 1, problem.getRelaxationRank()) = p.transpose();
+            }
         }
 
         if (tokens[0] == "VERTEX_BEARING")

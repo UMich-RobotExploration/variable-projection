@@ -2,6 +2,7 @@
   "verbose": false,
   "min_rank": 5,
   "max_rank": 5,
-  "abs_data_path": "/home/alan/variable-projection/examples/data/",
-  "num_inits": 5
+  "abs_data_path": "/home/nikolas/variable-projection/examples/data/",
+  "num_inits": 5,
+  "scale_reg_weight": 0.01
 }

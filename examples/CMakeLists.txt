@@ -14,4 +14,8 @@ if(${PERFORM_EXPERIMENTS})
   endif()
 endif()
 
+add_executable(test_scaled_stiefel test_scaled_stiefel.cpp)
+target_link_libraries(test_scaled_stiefel VARPRO)
+target_include_directories(test_scaled_stiefel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 message(STATUS "Building main varpro_example command-line executable in directory ${EXECUTABLE_OUTPUT_PATH}\n")
