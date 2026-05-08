@@ -435,6 +435,8 @@ namespace VarPro
     // before any optimization. Only needed for SfM.
     void convertToScaledStiefel() { manifolds_.convertStiefelToScaled(); }
 
+    bool isScaledStiefel() const { return manifolds_.use_scaled_stiefel_; }
+
     Scalar evaluateObjective(const Matrix &Y) const;
     Matrix Euclidean_gradient(const Matrix &Y) const;
     Matrix Riemannian_gradient(const Matrix &Y) const;

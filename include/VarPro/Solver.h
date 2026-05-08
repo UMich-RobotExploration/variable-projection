@@ -10,6 +10,7 @@
 #include <VarPro/Problem.h>
 #include <VarPro/Types.h>
 #include <VarPro/PyfgTextParser.h>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,5 +22,9 @@ namespace VarPro
   using ProblemResult = TntResult;
 
   ProblemResult solveProblem(Problem &problem, const Matrix &x0, bool verbose = false);
+  ProblemResult solveProblem(
+      Problem &problem, const Matrix &x0,
+      const std::optional<InstrumentationFunction> &user_function,
+      bool verbose = false);
 
 } // namespace VarPro

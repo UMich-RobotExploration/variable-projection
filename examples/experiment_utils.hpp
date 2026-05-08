@@ -5,6 +5,8 @@
 #include <VarPro/PyfgTextParser.h>
 
 #include <filesystem>
+#include <iterator>
+#include <set>
 namespace fs = std::filesystem;
 
 using PoseChain = std::vector<VarPro::Symbol>;

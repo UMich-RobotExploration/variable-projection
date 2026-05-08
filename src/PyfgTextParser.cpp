@@ -478,8 +478,13 @@ namespace VarPro
     }
     for (const auto &m : range_meas)
     {
-      all_ref_pose_syms.insert(m.first_id.string());
-      // second_id can be either a pose or a landmark
+      // first_id and second_id can each be either a pose or a landmark
+      // (e.g. SNL has range edges between two landmarks).  Classify by which
+      // declared-symbol set the id appears in; default to pose for undeclared.
+      if (seen_landmark_syms.count(m.first_id.string()))
+        all_ref_lm_syms.insert(m.first_id.string());
+      else
+        all_ref_pose_syms.insert(m.first_id.string());
       if (seen_landmark_syms.count(m.second_id.string()))
         all_ref_lm_syms.insert(m.second_id.string());
       else
@@ -537,8 +542,12 @@ namespace VarPro
     }
     for (auto &m : range_meas)
     {
-      m.first_id = remap_sym(m.first_id, pose_remap);
-      // second_id can be either a pose or a landmark
+      // Apply the same pose-vs-landmark classification used when building the
+      // remap tables (see all_ref_* loop above).
+      if (seen_landmark_syms.count(m.first_id.string()))
+        m.first_id = remap_sym(m.first_id, lm_remap);
+      else
+        m.first_id = remap_sym(m.first_id, pose_remap);
       if (seen_landmark_syms.count(m.second_id.string()))
         m.second_id = remap_sym(m.second_id, lm_remap);
       else

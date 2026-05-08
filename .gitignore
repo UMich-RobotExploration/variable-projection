@@ -47,3 +47,10 @@ build*/
 examples/data_nik/*
 *.mtx
 *.asv
+
+# Dataset payloads (kept locally, fetched out-of-band — too large for GitHub)
+*.pyfg
+
+# Python bytecode
+__pycache__/
+*.pyc

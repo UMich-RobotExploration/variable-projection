@@ -1,447 +1,737 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import csv
 import json
+import math
 import re
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import matplotlib
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from collections import defaultdict
 import numpy as np
 
-import os
-HOMEDIR = os.path.expanduser("~")
-BASE_VARPRO_DATA_DIR = f"{HOMEDIR}/variable-projection/examples/data"
-BASE_GTSAM_DATA_DIR = f"{HOMEDIR}/variable-projection/examples/data_nik"
-EXP_SUBDIRS = [
-    "/raslam/tiers/results.json",
-    "/raslam/mrclam/mrclam2/results.json",
-    "/raslam/mrclam/mrclam4/results.json",
-    "/raslam/mrclam/mrclam6/results.json",
-    "/raslam/mrclam/mrclam7/results.json",
-    "/raslam/single_drone/results.json",
-    "/raslam/mit_outfinite/results.json",
-    "/raslam/plaza2/results.json",
-    "/raslam/plaza1/results.json",
-    #  "/sfm/TUM-desk/results.json",
-    #   "/sfm/MipNerf-garden/results.json",
-    #  "/sfm/IMC-gate/results.json",
-    #  "/sfm/IMC-temple/results.json",
-    #  "/sfm/IMC-rome/results.json",
-    #  "/sfm/Replica-REPoffice0/results.json",
-    #  "/sfm/Replica-REPoffice0_100/results.json",
-     #"/sfm/Replica-REPoffice1/results.json",
-    #  "/sfm/Replica-REPoffice1_100/results.json",
-     #"/sfm/Replica-REProom0/results.json",
-    #  "/sfm/Replica-REProom0_100/results.json",
-    # "/sfm/Replica-REProom1/results.json",
-    #  "/sfm/Replica-REProom1_100/results.json",
-    #  "/sfm/TUM-room/results.json",
-    #  "/sfm/MipNerf-room/results.json",
-    #  "/sfm/TUM-computer-R/results.json",
-    #  "/sfm/TUM-computer-T/results.json",
-    #  "/sfm/bal-93/results.json",
-    #  "/sfm/bal-392/results.json",
-    # "/sfm/bal-1934/results.json",
-    #  "/sfm/Replica-REPoffice1_100/results.json",
-    #  "/sfm/MipNerf-kitchen/results.json",
-   # "/pgo/results.json",
-   # "/snl/intel_snl/results.json",
-    # "/snl/parking-garage_snl/results.json",
-    # "/snl/grid3D_snl/results.json",
-    # "/snl/MIT_snl/results.json",
-    # #"/snl/smallGrid3D_snl/results.json",
-    # "/snl/M3500_snl/results.json",
-    # "/snl/city10000_snl/results.json",
-    # #"/snl/tinyGrid3D_snl/results.json",
-    # "/snl/torus3D_snl/results.json",
-    # "/snl/sphere2500_snl/results.json",
-    "/pgo/intel/results.json",
-    "/pgo/parking-garage/results.json",
-    "/pgo/grid3D/results.json",
-    "/pgo/MIT/results.json",
-    #"/snl/smallGrid3D_snl/results.json",
-    "/pgo/M3500/results.json",
-    "/pgo/city10000/results.json",
-    #"/snl/tinyGrid3D_snl/results.json",
-    "/pgo/torus3D/results.json",
-    "/pgo/sphere2500/results.json",
+
+FORMULATION_MAP = {
+    0: "Explicit",
+    1: "Explicit VarPro",
+    2: "Implicit",
+    "gtsam": "GTSAM",
+}
+
+TASK_ORDER = ["PGO", "RA-SLAM", "SNL", "SfM"]
+CPU_METHODS = ["Implicit", "Explicit", "Explicit VarPro", "GTSAM"]
+GPU_METHODS = ["Implicit", "Explicit", "Explicit VarPro"]
+RANK_TARGET = "rank5"
+CONVERGENCE_TOL = 0.01
+RANK_PATTERN = re.compile(r"rank(\d+)", re.IGNORECASE)
+
+# GPU outputs (table + speedup plots) drop SNL and the MR.CLAM RA-SLAM datasets.
+GPU_EXCLUDED_TASKS = {"SNL"}
+GPU_EXCLUDED_KEYS = {"mrclam2", "mrclam4", "mrclam6", "mrclam7"}
+
+
+def gpu_specs() -> list["DatasetSpec"]:
+    return [
+        spec
+        for spec in DATASET_SPECS
+        if spec.task not in GPU_EXCLUDED_TASKS and spec.key not in GPU_EXCLUDED_KEYS
+    ]
+
+
+@dataclass(frozen=True)
+class DatasetSpec:
+    key: str
+    label: str
+    task: str
+
+
+DATASET_SPECS = [
+    DatasetSpec("intel", "Intel", "PGO"),
+    DatasetSpec("parking-garage", "Garage", "PGO"),
+    DatasetSpec("grid3D", "Grid3D", "PGO"),
+    DatasetSpec("MIT", "MIT", "PGO"),
+    DatasetSpec("M3500", "M3500", "PGO"),
+    DatasetSpec("city10000", "City10000", "PGO"),
+    DatasetSpec("torus3D", "Torus", "PGO"),
+    DatasetSpec("sphere2500", "Sphere", "PGO"),
+    DatasetSpec("tiers", "TIERS", "RA-SLAM"),
+    DatasetSpec("single_drone", "Single Drone", "RA-SLAM"),
+    DatasetSpec("plaza2", "Plaza2", "RA-SLAM"),
+    DatasetSpec("plaza1", "Plaza1", "RA-SLAM"),
+    DatasetSpec("mrclam2", "MR.CLAM2", "RA-SLAM"),
+    DatasetSpec("mrclam4", "MR.CLAM4", "RA-SLAM"),
+    DatasetSpec("mrclam6", "MR.CLAM6", "RA-SLAM"),
+    DatasetSpec("mrclam7", "MR.CLAM7", "RA-SLAM"),
+    DatasetSpec("intel_snl", "Intel", "SNL"),
+    DatasetSpec("parking-garage_snl", "Garage", "SNL"),
+    DatasetSpec("grid3D_snl", "Grid3D", "SNL"),
+    DatasetSpec("MIT_snl", "MIT", "SNL"),
+    DatasetSpec("M3500_snl", "M3500", "SNL"),
+    DatasetSpec("city10000_snl", "City10000", "SNL"),
+    DatasetSpec("torus3D_snl", "Torus", "SNL"),
+    DatasetSpec("sphere2500_snl", "Sphere", "SNL"),
+    DatasetSpec("bal-93", "BAL-93", "SfM"),
+    DatasetSpec("bal-392", "BAL-392", "SfM"),
+    DatasetSpec("bal-1934", "BAL-1934", "SfM"),
+    DatasetSpec("IMC-gate", "IMC Gate", "SfM"),
+    DatasetSpec("IMC-temple", "IMC Temple", "SfM"),
+    DatasetSpec("IMC-rome", "IMC Rome", "SfM"),
+    DatasetSpec("Replica-REPoffice0_100", "Rep. Office0-100", "SfM"),
+    DatasetSpec("Replica-REPoffice1_100", "Rep. Office1-100", "SfM"),
+    DatasetSpec("Replica-REProom0_100", "Rep. Room0-100", "SfM"),
+    DatasetSpec("Replica-REProom1_100", "Rep. Room1-100", "SfM"),
+    DatasetSpec("MipNerf-garden", "Mip-NeRF Garden", "SfM"),
+    DatasetSpec("MipNerf-room", "Mip-NeRF Room", "SfM"),
+    DatasetSpec("MipNerf-kitchen", "Mip-NeRF Kitchen", "SfM"),
+    DatasetSpec("TUM-room", "TUM Room", "SfM"),
+    DatasetSpec("TUM-desk", "TUM Desk", "SfM"),
+    DatasetSpec("TUM-computer-R", "TUM Comp-R", "SfM"),
+    DatasetSpec("TUM-computer-T", "TUM Comp-T", "SfM"),
 ]
 
-# Define a color scheme for the plots using a standard matplotlib colormap.
-COLOR_SCHEME = plt.get_cmap("tab10")
-num_colors = COLOR_SCHEME.N
-# Create a list of keys to assign unique colors to each combination of rank and formulation.
-COLOR_KEYS = [(rank, form) for rank in ["rank5"] for form in ["Explicit", "Explicit VarPro", "Implicit", "GTSAM"]]
-# Generate a dictionary mapping each key to a color from the color scheme.
-COLORS = {key: COLOR_SCHEME(i % num_colors) for i, key in enumerate(COLOR_KEYS)}
-def _implicit_target_cost(groups, rank="rank5", q=0.5):
-    """Return target C* from Implicit group (median of final costs)."""
-    key = ("Implicit", rank)
-    runs = groups.get(key, [])
-    last_costs = [c[-1] for (_, c) in runs if len(c) > 0]
-    if not last_costs:
-        # fallback: across all runs/methods
-        last_costs = [c[-1] for rr in groups.values() for (_, c) in rr if len(c) > 0]
-    if not last_costs:
+DATASET_BY_KEY = {spec.key: spec for spec in DATASET_SPECS}
+
+# These values are taken directly from the CPU table in the paper draft the user
+# provided. They are treated as the authoritative GTSAM reference for the CPU
+# export because no local GTSAM results repository exists in this workspace.
+GTSAM_REFERENCE = {
+    "intel": {"time_s": 0.63, "iters": 12},
+    "parking-garage": {"time_s": 7.51, "iters": 63},
+    "grid3D": {"time_s": None, "iters": None},
+    "MIT": {"time_s": 0.28, "iters": 11},
+    "M3500": {"time_s": 2.85, "iters": 22},
+    "city10000": {"time_s": 18.43, "iters": 29},
+    "torus3D": {"time_s": 37.24, "iters": 36},
+    "sphere2500": {"time_s": 14.68, "iters": 39},
+    "tiers": {"time_s": None, "iters": None},
+    "single_drone": {"time_s": 4.91, "iters": 57},
+    "plaza2": {"time_s": 4.73, "iters": 57},
+    "plaza1": {"time_s": 10.91, "iters": 63},
+    "mrclam2": {"time_s": 11.59, "iters": 18},
+    "mrclam4": {"time_s": 8.02, "iters": 15},
+    "mrclam6": {"time_s": 5.89, "iters": 25},
+    "mrclam7": {"time_s": 10.32, "iters": 36},
+    "intel_snl": {"time_s": None, "iters": None},
+    "parking-garage_snl": {"time_s": None, "iters": None},
+    "grid3D_snl": {"time_s": None, "iters": None},
+    "MIT_snl": {"time_s": 0.21, "iters": 12},
+    "M3500_snl": {"time_s": None, "iters": None},
+    "city10000_snl": {"time_s": None, "iters": None},
+    "torus3D_snl": {"time_s": None, "iters": None},
+    "sphere2500_snl": {"time_s": None, "iters": None},
+    "bal-93": {"time_s": 10.09, "iters": 52},
+    "bal-392": {"time_s": None, "iters": None},
+    "bal-1934": {"time_s": None, "iters": None},
+    "IMC-gate": {"time_s": None, "iters": None},
+    "IMC-temple": {"time_s": None, "iters": None},
+    "IMC-rome": {"time_s": None, "iters": None},
+    "Replica-REPoffice0_100": {"time_s": 8.39, "iters": 10},
+    "Replica-REPoffice1_100": {"time_s": 3.14, "iters": 9},
+    "Replica-REProom0_100": {"time_s": 12.00, "iters": 9},
+    "Replica-REProom1_100": {"time_s": 13.63, "iters": 13},
+    "MipNerf-garden": {"time_s": 19.76, "iters": 12},
+    "MipNerf-room": {"time_s": None, "iters": None},
+    "MipNerf-kitchen": {"time_s": None, "iters": None},
+    "TUM-room": {"time_s": None, "iters": None},
+    "TUM-desk": {"time_s": None, "iters": None},
+    "TUM-computer-R": {"time_s": None, "iters": None},
+    "TUM-computer-T": {"time_s": None, "iters": None},
+}
+
+def parse_args() -> argparse.Namespace:
+    data_dir = Path(__file__).resolve().parent / "data"
+    parser = argparse.ArgumentParser(
+        description="Export CPU/GPU experiment tables and speedup plots."
+    )
+    parser.add_argument(
+        "--data-root",
+        type=Path,
+        default=data_dir,
+        help="Root directory containing <dataset>/cached_results/ subfolders. "
+             "CPU and GPU per-init result JSONs are loaded directly from those, "
+             "avoiding any stale top-level aggregate file.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=data_dir / "analysis",
+        help="Directory for CSV exports and plots.",
+    )
+    return parser.parse_args()
+
+
+def normalize_formulation(value: Any) -> str | None:
+    if value in FORMULATION_MAP:
+        return FORMULATION_MAP[value]
+    if isinstance(value, str):
+        normalized = value.strip().lower().replace("_", " ").replace("-", " ")
+        if normalized == "explicit":
+            return "Explicit"
+        if normalized in {"explicit varpro", "explicit var proj", "varpro"}:
+            return "Explicit VarPro"
+        if normalized == "implicit":
+            return "Implicit"
+        if normalized == "gtsam":
+            return "GTSAM"
+    return None
+
+
+def extract_rank(init_file: str) -> str:
+    match = RANK_PATTERN.search(init_file or "")
+    if not match:
+        return "unknown"
+    return f"rank{match.group(1)}"
+
+
+def load_json(path: Path) -> list[dict[str, Any]]:
+    if not path.exists():
+        raise FileNotFoundError(f"Missing input file: {path}")
+    with path.open("r", encoding="utf-8") as handle:
+        data = json.load(handle)
+    if not isinstance(data, list):
+        raise ValueError(f"Expected a JSON list in {path}")
+    return [entry for entry in data if isinstance(entry, dict)]
+
+
+def load_from_cached_results(data_root: Path, gpu: bool) -> list[dict[str, Any]]:
+    """Walk data_root for per-init cached results and concatenate them.
+
+    Each dataset writes one JSON per (formulation, init) pair into
+    <dataset>/cached_results/. CPU files are named ``results_rank<N>_<form>_init<i>.json``;
+    GPU files are prefixed ``gpu_results_...``. Each file is a list with one entry.
+
+    Reading these directly (instead of the aggregate ``experiment_results.json``)
+    avoids the staleness problem where the aggregate is written once at the end of
+    a sweep and may not reflect recent re-runs of individual datasets.
+    """
+    prefix = "gpu_results_rank" if gpu else "results_rank"
+    entries: list[dict[str, Any]] = []
+    skipped = 0
+    for results_file in data_root.rglob(f"{prefix}*.json"):
+        if results_file.parent.name != "cached_results":
+            continue
+        try:
+            with results_file.open("r", encoding="utf-8") as handle:
+                data = json.load(handle)
+        except (OSError, json.JSONDecodeError):
+            skipped += 1
+            continue
+        if isinstance(data, list):
+            entries.extend(e for e in data if isinstance(e, dict))
+        elif isinstance(data, dict):
+            entries.append(data)
+    if skipped:
+        print(f"Warning: skipped {skipped} unreadable cached result file(s) under {data_root}")
+    return entries
+
+
+def extract_run_trace(
+    entry: dict[str, Any],
+    formulation: str,
+) -> tuple[np.ndarray, np.ndarray] | None:
+    times = np.asarray(entry.get("times", []), dtype=float)
+    costs = np.asarray(entry.get("costs", []), dtype=float)
+    length = min(times.size, costs.size)
+    if length == 0:
         return None
-    arr = np.asarray(last_costs, dtype=float)
-    return float(np.nanmedian(arr) if q == 0.5 else np.nanpercentile(arr, q*100.0))
 
-def _first_index_within_pct(costs, target, pct):
-    """First index k where costs[k] <= (1+pct)*target; else len(costs)."""
-    if target is None or len(costs) == 0:
-        return len(costs)
-    thr = (1.0 + pct) * target
-    idx = np.argmax(costs <= thr)  # returns 0 if first is True, else 0
-    if (costs <= thr).any():
-        return int(np.where(costs <= thr)[0][0])
-    return len(costs)
+    times = times[:length]
+    costs = costs[:length]
 
-def _trim_groups_to_target(groups, target_cost, pct, rank="rank5", buffer=5):
-    """Trim all runs in all methods to first time they reach within pct of
-    target_cost. Buffers the trimming a bit so we have some extra points to show
-     convergence behavior."""
-    trimmed = {}
-    for (formulation, rnk), runs in groups.items():
-        new_runs = []
-        for (t, c) in runs:
-            k = _first_index_within_pct(c, target_cost, pct) + buffer
-            t2 = t[:k+1] if k < len(c) else t
-            c2 = c[:k+1] if k < len(c) else c
-            new_runs.append((t2, c2))
-        trimmed[(formulation, rnk)] = new_runs
-    return trimmed
+    if formulation == "GTSAM":
+        times = np.cumsum(times)
+
+    finite_mask = np.isfinite(times) & np.isfinite(costs)
+    if not finite_mask.any():
+        return None
+    bad_indices = np.flatnonzero(~finite_mask)
+    if bad_indices.size:
+        # Treat a run with trailing NaNs/nulls as failed rather than silently
+        # truncating it. The paper table renders those cases as missing.
+        return None
+
+    return times, costs
 
 
-# Optional fallback colors
-def color_for(key):
-    """
-    Retrieves a color for a given (formulation, rank) key.
-    This function provides a consistent color for each data series in the plots.
-    """
-    # key is (formulation, rank)
-    try :
-        return COLORS[key[1], key[0]]
-    except KeyError:
-        # If the key is not in the pre-defined color map, use a fallback color.
-        base = {
-            "Explicit": "#1f77b4",
-            "Explicit VarPro": "#ff7f0e",
-            "Implicit": "#2ca02c",
-            "GTSAM": "#d62728",
+def first_threshold_hit(
+    times: np.ndarray,
+    costs: np.ndarray,
+    target_cost: float,
+) -> tuple[float, int] | None:
+    if costs.size == 0:
+        return None
+
+    threshold = (1.0 + CONVERGENCE_TOL) * target_cost
+    hit_indices = np.flatnonzero(costs <= threshold)
+    if hit_indices.size == 0:
+        return None
+
+    first_hit = int(hit_indices[0])
+    return float(times[first_hit]), first_hit
+
+
+def aggregate_results(
+    entries: list[dict[str, Any]],
+    method_order: list[str],
+) -> dict[str, dict[str, dict[str, float | int | None]]]:
+    grouped: dict[str, dict[str, list[tuple[np.ndarray, np.ndarray]]]] = {
+        spec.key: {
+            method: []
+            for method in method_order
         }
-        return base.get(key[0], "#9467bd")
+        for spec in DATASET_SPECS
+    }
 
-def _ensure_strictly_increasing(t):
-    """
-    Ensures that the time values are strictly increasing.
-    This is a preprocessing step to prevent issues with interpolation,
-    which requires monotonically increasing sample points.
-    Duplicate time values are adjusted by a small epsilon.
-    """
-    t = np.asarray(t, dtype=float)
-    if t.ndim != 1:
-        raise ValueError("times must be 1-D")
-    eps = np.finfo(float).eps
-    for i in range(1, t.size):
-        if t[i] <= t[i-1]:
-            t[i] = t[i-1] + max(1e-12, abs(t[i-1]) * 1e-12 + eps)
-    return t
+    for entry in entries:
+        dataset_key = entry.get("dataset_name")
+        if dataset_key not in DATASET_BY_KEY:
+            continue
 
-def get_groups_from_data(data_fpath: str) -> dict:
-    """
-    Loads experimental data from a JSON file and groups it by formulation and rank.
-    Each group contains a list of runs, where each run is a tuple of (times, costs).
-    """
-    try:
-        with open(data_fpath, "r") as f:
-            data = json.load(f)
-    except FileNotFoundError:
-        print(f"File not found: {data_fpath}")
-        return {}
+        if extract_rank(entry.get("init_file", "")) != RANK_TARGET:
+            continue
 
-    groups = defaultdict(list)
-    FORMULATION_MAP = {0: "Explicit", 1: "Explicit VarPro", 2: "Implicit", "gtsam": "GTSAM"}
+        formulation = normalize_formulation(entry.get("formulation"))
+        if formulation not in method_order:
+            continue
 
-    for entry in data:
-        form_raw = entry.get("formulation")
-        formulation = FORMULATION_MAP.get(form_raw, f"Unknown({form_raw})")
+        trace = extract_run_trace(entry, formulation)
+        if trace is None:
+            continue
 
-        init_file = entry.get("init_file", "")
-        m = re.search(r"rank(\d+)", init_file)
-        rank = f"rank{m.group(1)}" if m else "unknown"
+        grouped[dataset_key][formulation].append(trace)
 
-        times = np.asarray(entry.get("times", []), dtype=float)
-        costs = np.asarray(entry.get("costs", []), dtype=float)
+    summary: dict[str, dict[str, dict[str, float | int | None]]] = {}
+    for spec in DATASET_SPECS:
+        dataset_summary: dict[str, dict[str, float | int | None]] = {}
+        implicit_runs = grouped[spec.key]["Implicit"]
+        implicit_final_costs = np.asarray(
+            [costs[-1] for _, costs in implicit_runs if costs.size],
+            dtype=float,
+        )
+        implicit_target = (
+            float(np.median(implicit_final_costs))
+            if implicit_final_costs.size
+            else None
+        )
 
-        # Ensure times and costs arrays have the same length.
-        L = min(times.size, costs.size)
-        times, costs = times[:L], costs[:L]
+        for method in method_order:
+            runs = grouped[spec.key][method]
+            if implicit_target is None:
+                dataset_summary[method] = {"time_s": None, "iters": None}
+                continue
 
-        # For GTSAM data, the reported times are per-iteration, so we compute a cumulative sum.
-        if formulation == "GTSAM" and times.size > 0:
-            times = np.cumsum(times)
-            # Prepend a t=0 sample to align with other formulations that start at iteration 0.
-            times = np.concatenate(([0.0], times))
-            costs = np.concatenate(([costs[0]], costs))
+            successful_runs = [
+                hit
+                for times, costs in runs
+                if (hit := first_threshold_hit(times, costs, implicit_target)) is not None
+            ]
+            if not successful_runs:
+                dataset_summary[method] = {"time_s": None, "iters": None}
+                continue
 
-        # Sort data points by time and ensure time is strictly increasing for interpolation.
-        if times.size > 1:
-            order = np.argsort(times)
-            times, costs = times[order], costs[order]
-            times = _ensure_strictly_increasing(times)
+            times = np.asarray([runtime for runtime, _ in successful_runs], dtype=float)
+            iters = np.asarray([iterations for _, iterations in successful_runs], dtype=float)
+            dataset_summary[method] = {
+                "time_s": float(np.median(times)),
+                "iters": int(np.median(iters)) if iters.size else None,
+            }
+        summary[spec.key] = dataset_summary
 
-        if times.size and costs.size:
-            groups[(formulation, rank)].append((times, costs))
+    return summary
 
-    return groups
 
-def _common_time_grid(runs, n_points=400, mode="linspace"):
-    """
-    Constructs a common time grid for a set of runs.
-    This grid is used to interpolate the cost data from different runs
-    so they can be aggregated (e.g., to compute median and percentiles).
-    The grid spans the time interval where all runs overlap.
-    """
-    tmins = [t[0] for (t, _) in runs if t.size]
-    tmaxs = [t[-1] for (t, _) in runs if t.size]
-    if not tmins or not tmaxs:
+def attach_gtsam_reference(
+    summary: dict[str, dict[str, dict[str, float | int | None]]]
+) -> dict[str, dict[str, dict[str, float | int | None]]]:
+    for spec in DATASET_SPECS:
+        reference = GTSAM_REFERENCE.get(spec.key, {"time_s": None, "iters": None})
+        summary[spec.key]["GTSAM"] = {
+            "time_s": reference["time_s"],
+            "iters": reference["iters"],
+        }
+    return summary
+def safe_speedup(
+    baseline_time: float | int | None,
+    target_time: float | int | None,
+) -> float | None:
+    if baseline_time is None or target_time is None:
         return None
-    t0 = max(tmins) # The latest start time among all runs.
-    t1 = min(tmaxs) # The earliest end time among all runs.
-    if not np.isfinite(t0) or not np.isfinite(t1) or t1 <= t0:
+    baseline = float(baseline_time)
+    target = float(target_time)
+    if baseline <= 0.0 or target <= 0.0:
         return None
-    if mode == "linspace":
-        # Create a linearly spaced grid of points.
-        return np.linspace(t0, t1, n_points)
-    elif mode == "union":
-        # Create a grid from the union of all timestamps within the overlap interval.
-        T = np.unique(np.concatenate([t[(t >= t0) & (t <= t1)] for (t, _) in runs]))
-        # Downsample if the number of points is too large.
-        if T.size > 2000:
-            idx = np.linspace(0, T.size - 1, 2000).round().astype(int)
-            T = T[idx]
-        return T
-    else:
-        raise ValueError("Unknown grid mode")
+    return baseline / target
 
-def _interp_run_to_grid(times, costs, grid):
-    """
-    Interpolates the cost data of a single run onto a common time grid.
-    This allows for direct comparison and aggregation of costs across different runs at the same time points.
-    """
-    if times.size == 0:
-        return np.full_like(grid, np.nan, dtype=float)
-    # Ensure times and costs have the same length.
-    L = min(times.size, costs.size)
-    times, costs = times[:L], costs[:L]
-    times = _ensure_strictly_increasing(times)
-    # np.interp performs linear interpolation.
-    return np.interp(grid, times, costs)
-# --- Paste this whole function (and the imports) over your current version ---
 
-import os
-import numpy as np
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-from matplotlib.ticker import LogLocator, LogFormatterMathtext
+def format_float(value: float | int | None, digits: int = 2) -> str:
+    if value is None:
+        return ""
+    value = float(value)
+    if not math.isfinite(value):
+        return ""
+    return f"{value:.{digits}f}"
 
-def visualize_data(varpro_data_fpath: str, gtsam_data_fpath: str = ""):
-    """
-    Generate two readability-optimized plots (for LaTeX):
-      1) Cost vs Iterations  2) Cost vs Time
-    Saves both PNG (300 dpi) and PDF (vector) with tight bounding box.
-    """
-    # -------- Paper-friendly defaults --------
-    mpl.rcParams.update({
-        "font.size": 20,            # base
-        "font.serif": "Times New Roman",
-        "axes.titlesize": 20,
-        "axes.labelsize": 30,
-        "xtick.labelsize": 22,
-        "ytick.labelsize": 22,
-        "legend.fontsize": 25,
-        "lines.linewidth": 6.2,
-        "lines.markersize": 10,
-        "figure.dpi": 150,
-        "savefig.dpi": 300,
-        "pdf.fonttype": 42,         # embed TrueType; safer in some LaTeX setups
-        "ps.fonttype": 42,
-    })
-    # Optional: uncomment if you have LaTeX installed and want LaTeX text rendering
-    # mpl.rcParams.update({"text.usetex": True})
 
-    # -------- Load/group data (your existing helpers) --------
-    group_varpro = get_groups_from_data(varpro_data_fpath)
-    groups = dict(group_varpro)
-    if gtsam_data_fpath:
-        groups.update(get_groups_from_data(gtsam_data_fpath))
+def format_int(value: int | float | None) -> str:
+    if value is None:
+        return ""
+    value = float(value)
+    if not math.isfinite(value):
+        return ""
+    return f"{value:.2f}"
 
-    if not groups:
-        print(f"No data to visualize for {varpro_data_fpath} and {gtsam_data_fpath}.")
+
+def write_cpu_table(
+    path: Path,
+    cpu_summary: dict[str, dict[str, dict[str, float | int | None]]],
+) -> None:
+    header = [
+        "task",
+        "dataset",
+        "ours_time_s",
+        "original_time_s",
+        "orig_vp_time_s",
+        "gtsam_time_s",
+        "ours_iters",
+        "original_iters",
+        "orig_vp_iters",
+        "gtsam_iters",
+        "speedup_original_over_ours",
+        "speedup_orig_vp_over_ours",
+        "speedup_gtsam_over_ours",
+    ]
+
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=header)
+        writer.writeheader()
+
+        for spec in DATASET_SPECS:
+            methods = cpu_summary[spec.key]
+            ours = methods["Implicit"]
+            original = methods["Explicit"]
+            orig_vp = methods["Explicit VarPro"]
+            gtsam = methods["GTSAM"]
+            writer.writerow(
+                {
+                    "task": spec.task,
+                    "dataset": spec.label,
+                    "ours_time_s": format_float(ours["time_s"]),
+                    "original_time_s": format_float(original["time_s"]),
+                    "orig_vp_time_s": format_float(orig_vp["time_s"]),
+                    "gtsam_time_s": format_float(gtsam["time_s"]),
+                    "ours_iters": format_int(ours["iters"]),
+                    "original_iters": format_int(original["iters"]),
+                    "orig_vp_iters": format_int(orig_vp["iters"]),
+                    "gtsam_iters": format_int(gtsam["iters"]),
+                    "speedup_original_over_ours": format_float(
+                        safe_speedup(original["time_s"], ours["time_s"])
+                    ),
+                    "speedup_orig_vp_over_ours": format_float(
+                        safe_speedup(orig_vp["time_s"], ours["time_s"])
+                    ),
+                    "speedup_gtsam_over_ours": format_float(
+                        safe_speedup(gtsam["time_s"], ours["time_s"])
+                    ),
+                }
+            )
+
+
+def write_gpu_table(
+    path: Path,
+    gpu_summary: dict[str, dict[str, dict[str, float | int | None]]],
+) -> None:
+    header = [
+        "task",
+        "dataset",
+        "ours_time_s",
+        "original_time_s",
+        "orig_vp_time_s",
+        "ours_iters",
+        "original_iters",
+        "orig_vp_iters",
+        "speedup_original_over_ours",
+        "speedup_orig_vp_over_ours",
+    ]
+
+    with path.open("w", newline="", encoding="utf-8") as handle:
+        writer = csv.DictWriter(handle, fieldnames=header)
+        writer.writeheader()
+
+        for spec in gpu_specs():
+            methods = gpu_summary[spec.key]
+            ours = methods["Implicit"]
+            original = methods["Explicit"]
+            orig_vp = methods["Explicit VarPro"]
+            writer.writerow(
+                {
+                    "task": spec.task,
+                    "dataset": spec.label,
+                    "ours_time_s": format_float(ours["time_s"]),
+                    "original_time_s": format_float(original["time_s"]),
+                    "orig_vp_time_s": format_float(orig_vp["time_s"]),
+                    "ours_iters": format_int(ours["iters"]),
+                    "original_iters": format_int(original["iters"]),
+                    "orig_vp_iters": format_int(orig_vp["iters"]),
+                    "speedup_original_over_ours": format_float(
+                        safe_speedup(original["time_s"], ours["time_s"])
+                    ),
+                    "speedup_orig_vp_over_ours": format_float(
+                        safe_speedup(orig_vp["time_s"], ours["time_s"])
+                    ),
+                }
+            )
+
+
+def filter_specs_with_data(
+    series: list[tuple[str, dict[str, float | None]]]
+) -> list[DatasetSpec]:
+    filtered = []
+    for spec in DATASET_SPECS:
+        if any(series_map.get(spec.key) is not None for _, series_map in series):
+            filtered.append(spec)
+    return filtered
+
+
+def add_task_separators(ax: plt.Axes, specs: list[DatasetSpec]) -> None:
+    if not specs:
         return
 
-    converge_pct = 0.01  # 1%
-    target_C = _implicit_target_cost(groups, rank="rank5", q=0.5)
-    if target_C is not None:
-        groups = _trim_groups_to_target(groups, target_C, converge_pct, rank="rank5")
-        print(f"[convergence] Target C* (Implicit, rank5) = {target_C:.6g}; "
-              f"cut when cost <= {(1+converge_pct)*target_C:.6g}")
-    else:
-        print("[convergence] No target C* available (no runs); skipping trim.")
+    start = 0
+    for index in range(len(specs) - 1):
+        if specs[index].task != specs[index + 1].task:
+            ax.axvline(index + 0.5, color="0.75", linewidth=1.0, zorder=0)
+            center = (start + index) / 2.0
+            ax.text(
+                center,
+                1.02,
+                specs[index].task,
+                transform=ax.get_xaxis_transform(),
+                ha="center",
+                va="bottom",
+                fontsize=11,
+                fontweight="bold",
+            )
+            start = index + 1
 
-    # -------- Wider figure; share y so log ticks align --------
-    fig, axs = plt.subplots(
-        1, 2,
-        figsize=(14.8, 5.2),      # wider & a touch shorter
-        constrained_layout=False,
-        sharey=True               # align log y-ticks across panels
+    center = (start + len(specs) - 1) / 2.0
+    ax.text(
+        center,
+        1.02,
+        specs[-1].task,
+        transform=ax.get_xaxis_transform(),
+        ha="center",
+        va="bottom",
+        fontsize=11,
+        fontweight="bold",
     )
 
-    # Consistent palette + emphasis for Ours (Implicit)
-    palette = {"Explicit": "C0", "Explicit VarPro": "C1", "Implicit": "C2", "GTSAM": "C3"}
-    def style_for(method):
-        if method == "Implicit":
-            return dict(color=palette[method], lw=4.0, zorder=4, band_alpha=0.14)
-        if method == "Explicit VarPro":
-            return dict(color=palette[method], lw=3.0, zorder=3, band_alpha=0.10)
-        if method == "Explicit":
-            return dict(color=palette[method], lw=3.0, zorder=3, band_alpha=0.10)
-        if method == "GTSAM":
-            return dict(color=palette[method], lw=3.0, zorder=3, band_alpha=0.10)
-        return dict(color=palette.get(method, "C7"), lw=2.0, zorder=2, band_alpha=0.08)
 
-    def get_med_upper_lower(arr, q_lo=None, q_hi=None):
-        med = np.median(arr, axis=0)
-        lo = np.min(arr, axis=0)
-        hi = np.max(arr, axis=0)
-        if q_lo is not None:
-            lo = np.nanpercentile(arr, q_lo, axis=0)
-        if q_hi is not None:
-            hi = np.nanpercentile(arr, q_hi, axis=0)
-        return med, lo, hi
-    # Legend text mapping
-    LEGEND_LABELS = {
-        "Implicit": "Ours",           # (Reduced)
-        "Explicit": "Original",
-        "Explicit VarPro": "Orig. + VP",
-        "GTSAM": "GTSAM",
-    }
-    # order results we will plot to match LEGEND_LABELS order
-    ordered_keys = [(form, rank) for form in LEGEND_LABELS.keys() for rank in ["rank5"]]
-    ordered_groups = {k: groups[k] for k in ordered_keys if k in groups}
+def save_speedup_plot(
+    output_base: Path,
+    title: str,
+    series: list[tuple[str, dict[str, float | None]]],
+) -> None:
+    specs = filter_specs_with_data(series)
+    if not specs:
+        return
 
-    # -------- Plot each formulation --------
-    for (formulation, rank), runs in ordered_groups.items():
-        try:
-            rank_num = int(str(rank).replace("rank", ""))
-        except ValueError:
-            continue
-        if rank_num != 5 or not runs:
-            continue
+    x = np.arange(len(specs), dtype=float)
+    colors = ["C0", "C1", "C2", "C3", "C4"]
+    total_width = 0.82
+    bar_width = total_width / max(len(series), 1)
 
-        sty = style_for(formulation)
-        color, lw, z = sty["color"], sty["lw"], sty["zorder"]
-        band_alpha = sty["band_alpha"]
+    positive_values = []
+    for _, series_map in series:
+        for spec in specs:
+            value = series_map.get(spec.key)
+            if value is not None and math.isfinite(value) and value > 0.0:
+                positive_values.append(value)
+    if not positive_values:
+        return
 
-        # ----- Panel 1: Cost vs Iterations -----
-        min_iter_len = min(min(len(t), len(c)) for t, c in runs)
-        if min_iter_len < 2:
-            continue
-        costs_iter = np.stack([c[:min_iter_len] for _, c in runs], axis=0)
-        iters = np.arange(min_iter_len)
-        c_med_iter, c_lo_iter, c_hi_iter = get_med_upper_lower(costs_iter, q_lo=10, q_hi=90)
+    # Snug log bounds around the actual data so bars above 1 (the regime we
+    # care about) aren't visually compressed by an empty decade below. Always
+    # include 1.0 so the no-speedup reference line is drawn.
+    y_min = min(positive_values)
+    y_max = max(positive_values)
+    log_pad = 0.05
+    y_floor = 10 ** (math.log10(min(y_min, 1.0)) - log_pad)
+    y_top = 10 ** (math.log10(max(y_max, 1.0)) + log_pad)
 
-        axs[0].fill_between(iters, c_lo_iter, c_hi_iter, alpha=band_alpha, color=color, linewidth=0)
-        axs[0].plot(iters, c_med_iter,
-            label=LEGEND_LABELS.get(formulation, formulation),
-            color=color, lw=lw, zorder=z)
-        # ----- Panel 2: Cost vs Time -----
-        grid = _common_time_grid(runs, n_points=500, mode="linspace")
-        if grid is None:
-            for (t, c) in runs:
-                axs[1].plot(t, c, alpha=0.35, color=color, lw=1.5)
-        else:
-            Cs = np.stack([_interp_run_to_grid(t, c, grid) for (t, c) in runs], axis=0)
-            c_med, c_lo, c_hi = get_med_upper_lower(Cs, q_lo=10, q_hi=90)
-            axs[1].fill_between(grid, c_lo, c_hi, alpha=band_alpha, color=color, linewidth=0)
-            axs[1].plot(grid, c_med, color=color, lw=lw, zorder=z)
+    fig, ax = plt.subplots(figsize=(max(14.0, len(specs) * 0.45), 6.5), dpi=150)
 
-    # -------- Styling --------
-    for ax in axs:
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.grid(True, which="both", ls="--", alpha=0.35)
-        ax.tick_params(axis="both", which="major", length=6, width=1)
-        ax.tick_params(axis="both", which="minor", length=3, width=0.8)
+    for idx, (label, series_map) in enumerate(series):
+        xs = []
+        heights = []
+        for spec_index, spec in enumerate(specs):
+            value = series_map.get(spec.key)
+            if value is None or not math.isfinite(value) or value <= 0.0:
+                continue
+            x_offset = -total_width / 2.0 + (idx + 0.5) * bar_width
+            xs.append(x[spec_index] + x_offset)
+            heights.append(value - y_floor)
+        if xs and heights:
+            ax.bar(
+                xs,
+                heights,
+                width=bar_width * 0.9,
+                bottom=y_floor,
+                label=label,
+                color=colors[idx % len(colors)],
+                edgecolor="white",
+                linewidth=0.4,
+                zorder=3,
+            )
 
-        # Better log ticks
-        ax.set_yscale("log")
-        ax.yaxis.set_major_locator(LogLocator(base=10.0, numticks=6))
-        ax.yaxis.set_minor_locator(LogLocator(base=10.0, subs=(1, 2, 5), numticks=12))
-        ax.yaxis.set_major_formatter(LogFormatterMathtext())
+    ax.axhline(1.0, color="black", linestyle="--", linewidth=1.0, zorder=1)
+    ax.set_yscale("log")
+    ax.set_ylim(y_floor, y_top)
+    ax.set_ylabel("Runtime Improvement Factor (baseline / ours)")
+    # Lift the title clear of the task-section labels rendered at y=1.02 in
+    # axes-fraction coordinates by add_task_separators.
+    ax.set_title(title, pad=28)
+    ax.set_xticks(x)
+    ax.set_xticklabels([spec.label for spec in specs], rotation=60, ha="right")
+    ax.grid(True, axis="y", which="both", linestyle="--", alpha=0.35)
+    ax.legend(frameon=False, ncol=min(len(series), 3), loc="upper right")
+    ax.spines["top"].set_visible(False)
+    ax.spines["right"].set_visible(False)
+    add_task_separators(ax, specs)
+    fig.tight_layout()
 
-        # add a line indicating the optimal cost if available
-        if target_C is not None:
-            ax.axhline(target_C, color="k", lw=1.5, ls="--", alpha=0.8)
-
-    # set right plot (cost vs time) to run from 0 to 40 seconds
-    print(f"Setting xlim of time plot to [0, 20] seconds.")
-    axs[1].set_xlim(left=0, right=20)
-
-    axs[0].set_xlabel("Iterations")
-    axs[0].set_ylabel("Cost")
-    # axs[0].set_title("Solver Costs vs Iterations")
-
-    axs[1].set_xlabel("Time (s)")
-    # axs[1].set_title("Solver Costs vs Time")
-    # axs[1] legend is handled by the figure-level legend below
-
-
-    # -------- Single, figure-level legend --------
-    # Dedupe handles/labels collected from the left axis
-    handles, labels = axs[0].get_legend_handles_labels()
-    by_label = dict(zip(labels, handles))
-
-    # Reserve space: more bottom, a bit less top (tweak if needed)
-    fig.subplots_adjust(left=0.12, right=0.985, top=0.96, bottom=0.35, wspace=0.08)
-
-    # Add a small, empty axes for the legend at the bottom
-    leg_ax = fig.add_axes([0.05, 0.00, 0.90, 0.12])  # [left, bottom, width, height] in figure coords
-    leg_ax.axis("off")
-    leg_ax.legend(
-        by_label.values(), by_label.keys(),
-        ncol=len(by_label),
-        loc="center",
-        frameon=False,
-    )
-
-   # -------- Title + Save --------
-    dataset_name = varpro_data_fpath.split("/")[-2] if "/" in varpro_data_fpath else varpro_data_fpath
-    # fig.suptitle(dataset_name, fontsize=22, fontweight="bold", y=1.12)
-
-    out_dir = f"{HOMEDIR}/variable-projection/pics"
-    os.makedirs(out_dir, exist_ok=True)
-    base = os.path.join(out_dir, dataset_name.replace("/", "_"))
-    png_path = f"{base}.png"
-    pdf_path = f"{base}.pdf"
-    svg_path = f"{base}.svg"
-
-    print(f"Saving figure to {png_path}, {pdf_path}, and {svg_path} ...")
-
-
-    fig.savefig(png_path, dpi=300, bbox_inches="tight", pad_inches=0.02)
-    fig.savefig(pdf_path, bbox_inches="tight", pad_inches=0.02)
-    fig.savefig(svg_path, bbox_inches="tight", pad_inches=0.02)  # or: format="svg"
-
-
+    png_path = output_base.with_suffix(".png")
+    pdf_path = output_base.with_suffix(".pdf")
+    fig.savefig(png_path, bbox_inches="tight")
+    fig.savefig(pdf_path, bbox_inches="tight")
     plt.close(fig)
 
 
-if __name__ == "__main__":
-    # This part of the script executes when run from the command line.
-    # It iterates through a list of specified experiment subdirectories.
-    for subdir in EXP_SUBDIRS:
-        # Construct the full paths to the data files.
-        varpro_data_fpath = BASE_VARPRO_DATA_DIR + subdir
-        gtsam_data_fpath = BASE_GTSAM_DATA_DIR + subdir
+def build_cpu_speedup_series(
+    cpu_summary: dict[str, dict[str, dict[str, float | int | None]]]
+) -> list[tuple[str, dict[str, float | None]]]:
+    original_vs_ours = {}
+    orig_vp_vs_ours = {}
+    gtsam_vs_ours = {}
 
-        print(f"Processing {varpro_data_fpath} and {gtsam_data_fpath}...")
-        # Call the main visualization function for each experiment.
-        visualize_data(varpro_data_fpath, gtsam_data_fpath)
+    for spec in DATASET_SPECS:
+        methods = cpu_summary[spec.key]
+        ours = methods["Implicit"]["time_s"]
+        original_vs_ours[spec.key] = safe_speedup(
+            methods["Explicit"]["time_s"],
+            ours,
+        )
+        orig_vp_vs_ours[spec.key] = safe_speedup(
+            methods["Explicit VarPro"]["time_s"],
+            ours,
+        )
+        gtsam_vs_ours[spec.key] = safe_speedup(
+            methods["GTSAM"]["time_s"],
+            ours,
+        )
+
+    return [
+        ("Original / Ours", original_vs_ours),
+        ("Orig. + VP / Ours", orig_vp_vs_ours),
+        ("GTSAM / Ours", gtsam_vs_ours),
+    ]
+
+
+def build_gpu_speedup_series(
+    gpu_summary: dict[str, dict[str, dict[str, float | int | None]]]
+) -> list[tuple[str, dict[str, float | None]]]:
+    original_vs_ours = {}
+    orig_vp_vs_ours = {}
+
+    for spec in gpu_specs():
+        methods = gpu_summary[spec.key]
+        ours = methods["Implicit"]["time_s"]
+        original_vs_ours[spec.key] = safe_speedup(
+            methods["Explicit"]["time_s"],
+            ours,
+        )
+        orig_vp_vs_ours[spec.key] = safe_speedup(
+            methods["Explicit VarPro"]["time_s"],
+            ours,
+        )
+
+    return [
+        ("Original / Ours", original_vs_ours),
+        ("Orig. + VP / Ours", orig_vp_vs_ours),
+    ]
+
+
+def build_gpu_vs_cpu_speedup_series(
+    cpu_summary: dict[str, dict[str, dict[str, float | int | None]]],
+    gpu_summary: dict[str, dict[str, dict[str, float | int | None]]],
+) -> list[tuple[str, dict[str, float | None]]]:
+    explicit = {}
+    explicit_varpro = {}
+    implicit = {}
+
+    for spec in gpu_specs():
+        explicit[spec.key] = safe_speedup(
+            cpu_summary[spec.key]["Explicit"]["time_s"],
+            gpu_summary[spec.key]["Explicit"]["time_s"],
+        )
+        explicit_varpro[spec.key] = safe_speedup(
+            cpu_summary[spec.key]["Explicit VarPro"]["time_s"],
+            gpu_summary[spec.key]["Explicit VarPro"]["time_s"],
+        )
+        implicit[spec.key] = safe_speedup(
+            cpu_summary[spec.key]["Implicit"]["time_s"],
+            gpu_summary[spec.key]["Implicit"]["time_s"],
+        )
+
+    return [
+        ("CPU / GPU (Original)", explicit),
+        ("CPU / GPU (Orig. + VP)", explicit_varpro),
+        ("CPU / GPU (Ours)", implicit),
+    ]
+
+
+def main() -> None:
+    args = parse_args()
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    cpu_entries = load_from_cached_results(args.data_root, gpu=False)
+    gpu_entries = load_from_cached_results(args.data_root, gpu=True)
+    print(f"Loaded {len(cpu_entries)} CPU and {len(gpu_entries)} GPU per-init results "
+          f"from {args.data_root}")
+
+    cpu_summary = attach_gtsam_reference(aggregate_results(cpu_entries, GPU_METHODS))
+    gpu_summary = aggregate_results(gpu_entries, GPU_METHODS)
+
+    cpu_table_path = args.output_dir / "cpu_table.csv"
+    gpu_table_path = args.output_dir / "gpu_table.csv"
+    write_cpu_table(cpu_table_path, cpu_summary)
+    write_gpu_table(gpu_table_path, gpu_summary)
+
+    save_speedup_plot(
+        args.output_dir / "cpu_speedups",
+        "CPU Speedups Relative to Ours",
+        build_cpu_speedup_series(cpu_summary),
+    )
+    save_speedup_plot(
+        args.output_dir / "gpu_speedups",
+        "GPU Speedups Relative to Ours",
+        build_gpu_speedup_series(gpu_summary),
+    )
+    save_speedup_plot(
+        args.output_dir / "gpu_vs_cpu_speedups",
+        "CPU-to-GPU Speedup by Method",
+        build_gpu_vs_cpu_speedup_series(cpu_summary, gpu_summary),
+    )
+
+    print(f"Wrote {cpu_table_path}")
+    print(f"Wrote {gpu_table_path}")
+    print(f"Wrote plots to {args.output_dir}")
+
+
+if __name__ == "__main__":
+    main()

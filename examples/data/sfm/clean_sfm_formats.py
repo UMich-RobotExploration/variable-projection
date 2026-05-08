@@ -55,16 +55,8 @@ def get_clean_line(line: str) -> str:
     if line.strip().startswith("#"):
         return ""
 
-    if is_pose_line(line):
+    if is_pose_line(line) or is_landmark_line(line):
         return line.strip()
-
-    if is_landmark_line(line):
-        # we need to drop the timestamp
-        parts = line.strip().split()
-        if len(parts) not in (5, 6):
-            raise ValueError(f"Landmark line has incorrect number of parts: {line}")
-        landmark, timestamp, var_name, x, y, z = parts[0], parts[1], parts[2], parts[3], parts[4], parts[5]
-        return f"{landmark} {var_name} {float(x):.6f} {float(y):.6f} {float(z):.6f}"
 
     if is_measurement_line(line):
         return clean_measurement_line(line)
@@ -83,16 +75,8 @@ if __name__ == "__main__":
     if not os.path.isdir(args.input_dir):
         raise ValueError(f"Input directory {args.input_dir} does not exist or is not a directory.")
 
-    # get all of the .txt files recursively listed under input_dir
-    def get_txt_files(directory: str) -> list[str]:
-        txt_files = []
-        for root, _, files in os.walk(directory):
-            for file in files:
-                if file.endswith(".txt"):
-                    txt_files.append(os.path.relpath(os.path.join(root, file), directory))
-        return txt_files
-
-    txt_files = get_txt_files(args.input_dir)
+    # get all of the .txt files in the input dir
+    txt_files = [f for f in os.listdir(args.input_dir) if f.endswith(".txt")]
     if not txt_files:
         raise ValueError(f"No .txt files found in directory {args.input_dir}.")
 

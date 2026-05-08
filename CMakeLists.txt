@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.18)  # 3.18+ for first-class CUDA support
 
 project(VARPRO LANGUAGES C CXX VERSION 0.1.0)
 set(CMAKE_CXX_STANDARD 17)
@@ -37,6 +37,12 @@ set(PERFORM_EXPERIMENTS ON CACHE BOOL "Run the experiments from the paper.")
 set(BUILD_EXAMPLES ON CACHE BOOL "Build C++ examples.")
 # Build Python bindings
 set(BUILD_PYTHON_BINDINGS OFF CACHE BOOL "Build Python bindings.")
+# Enable GPU (CUDA) acceleration
+set(ENABLE_GPU OFF CACHE BOOL "Enable GPU (CUDA) acceleration for the VarPro solver.")
+# Build tests
+set(BUILD_TESTS ON CACHE BOOL "Build GPU solver unit tests.")
+# Build benchmarks
+set(BUILD_BENCHMARKS ON CACHE BOOL "Build GPU solver benchmarks.")
 
 # Add the .cmake files that ship with Eigen3 to the CMake module path (useful for finding other stuff)
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" CACHE STRING "The CMake module path used for this project")
@@ -154,6 +160,97 @@ endif()
 if(${BUILD_EXAMPLES})
 message(STATUS "Building c++ examples")
   add_subdirectory(${VARPRO_EXAMPLES_DIR})
+endif()
+
+# ============================================================
+# GPU (CUDA) solver library
+# ============================================================
+
+if(${ENABLE_GPU})
+  message(STATUS "Enabling GPU (CUDA) acceleration")
+
+  # Enable CUDA language for this project
+  enable_language(CUDA)
+  find_package(CUDAToolkit REQUIRED)
+
+  set(CMAKE_CUDA_STANDARD 17)
+  set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+
+  # Detect GPU architecture; default to sm_86 (Ampere) if not set
+  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
+    set(CMAKE_CUDA_ARCHITECTURES "86" CACHE STRING "CUDA architectures to compile for")
+    message(STATUS "CMAKE_CUDA_ARCHITECTURES not set; defaulting to sm_86 (Ampere)")
+  endif()
+
+  set(VARPROGPU_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  set(VARPROGPU_CUDA_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/cuda)
+
+  set(VARPROGPU_HDRS
+    ${VARPROGPU_INCLUDE_DIR}/VarProGPU/CudaErrorCheck.h
+    ${VARPROGPU_INCLUDE_DIR}/VarProGPU/DeviceBuffer.h
+    ${VARPROGPU_INCLUDE_DIR}/VarProGPU/GpuLinearAlgebra.h
+    ${VARPROGPU_INCLUDE_DIR}/VarProGPU/ManifoldKernels.h
+    ${VARPROGPU_INCLUDE_DIR}/VarProGPU/MatrixFreeSchurOperator.h
+    ${VARPROGPU_INCLUDE_DIR}/VarProGPU/RTRSolver.h
+    ${VARPROGPU_INCLUDE_DIR}/VarProGPU/GpuRTRSolver.h
+  )
+
+  set(VARPROGPU_CUDA_SRCS
+    ${VARPROGPU_CUDA_DIR}/gpu_linear_algebra.cu
+    ${VARPROGPU_CUDA_DIR}/manifold_kernels.cu
+  )
+
+  # These files use cuBLAS/cuSPARSE C API + Eigen — compile with g++, not nvcc
+  set(VARPROGPU_CXX_SRCS
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/gpu/GpuLinearAlgebra.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/gpu/ManifoldOps.cpp
+  )
+
+  add_library(VARPROGPU SHARED
+    ${VARPROGPU_HDRS}
+    ${VARPROGPU_CUDA_SRCS}
+    ${VARPROGPU_CXX_SRCS}
+  )
+  target_include_directories(VARPROGPU PUBLIC
+    ${VARPROGPU_INCLUDE_DIR}
+    ${VARPRO_INCLUDES}
+    ${CUDAToolkit_INCLUDE_DIRS}
+  )
+  target_link_libraries(VARPROGPU PUBLIC
+    VARPRO
+    CUDA::cublas
+    CUDA::cusparse
+  )
+  target_compile_definitions(VARPROGPU PUBLIC VARPRO_HAVE_CUDA)
+
+  # Propagate definition to CPU targets that #include the GPU headers
+  target_compile_definitions(VARPRO PUBLIC VARPRO_HAVE_CUDA)
+
+  message(STATUS "GPU library VARPROGPU configured (arch=${CMAKE_CUDA_ARCHITECTURES})")
+else()
+  message(STATUS "GPU acceleration disabled (use -DENABLE_GPU=ON to enable)")
+  # Create an empty interface target so test/benchmark CMakeLists can always link it
+  add_library(VARPROGPU INTERFACE)
+  target_include_directories(VARPROGPU INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/include)
+  target_link_libraries(VARPROGPU INTERFACE VARPRO)
+endif()
+
+# ============================================================
+# Tests
+# ============================================================
+
+if(${BUILD_TESTS})
+  message(STATUS "Building GPU solver tests")
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
+endif()
+
+# ============================================================
+# Benchmarks
+# ============================================================
+
+if(${BUILD_BENCHMARKS})
+  message(STATUS "Building GPU solver benchmarks")
+  add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/benchmarks)
 endif()
 
 # export VARPRO library
