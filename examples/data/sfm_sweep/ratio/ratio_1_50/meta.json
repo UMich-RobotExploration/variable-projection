@@ -1,0 +1,13 @@
+{
+  "axis": "ratio",
+  "scenario": "ratio_1_50",
+  "poses": 196,
+  "landmarks": 9804,
+  "obs_per_landmark": 30,
+  "total_vars": 10000,
+  "total_observations": 294120,
+  "pose_to_landmark_ratio": 50.02040816326531,
+  "seed": 1092,
+  "noise_sigma": 0.005,
+  "rank": 5
+}

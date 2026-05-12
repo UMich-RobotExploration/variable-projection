@@ -28,6 +28,7 @@ struct Config
   int min_rank;
   int max_rank;
   int num_inits;
+  double scale_reg_weight = 1e-2;
 };
 
 struct ExperimentResult
@@ -81,6 +82,8 @@ Config parseConfig(const std::string &filename)
   config.max_rank = j["max_rank"];
   config.abs_data_path = j["abs_data_path"];
   config.num_inits = j["num_inits"];
+  if (j.contains("scale_reg_weight"))
+    config.scale_reg_weight = j["scale_reg_weight"];
 
   return config;
 }
@@ -228,6 +231,15 @@ void sweepDataset(fs::path dataset_path, std::vector<ExperimentResult> &all_resu
       std::filesystem::exists(pyfg_fpath)
           ? VarPro::parsePyfgTextToProblem(pyfg_fpath)
           : VarPro::parsePyfgTextToProblem("./bin/" + pyfg_fpath);
+  // SfM uses the scaled-Stiefel manifold with a log-barrier on the per-pose
+  // scales. gpu_paper_experiments and optimizer_diagnostics already do this;
+  // the CPU driver was missing the branch, so for SfM datasets it was solving
+  // a different problem than the GPU (plain Stiefel, no scale regularization).
+  if (problem.isSfmProblem())
+  {
+    problem.convertToScaledStiefel();
+    problem.setScaleRegWeight(static_cast<VarPro::Scalar>(config.scale_reg_weight));
+  }
   problem.updateProblemData();
 
   std::vector<int> ranks = getRanksToSweep(config.min_rank, config.max_rank);
