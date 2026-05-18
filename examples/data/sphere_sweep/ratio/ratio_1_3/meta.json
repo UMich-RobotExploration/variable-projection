@@ -1,0 +1,21 @@
+{
+  "axis": "ratio",
+  "scenario": "ratio_1_3",
+  "poses": 990,
+  "landmarks": 2970,
+  "obs_per_landmark": 30,
+  "total_vars": 3960,
+  "total_observations": 89100,
+  "pose_to_landmark_ratio": 3.0,
+  "pose_pose_edges": 3776,
+  "odom_edges": 989,
+  "loop_closure_edges": 2787,
+  "num_laps": 33,
+  "nodes_per_level": 30,
+  "radius": 100.0,
+  "seed": 1045,
+  "sigma_t_odom": 0.01,
+  "sigma_r_odom": 0.005,
+  "sigma_t_lmk": 0.05,
+  "rank": 5
+}

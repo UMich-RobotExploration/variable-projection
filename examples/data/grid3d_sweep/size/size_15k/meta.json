@@ -1,0 +1,18 @@
+{
+  "axis": "size",
+  "scenario": "size_15k",
+  "poses": 2500,
+  "landmarks": 12500,
+  "obs_per_landmark": 30,
+  "total_vars": 15000,
+  "total_observations": 375000,
+  "pose_to_landmark_ratio": 5.0,
+  "pose_pose_edges": 2836,
+  "odom_edges": 2499,
+  "loop_closure_edges": 337,
+  "seed": 15042,
+  "sigma_t_odom": 0.1,
+  "sigma_r_odom": 0.05,
+  "sigma_t_lmk": 0.05,
+  "rank": 5
+}

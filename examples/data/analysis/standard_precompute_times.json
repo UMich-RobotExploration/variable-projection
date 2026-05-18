@@ -1,0 +1,469 @@
+{
+  "PGO": {
+    "M3500": {
+      "precompute_s": 0.00201397,
+      "gpu_upload_s": 0.000288043,
+      "gpu_precompute_s": 0.002302013,
+      "wall_s": 0.0480033,
+      "poses": 3500,
+      "landmarks": 0,
+      "ranges": 0
+    },
+    "MIT": {
+      "precompute_s": 0.000162625,
+      "gpu_upload_s": 0.000564693,
+      "gpu_precompute_s": 0.000727318,
+      "wall_s": 0.00714826,
+      "poses": 808,
+      "landmarks": 0,
+      "ranges": 0
+    },
+    "city10000": {
+      "precompute_s": 0.00775109,
+      "gpu_upload_s": 0.000950582,
+      "gpu_precompute_s": 0.008701672,
+      "wall_s": 0.323816,
+      "poses": 10000,
+      "landmarks": 0,
+      "ranges": 0
+    },
+    "grid3D": {
+      "precompute_s": 0.0727907,
+      "gpu_upload_s": 0.0019267,
+      "gpu_precompute_s": 0.0747174,
+      "wall_s": 2.38481,
+      "poses": 8000,
+      "landmarks": 0,
+      "ranges": 0
+    },
+    "intel": {
+      "precompute_s": 0.000784249,
+      "gpu_upload_s": 0.000825655,
+      "gpu_precompute_s": 0.0016099040000000001,
+      "wall_s": 0.0173714,
+      "poses": 1728,
+      "landmarks": 0,
+      "ranges": 0
+    },
+    "parking-garage": {
+      "precompute_s": 0.00100465,
+      "gpu_upload_s": 0.000481972,
+      "gpu_precompute_s": 0.001486622,
+      "wall_s": 0.0661123,
+      "poses": 1661,
+      "landmarks": 0,
+      "ranges": 0
+    },
+    "smallGrid3D": {
+      "precompute_s": 0.000113137,
+      "gpu_upload_s": 7.0911e-05,
+      "gpu_precompute_s": 0.000184048,
+      "wall_s": 0.00324625,
+      "poses": 125,
+      "landmarks": 0,
+      "ranges": 0
+    },
+    "sphere2500": {
+      "precompute_s": 0.00258849,
+      "gpu_upload_s": 0.000267307,
+      "gpu_precompute_s": 0.002855797,
+      "wall_s": 0.0771386,
+      "poses": 2500,
+      "landmarks": 0,
+      "ranges": 0
+    },
+    "tinyGrid3D": {
+      "precompute_s": 8.263e-06,
+      "gpu_upload_s": 5.3793e-05,
+      "gpu_precompute_s": 6.2056e-05,
+      "wall_s": 0.000293944,
+      "poses": 9,
+      "landmarks": 0,
+      "ranges": 0
+    },
+    "torus3D": {
+      "precompute_s": 0.0090712,
+      "gpu_upload_s": 0.00121502,
+      "gpu_precompute_s": 0.01028622,
+      "wall_s": 0.252212,
+      "poses": 5000,
+      "landmarks": 0,
+      "ranges": 0
+    }
+  },
+  "SNL": {
+    "M3500_snl": {
+      "precompute_s": 0.00152969,
+      "gpu_upload_s": 0.000392115,
+      "gpu_precompute_s": 0.001921805,
+      "wall_s": 0.033497,
+      "poses": 0,
+      "landmarks": 3500,
+      "ranges": 5453
+    },
+    "MIT_snl": {
+      "precompute_s": 0.000107124,
+      "gpu_upload_s": 0.000353133,
+      "gpu_precompute_s": 0.000460257,
+      "wall_s": 0.00472127,
+      "poses": 0,
+      "landmarks": 808,
+      "ranges": 827
+    },
+    "city10000_snl": {
+      "precompute_s": 0.0067498,
+      "gpu_upload_s": 0.000484834,
+      "gpu_precompute_s": 0.007234634,
+      "wall_s": 0.214501,
+      "poses": 0,
+      "landmarks": 10000,
+      "ranges": 20687
+    },
+    "grid3D_snl": {
+      "precompute_s": 0.068772,
+      "gpu_upload_s": 0.000427679,
+      "gpu_precompute_s": 0.069199679,
+      "wall_s": 0.308786,
+      "poses": 0,
+      "landmarks": 8000,
+      "ranges": 22236
+    },
+    "intel_snl": {
+      "precompute_s": 0.000647562,
+      "gpu_upload_s": 0.000157304,
+      "gpu_precompute_s": 0.000804866,
+      "wall_s": 0.0138747,
+      "poses": 0,
+      "landmarks": 1728,
+      "ranges": 2512
+    },
+    "parking-garage_snl": {
+      "precompute_s": 0.000776828,
+      "gpu_upload_s": 0.000324987,
+      "gpu_precompute_s": 0.001101815,
+      "wall_s": 0.0378426,
+      "poses": 0,
+      "landmarks": 1661,
+      "ranges": 6275
+    },
+    "smallGrid3D_snl": {
+      "precompute_s": 0.000105768,
+      "gpu_upload_s": 0.000172433,
+      "gpu_precompute_s": 0.000278201,
+      "wall_s": 0.00168031,
+      "poses": 0,
+      "landmarks": 125,
+      "ranges": 297
+    },
+    "sphere2500_snl": {
+      "precompute_s": 0.00231363,
+      "gpu_upload_s": 0.000240186,
+      "gpu_precompute_s": 0.002553816,
+      "wall_s": 0.0330935,
+      "poses": 0,
+      "landmarks": 2500,
+      "ranges": 4949
+    },
+    "tinyGrid3D_snl": {
+      "precompute_s": 7.122e-06,
+      "gpu_upload_s": 0.000531626,
+      "gpu_precompute_s": 0.000538748,
+      "wall_s": 0.000717399,
+      "poses": 0,
+      "landmarks": 9,
+      "ranges": 11
+    },
+    "torus3D_snl": {
+      "precompute_s": 0.00578825,
+      "gpu_upload_s": 0.000500613,
+      "gpu_precompute_s": 0.0062888630000000004,
+      "wall_s": 0.0829927,
+      "poses": 0,
+      "landmarks": 5000,
+      "ranges": 9048
+    }
+  },
+  "SfM": {
+    "IMC-gate": {
+      "precompute_s": 0.272163,
+      "gpu_upload_s": 0.0201802,
+      "gpu_precompute_s": 0.29234319999999997,
+      "wall_s": 17.4533,
+      "poses": 1317,
+      "landmarks": 4119,
+      "ranges": 0
+    },
+    "IMC-rome": {
+      "precompute_s": 1.73326,
+      "gpu_upload_s": 0.0575763,
+      "gpu_precompute_s": 1.7908363,
+      "wall_s": 28.3193,
+      "poses": 2014,
+      "landmarks": 22485,
+      "ranges": 0
+    },
+    "IMC-temple": {
+      "precompute_s": 0.683209,
+      "gpu_upload_s": 0.0164334,
+      "gpu_precompute_s": 0.6996424,
+      "wall_s": 9.27559,
+      "poses": 881,
+      "landmarks": 14501,
+      "ranges": 0
+    },
+    "MipNerf-garden": {
+      "precompute_s": 0.0287941,
+      "gpu_upload_s": 0.00330416,
+      "gpu_precompute_s": 0.032098259999999997,
+      "wall_s": 0.498037,
+      "poses": 185,
+      "landmarks": 4072,
+      "ranges": 0
+    },
+    "MipNerf-kitchen": {
+      "precompute_s": 0.0902874,
+      "gpu_upload_s": 0.0103244,
+      "gpu_precompute_s": 0.1006118,
+      "wall_s": 2.47999,
+      "poses": 279,
+      "landmarks": 16092,
+      "ranges": 0
+    },
+    "MipNerf-room": {
+      "precompute_s": 0.0543174,
+      "gpu_upload_s": 0.00618422,
+      "gpu_precompute_s": 0.06050162,
+      "wall_s": 1.31218,
+      "poses": 306,
+      "landmarks": 8171,
+      "ranges": 0
+    },
+    "Replica-REPoffice0": {
+      "precompute_s": 1.84289,
+      "gpu_upload_s": 0.0636855,
+      "gpu_precompute_s": 1.9065755,
+      "wall_s": 76.5214,
+      "poses": 1993,
+      "landmarks": 17078,
+      "ranges": 0
+    },
+    "Replica-REPoffice0_100": {
+      "precompute_s": 0.00673169,
+      "gpu_upload_s": 0.00170015,
+      "gpu_precompute_s": 0.00843184,
+      "wall_s": 0.196998,
+      "poses": 100,
+      "landmarks": 1419,
+      "ranges": 0
+    },
+    "Replica-REPoffice1": {
+      "precompute_s": 1.4676,
+      "gpu_upload_s": 0.0495286,
+      "gpu_precompute_s": 1.5171286,
+      "wall_s": 33.6778,
+      "poses": 2000,
+      "landmarks": 11210,
+      "ranges": 0
+    },
+    "Replica-REPoffice1_100": {
+      "precompute_s": 0.00436258,
+      "gpu_upload_s": 0.00126004,
+      "gpu_precompute_s": 0.00562262,
+      "wall_s": 0.0879617,
+      "poses": 100,
+      "landmarks": 681,
+      "ranges": 0
+    },
+    "Replica-REProom0": {
+      "precompute_s": 2.32432,
+      "gpu_upload_s": 0.0634622,
+      "gpu_precompute_s": 2.3877822,
+      "wall_s": 51.3828,
+      "poses": 2000,
+      "landmarks": 25497,
+      "ranges": 0
+    },
+    "Replica-REProom0_100": {
+      "precompute_s": 0.0109973,
+      "gpu_upload_s": 0.00274083,
+      "gpu_precompute_s": 0.01373813,
+      "wall_s": 0.331789,
+      "poses": 100,
+      "landmarks": 2231,
+      "ranges": 0
+    },
+    "Replica-REProom1": {
+      "precompute_s": 3.04973,
+      "gpu_upload_s": 0.137563,
+      "gpu_precompute_s": 3.187293,
+      "wall_s": 78.6195,
+      "poses": 2000,
+      "landmarks": 47759,
+      "ranges": 0
+    },
+    "Replica-REProom1_100": {
+      "precompute_s": 0.0080803,
+      "gpu_upload_s": 0.00189099,
+      "gpu_precompute_s": 0.00997129,
+      "wall_s": 0.249204,
+      "poses": 100,
+      "landmarks": 1703,
+      "ranges": 0
+    },
+    "TUM-computer-R": {
+      "precompute_s": 0.187214,
+      "gpu_upload_s": 0.00569131,
+      "gpu_precompute_s": 0.19290531,
+      "wall_s": 2.81661,
+      "poses": 722,
+      "landmarks": 5053,
+      "ranges": 0
+    },
+    "TUM-computer-T": {
+      "precompute_s": 0.307235,
+      "gpu_upload_s": 0.0115433,
+      "gpu_precompute_s": 0.31877829999999996,
+      "wall_s": 5.66553,
+      "poses": 798,
+      "landmarks": 6804,
+      "ranges": 0
+    },
+    "TUM-desk": {
+      "precompute_s": 0.149927,
+      "gpu_upload_s": 0.0067962,
+      "gpu_precompute_s": 0.1567232,
+      "wall_s": 2.12533,
+      "poses": 613,
+      "landmarks": 6350,
+      "ranges": 0
+    },
+    "TUM-room": {
+      "precompute_s": 0.282521,
+      "gpu_upload_s": 0.00963708,
+      "gpu_precompute_s": 0.29215808000000004,
+      "wall_s": 3.61873,
+      "poses": 1359,
+      "landmarks": 11939,
+      "ranges": 0
+    },
+    "bal-1934": {
+      "precompute_s": 1.30462,
+      "gpu_upload_s": 0.0341309,
+      "gpu_precompute_s": 1.3387509,
+      "wall_s": 53.4754,
+      "poses": 1913,
+      "landmarks": 17333,
+      "ranges": 0
+    },
+    "bal-392": {
+      "precompute_s": 0.0517685,
+      "gpu_upload_s": 0.00310056,
+      "gpu_precompute_s": 0.054869060000000004,
+      "wall_s": 0.649103,
+      "poses": 378,
+      "landmarks": 2974,
+      "ranges": 0
+    },
+    "bal-93": {
+      "precompute_s": 0.00227235,
+      "gpu_upload_s": 0.000525767,
+      "gpu_precompute_s": 0.0027981169999999997,
+      "wall_s": 0.0403031,
+      "poses": 93,
+      "landmarks": 482,
+      "ranges": 0
+    }
+  },
+  "RA-SLAM": {
+    "factor_graph_small": {
+      "precompute_s": 6.292e-06,
+      "gpu_upload_s": 0.000389294,
+      "gpu_precompute_s": 0.00039558599999999996,
+      "wall_s": 0.000760783,
+      "poses": 6,
+      "landmarks": 1,
+      "ranges": 5
+    },
+    "mrclam2": {
+      "precompute_s": 0.0181514,
+      "gpu_upload_s": 0.00193631,
+      "gpu_precompute_s": 0.02008771,
+      "wall_s": 0.982404,
+      "poses": 31067,
+      "landmarks": 15,
+      "ranges": 8392
+    },
+    "mrclam4": {
+      "precompute_s": 0.0126213,
+      "gpu_upload_s": 0.0015571,
+      "gpu_precompute_s": 0.0141784,
+      "wall_s": 0.695388,
+      "poses": 26842,
+      "landmarks": 15,
+      "ranges": 6561
+    },
+    "mrclam6": {
+      "precompute_s": 0.00855873,
+      "gpu_upload_s": 0.000981511,
+      "gpu_precompute_s": 0.009540241000000001,
+      "wall_s": 0.187572,
+      "poses": 11274,
+      "landmarks": 15,
+      "ranges": 3537
+    },
+    "mrclam7": {
+      "precompute_s": 0.0105884,
+      "gpu_upload_s": 0.00110622,
+      "gpu_precompute_s": 0.01169462,
+      "wall_s": 0.280343,
+      "poses": 13720,
+      "landmarks": 15,
+      "ranges": 4004
+    },
+    "plaza1": {
+      "precompute_s": 0.00337815,
+      "gpu_upload_s": 0.000703874,
+      "gpu_precompute_s": 0.004082024,
+      "wall_s": 0.134905,
+      "poses": 9658,
+      "landmarks": 4,
+      "ranges": 3326
+    },
+    "plaza2": {
+      "precompute_s": 0.00125928,
+      "gpu_upload_s": 0.000409102,
+      "gpu_precompute_s": 0.001668382,
+      "wall_s": 0.0434986,
+      "poses": 4091,
+      "landmarks": 4,
+      "ranges": 1807
+    },
+    "range_aided_slam_test_2d": {
+      "precompute_s": 7.02e-06,
+      "gpu_upload_s": 0.00015813,
+      "gpu_precompute_s": 0.00016515,
+      "wall_s": 0.000340722,
+      "poses": 6,
+      "landmarks": 2,
+      "ranges": 10
+    },
+    "single_drone": {
+      "precompute_s": 0.000341213,
+      "gpu_upload_s": 0.000462303,
+      "gpu_precompute_s": 0.000803516,
+      "wall_s": 0.0166523,
+      "poses": 1754,
+      "landmarks": 1,
+      "ranges": 1754
+    },
+    "tiers": {
+      "precompute_s": 0.00333213,
+      "gpu_upload_s": 0.000809097,
+      "gpu_precompute_s": 0.004141227,
+      "wall_s": 0.0998698,
+      "poses": 9768,
+      "landmarks": 1,
+      "ranges": 7789
+    }
+  }
+}

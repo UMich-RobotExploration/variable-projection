@@ -17,7 +17,8 @@ macro(add_varpro_bench name source)
   endif()
 endmacro()
 
-add_varpro_bench(benchmark_schur   benchmark_schur.cpp)
-add_varpro_bench(benchmark_solver  benchmark_solver.cpp)
+add_varpro_bench(benchmark_schur     benchmark_schur.cpp)
+add_varpro_bench(benchmark_solver    benchmark_solver.cpp)
+add_varpro_bench(benchmark_precompute benchmark_precompute.cpp)
 
-message(STATUS "Configured benchmarks: benchmark_schur, benchmark_solver")
+message(STATUS "Configured benchmarks: benchmark_schur, benchmark_solver, benchmark_precompute")

@@ -14,6 +14,7 @@
 #include <Optimization/LinearAlgebra/LOBPCG.h>
 
 #include <algorithm>
+#include <chrono>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -608,7 +609,13 @@ namespace VarPro
     fillRelPoseSubmatrices();
     fillDataMatrix();
     updatePreconditioner();
-    fillImplicitFormulationMatrices();
+    {
+      auto t0 = std::chrono::high_resolution_clock::now();
+      fillImplicitFormulationMatrices();
+      auto t1 = std::chrono::high_resolution_clock::now();
+      implicit_precompute_time_s_ =
+          std::chrono::duration<double>(t1 - t0).count();
+    }
     problem_data_up_to_date_ = true;
   }
 

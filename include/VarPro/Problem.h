@@ -352,8 +352,20 @@ namespace VarPro
     CertResults last_cert_results_;
     bool last_cert_results_valid_ = false;
 
+    // wall-clock seconds spent inside fillImplicitFormulationMatrices() on the
+    // last updateProblemData() call. This covers the three algorithmic
+    // precompute steps (block extractions for B = A_c^T Ω C and the
+    // Cholesky factor L of C^T Ω C), excluding pyfg parsing and the
+    // construction of the data matrix itself.
+    double implicit_precompute_time_s_ = 0.0;
+
     void updateProblemData();
     SparseMatrix getDataMatrix();
+
+    // Wall-clock time of just the implicit-formulation precompute step (paper
+    // steps: CR(Af), Cholesky(C^T Ω C), B = A_c^T Ω C), as measured during
+    // the last updateProblemData() call.
+    double getImplicitPrecomputeTimeS() const { return implicit_precompute_time_s_; }
 
     // function to perform a separable structure update (in the style of Khosoussi et al.)
     void separableStructureUpdate(Matrix &Y) const;

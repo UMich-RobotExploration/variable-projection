@@ -1,0 +1,18 @@
+{
+  "axis": "ratio",
+  "scenario": "ratio_1_3",
+  "poses": 1000,
+  "landmarks": 3000,
+  "obs_per_landmark": 30,
+  "total_vars": 4000,
+  "total_observations": 90000,
+  "pose_to_landmark_ratio": 3.0,
+  "pose_pose_edges": 1119,
+  "odom_edges": 999,
+  "loop_closure_edges": 120,
+  "seed": 1045,
+  "sigma_t_odom": 0.1,
+  "sigma_r_odom": 0.05,
+  "sigma_t_lmk": 0.05,
+  "rank": 5
+}

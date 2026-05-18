@@ -52,6 +52,10 @@ REPO = Path(__file__).resolve().parent.parent
 INPUT_JSON = REPO / "examples" / "data" / "analysis" / "sweep_results.json"
 OUTPUT_DIR = REPO / "examples" / "data" / "analysis"
 
+# Module-level default. Can be overridden at runtime via `--convergence-tol`
+# (see main()) — that path mutates this global so `first_within_tol` picks
+# the new value up without threading an argument through `aggregate` and the
+# plotting helpers.
 CONVERGENCE_TOL = 0.01
 
 FORMULATIONS = ["Implicit", "Explicit", "ExplicitVarPro"]
@@ -180,8 +184,12 @@ def _draw_metric(
     scenarios: list[dict],
     per_scn: dict,
     ylim: tuple[float, float] | None,
+    style: str = "violin",
 ) -> list[tuple[int, float, str]]:
-    """Render the violin cluster for a single metric on the given axis.
+    """Render a per-(scenario, formulation, backend) cluster for one metric.
+
+    `style` selects the rendering: "violin" (default, original behaviour)
+    or "bar" (median bar with p25→p75 error bars).
 
     Returns the list of (scenario_index, x_offset, color) tuples for combos
     that produced zero converged inits — to be marked by the caller above the
@@ -215,28 +223,46 @@ def _draw_metric(
                 continue
             face = FORMULATION_COLORS[form]
             alpha = BACKEND_ALPHA[backend]
-            vp = ax.violinplot(
-                data,
-                positions=positions,
-                widths=box_width * 0.95,
-                showmeans=False, showmedians=False, showextrema=False,
-            )
-            for body in vp["bodies"]:
-                body.set_facecolor(face)
-                body.set_edgecolor(face)
-                body.set_alpha(alpha)
-                body.set_linewidth(0.6)
-            for series, pos in zip(data, positions):
-                ax.scatter(
-                    np.full(len(series), pos), series,
-                    s=10, color=face, alpha=min(1.0, alpha + 0.2),
-                    edgecolor="none", zorder=4,
+
+            if style == "bar":
+                medians = [float(np.median(s)) for s in data]
+                q25 = [float(np.percentile(s, 25)) for s in data]
+                q75 = [float(np.percentile(s, 75)) for s in data]
+                errs = [[m - lo for m, lo in zip(medians, q25)],
+                         [hi - m for m, hi in zip(medians, q75)]]
+                ax.bar(
+                    positions, medians,
+                    width=box_width * 0.92,
+                    color=face, alpha=alpha,
+                    edgecolor="0.2", linewidth=0.5,
+                    yerr=errs,
+                    error_kw=dict(ecolor="0.25", elinewidth=0.8, capsize=2.0,
+                                    capthick=0.8),
+                    zorder=3,
                 )
-                med = float(np.median(series))
-                ax.plot(
-                    [pos - box_width * 0.40, pos + box_width * 0.40],
-                    [med, med], color="black", linewidth=1.2, zorder=5,
+            else:  # violin (default, legacy behaviour)
+                vp = ax.violinplot(
+                    data,
+                    positions=positions,
+                    widths=box_width * 0.95,
+                    showmeans=False, showmedians=False, showextrema=False,
                 )
+                for body in vp["bodies"]:
+                    body.set_facecolor(face)
+                    body.set_edgecolor(face)
+                    body.set_alpha(alpha)
+                    body.set_linewidth(0.6)
+                for series, pos in zip(data, positions):
+                    ax.scatter(
+                        np.full(len(series), pos), series,
+                        s=10, color=face, alpha=min(1.0, alpha + 0.2),
+                        edgecolor="none", zorder=4,
+                    )
+                    med = float(np.median(series))
+                    ax.plot(
+                        [pos - box_width * 0.40, pos + box_width * 0.40],
+                        [med, med], color="black", linewidth=1.2, zorder=5,
+                    )
 
     if metric == "time":
         ax.set_yscale("log")
@@ -255,6 +281,7 @@ def plot_combined_figure(
     per_run: dict,
     y_ranges: dict,
     out_base: Path,
+    style: str = "violin",
 ) -> None:
     """Single figure spanning both sweeps:
         [Time | Size]   [Time | Ratio]
@@ -291,8 +318,10 @@ def plot_combined_figure(
         ax_time = axarr[0, col_idx]
         ax_iters = axarr[1, col_idx]
 
-        missing_time = _draw_metric(ax_time, "time", scenarios, per_scn, y_ranges.get("time"))
-        missing_iters = _draw_metric(ax_iters, "iters", scenarios, per_scn, y_ranges.get("iters"))
+        missing_time = _draw_metric(ax_time, "time", scenarios, per_scn,
+                                      y_ranges.get("time"), style=style)
+        missing_iters = _draw_metric(ax_iters, "iters", scenarios, per_scn,
+                                       y_ranges.get("iters"), style=style)
 
         for ax, missing in ((ax_time, missing_time), (ax_iters, missing_iters)):
             if not missing:
@@ -366,14 +395,41 @@ def compute_global_y_ranges(per_run: dict) -> dict:
     return out
 
 
-def main() -> int:
-    if not INPUT_JSON.exists():
-        print(f"{INPUT_JSON} not found. Run `python examples/sfm_sweep.py aggregate` first.")
+def main(argv=None) -> int:
+    import argparse
+    ap = argparse.ArgumentParser(
+        description="Box-and-whisker plots of a sweep_results.json file.")
+    ap.add_argument("--input", default=str(INPUT_JSON),
+                    help="aggregated sweep JSON (default: %(default)s)")
+    ap.add_argument("--out-basename", default="sweep",
+                    help="output PDF basename, written under "
+                         "examples/data/analysis/ (default: %(default)s)")
+    ap.add_argument("--style", choices=("violin", "bar"), default="violin",
+                    help="per-cell rendering: 'violin' (distribution shape "
+                         "with median tick) or 'bar' (median height + IQR "
+                         "error bars). Default: %(default)s.")
+    global CONVERGENCE_TOL  # noqa: PLW0603 — mutated below from CLI arg
+    ap.add_argument("--convergence-tol", type=float, default=CONVERGENCE_TOL,
+                    help="relative tolerance for the 'time/iters until "
+                         "convergence' threshold: a run is counted as "
+                         "converged at the first iterate whose cost is "
+                         "<= (1 + tol) * min(Implicit final cost). "
+                         "Default: %(default)s (1%%).")
+    args = ap.parse_args(argv)
+
+    CONVERGENCE_TOL = float(args.convergence_tol)
+    if CONVERGENCE_TOL < 0:
+        print("--convergence-tol must be >= 0")
         return 1
-    blob = json.loads(INPUT_JSON.read_text())
+
+    in_path = Path(args.input)
+    if not in_path.exists():
+        print(f"{in_path} not found. Run the matching `aggregate` first.")
+        return 1
+    blob = json.loads(in_path.read_text())
     scenarios = blob.get("scenarios", [])
     if not scenarios:
-        print("No scenarios in sweep_results.json")
+        print(f"No scenarios in {in_path}")
         return 1
 
     ordered, per_run, targets = aggregate(scenarios)
@@ -389,8 +445,8 @@ def main() -> int:
             t = targets[axis][s["scenario"]]
             print(f"  {s['scenario']}: Implicit target cost ≈ {t!r}")
 
-    out = OUTPUT_DIR / "sweep"
-    plot_combined_figure(ordered, per_run, y_ranges, out)
+    out = OUTPUT_DIR / args.out_basename
+    plot_combined_figure(ordered, per_run, y_ranges, out, style=args.style)
     print(f"wrote {out.with_suffix('.pdf').relative_to(REPO)}")
     return 0
 

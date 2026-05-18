@@ -118,7 +118,7 @@ static SolveStats runTNT(const std::string& pyfg, int rank,
   prob.updateProblemData();
   prob.setFormulation(form);
   prob.setRank(rank);
-  s.preprocess_s = now_sec() - t_start;
+  s.preprocess_s = prob.getImplicitPrecomputeTimeS();
 
   VarPro::Matrix x0 = prob.getRandomInitialGuess();
   double t_solve = now_sec();
@@ -148,7 +148,7 @@ static SolveStats runCpuRTR(const std::string& pyfg, int rank) {
   prob.updateProblemData();
   prob.setFormulation(VarPro::Formulation::Implicit);
   prob.setRank(rank);
-  s.preprocess_s = now_sec() - t_start;
+  s.preprocess_s = prob.getImplicitPrecomputeTimeS();
 
   VarPro::Matrix x0 = prob.getRandomInitialGuess();
   VarProGPU::RTRParams params;
@@ -188,7 +188,7 @@ static SolveStats runGpuRTR(const std::string& pyfg, int rank,
   auto pre = VarProGPU::buildPrecomputeResult(prob);
   VarProGPU::GpuSchurOperator gpu_op(pre, ctx);
   ctx.synchronize();
-  s.preprocess_s = now_sec() - t_start;
+  s.preprocess_s = prob.getImplicitPrecomputeTimeS();
 
   VarPro::Matrix x0 = prob.getRandomInitialGuess();
   VarProGPU::RTRParams params;
@@ -220,6 +220,7 @@ int main(int argc, char** argv) {
       "/home/nikolas/variable-projection/examples/data/pgo/tinyGrid3D";
   int rank  = 5;
   int seeds = 1;
+  bool prep_only = false;
 
   for (int i = 1; i < argc; ++i) {
     if (std::strcmp(argv[i], "--dataset") == 0 && i + 1 < argc)
@@ -228,12 +229,26 @@ int main(int argc, char** argv) {
       rank = std::atoi(argv[++i]);
     else if (std::strcmp(argv[i], "--seeds") == 0 && i + 1 < argc)
       seeds = std::atoi(argv[++i]);
+    else if (std::strcmp(argv[i], "--prep-only") == 0)
+      prep_only = true;
   }
 
   std::string pyfg = findPyfg(dataset_arg);
   if (pyfg.empty()) {
     std::cerr << "No .pyfg file found at: " << dataset_arg << "\n";
     return 1;
+  }
+
+  if (prep_only) {
+    // Just measure the implicit-formulation precompute step (paper steps:
+    // CR(Af), Cholesky(C^T Ω C), B = A_c^T Ω C) for the Implicit formulation,
+    // skipping the solver. Output: a single line "PREP <seconds>".
+    VarPro::Problem prob = VarPro::parsePyfgTextToProblem(pyfg);
+    prob.setFormulation(VarPro::Formulation::Implicit);
+    prob.setRank(rank);
+    prob.updateProblemData();
+    std::cout << "PREP " << prob.getImplicitPrecomputeTimeS() << "\n";
+    return 0;
   }
 
   std::cout << "=== End-to-End Solver Benchmark ===\n"

@@ -1,0 +1,17 @@
+{
+  "size/size_2k": 0.0193394,
+  "size/size_3k": 0.034954,
+  "size/size_5k": 0.0804185,
+  "size/size_7k": 0.176129,
+  "size/size_10k": 0.411382,
+  "size/size_15k": 1.12913,
+  "size/size_22k": 4.81742,
+  "ratio/ratio_1_1": 0.0745953,
+  "ratio/ratio_1_2": 0.0798292,
+  "ratio/ratio_1_3": 0.0911298,
+  "ratio/ratio_1_5": 0.108151,
+  "ratio/ratio_1_10": 0.246927,
+  "ratio/ratio_1_20": 0.782436,
+  "ratio/ratio_1_50": 4.88417,
+  "ratio/ratio_1_100": 19.7718
+}
