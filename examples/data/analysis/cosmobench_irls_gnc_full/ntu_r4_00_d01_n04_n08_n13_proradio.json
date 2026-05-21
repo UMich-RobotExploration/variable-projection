@@ -1,0 +1,112 @@
+{
+  "dataset": "ntu_r4_00_d01_n04_n08_n13_proradio",
+  "source_pyfg": "examples/data/cosmobench/proradio/ntu_r4_00_d01_n04_n08_n13_proradio.pyfg",
+  "stripped_priors": true,
+  "n_priors_stripped": 4,
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 3555,
+  "n_edges": 5916,
+  "n_edges_inlier_truth": 5822,
+  "n_outliers_truth": 94,
+  "n_robots": 4,
+  "robots": [
+    "A",
+    "B",
+    "C",
+    "D"
+  ],
+  "poses_per_robot": {
+    "A": 1377,
+    "B": 615,
+    "C": 1043,
+    "D": 520
+  },
+  "methods": {
+    "explicit": {
+      "kernel": "gm",
+      "form": "explicit",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 1906,
+      "inner_cost": 3563.12,
+      "robust_cost": 14970.1,
+      "wall_s": 213.088,
+      "precompute_s": 0.00212654,
+      "status": "ok",
+      "ate_global_rmse_m": 65.10444789405462,
+      "ate_global_per_robot_rmse_m": {
+        "A": 28.077523173474347,
+        "B": 143.7725975456132,
+        "C": 28.62859970403712,
+        "D": 28.263746635480366
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 2.477976163566924,
+        "B": 3.244081597766318,
+        "C": 2.5404127170757036,
+        "D": 2.6485980445737263
+      }
+    },
+    "expvp": {
+      "kernel": "gm",
+      "form": "expvp",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 2378,
+      "inner_cost": 3734.92,
+      "robust_cost": 12139.7,
+      "wall_s": 270.742,
+      "precompute_s": 0.00202246,
+      "status": "ok",
+      "ate_global_rmse_m": 2.446097360217819,
+      "ate_global_per_robot_rmse_m": {
+        "A": 2.333918257197735,
+        "B": 2.3176311504217963,
+        "C": 2.4020683276519073,
+        "D": 2.924939637720531
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 2.3138304084214174,
+        "B": 2.2681235361850627,
+        "C": 2.3909085864397404,
+        "D": 2.5470607403165024
+      }
+    },
+    "impl": {
+      "kernel": "gm",
+      "form": "impl",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 140,
+      "inner_cost": 3734.97,
+      "robust_cost": 12139.8,
+      "wall_s": 5.67137,
+      "precompute_s": 0.00211306,
+      "status": "ok",
+      "ate_global_rmse_m": 2.4470567399042347,
+      "ate_global_per_robot_rmse_m": {
+        "A": 2.3339155231565085,
+        "B": 2.3178549874784338,
+        "C": 2.3978991657953257,
+        "D": 2.937058231776206
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 2.3137002008820717,
+        "B": 2.2680459827555763,
+        "C": 2.3866512422772237,
+        "D": 2.5527247050187882
+      }
+    }
+  },
+  "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r4_00_d01_n04_n08_n13_proradio_perRobot.png",
+  "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r4_00_d01_n04_n08_n13_proradio_global.png",
+  "dataset_wall_s": 490.96075105667114
+}

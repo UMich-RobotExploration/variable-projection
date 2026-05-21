@@ -1,0 +1,112 @@
+{
+  "dataset": "main_campus_wifi",
+  "source_pyfg": "examples/data/cosmobench/wifi/main_campus_wifi.pyfg",
+  "stripped_priors": true,
+  "n_priors_stripped": 4,
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 4394,
+  "n_edges": 7538,
+  "n_edges_inlier_truth": 7337,
+  "n_outliers_truth": 201,
+  "n_robots": 4,
+  "robots": [
+    "A",
+    "B",
+    "C",
+    "D"
+  ],
+  "poses_per_robot": {
+    "A": 533,
+    "B": 648,
+    "C": 1321,
+    "D": 1892
+  },
+  "methods": {
+    "explicit": {
+      "kernel": "gm",
+      "form": "explicit",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 19,
+      "inner_iters_total": 215,
+      "inner_cost": 2186.34,
+      "robust_cost": 9917.39,
+      "wall_s": 37.621,
+      "precompute_s": 0.00290859,
+      "status": "ok",
+      "ate_global_rmse_m": 4.154133279216796,
+      "ate_global_per_robot_rmse_m": {
+        "A": 3.4746998100975786,
+        "B": 3.29743080665907,
+        "C": 3.4975553772672967,
+        "D": 4.94076415388889
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 2.3258309425421584,
+        "B": 2.570428123321482,
+        "C": 3.2513310231485244,
+        "D": 4.607664630024244
+      }
+    },
+    "expvp": {
+      "kernel": "gm",
+      "form": "expvp",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 19,
+      "inner_iters_total": 150,
+      "inner_cost": 2186.34,
+      "robust_cost": 9917.39,
+      "wall_s": 24.195,
+      "precompute_s": 0.00285942,
+      "status": "ok",
+      "ate_global_rmse_m": 4.153937498600004,
+      "ate_global_per_robot_rmse_m": {
+        "A": 3.4747456176574114,
+        "B": 3.2973948577423777,
+        "C": 3.496917404858261,
+        "D": 4.940696305409935
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 2.325704494942729,
+        "B": 2.5703146422788077,
+        "C": 3.2510659904792982,
+        "D": 4.607653294126092
+      }
+    },
+    "impl": {
+      "kernel": "gm",
+      "form": "impl",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 19,
+      "inner_iters_total": 91,
+      "inner_cost": 2186.34,
+      "robust_cost": 9917.39,
+      "wall_s": 3.84821,
+      "precompute_s": 0.00278503,
+      "status": "ok",
+      "ate_global_rmse_m": 4.153693258333853,
+      "ate_global_per_robot_rmse_m": {
+        "A": 3.4746782406592844,
+        "B": 3.297270953055076,
+        "C": 3.496008809545457,
+        "D": 4.940710033997721
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 2.3255291120327137,
+        "B": 2.5701561360253047,
+        "C": 3.250867728997463,
+        "D": 4.6077710446754745
+      }
+    }
+  },
+  "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/main_campus_wifi_perRobot.png",
+  "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/main_campus_wifi_global.png",
+  "dataset_wall_s": 67.1936469078064
+}

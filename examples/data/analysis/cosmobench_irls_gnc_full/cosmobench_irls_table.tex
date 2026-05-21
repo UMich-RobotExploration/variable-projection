@@ -1,0 +1,108 @@
+% --- new tableRow macro: precompute (3) + solver time (4) + iters (4) + ATE (3) + improvements ---
+\renewcommand{\tableRow}[15]{
+    #1
+    % --- Precompute (ms): Ours / Original / Orig+VP ---
+    & \boldifless{#2}{#3}{#4}
+    & \boldifless{#3}{#2}{#4}
+    & \boldifless{#4}{#2}{#3}
+    % --- Solver time (s): Ours / Original / Orig+VP / GTSAM ---
+    & \boldifless{#5}{#6}{#7}
+    & \boldifless{#6}{#5}{#7}
+    & \boldifless{#7}{#5}{#6}
+    & #8
+    % --- Solver iterations: Ours / Original / Orig+VP / GTSAM ---
+    & #9 & #10 & #11 & #12
+    % --- ATE (m): Ours / Original / Orig+VP ---
+    & \boldifless{#13}{#14}{#15}
+    & \boldifless{#14}{#13}{#15}
+    & \boldifless{#15}{#13}{#14}
+    % --- Improvement factors (Orig/Ours, Orig+VP/Ours) ---
+    & \speedupCalc{#6}{#5}\,/\,\speedupCalc{#7}{#5}
+    & \iterCalc{#10}{#9}\,/\,\iterCalc{#11}{#9}
+    \\%
+}
+
+\def\wifiMultiRow{
+    \multirow[c]{12}{*}{\rotatebox[origin=c]{90}{\textbf{Cosmobench Wi-Fi}}}
+}
+\def\proradioMultiRow{
+    \multirow[c]{12}{*}{\rotatebox[origin=c]{90}{\textbf{Cosmobench Pro-Radio}}}
+}
+\def\nebulaMultiRow{
+    \multirow[c]{4}{*}{\rotatebox[origin=c]{90}{\textbf{Nebula}}}
+}
+
+\begin{table*}[t]
+    \vspace{0.5em}
+    \centering
+    \caption{
+        \textbf{Robust IRLS-GNC (Geman--McClure) on COSMO-Bench and Nebula multi-robot
+        PGO datasets.}
+        All runs use the same odometry-chained initialization; pose priors are
+        stripped because the dataset priors have variance $10^{-8}$/$10^{-6}$ and
+        make the unweighted Hessian ill-conditioned. Precompute times are in
+        milliseconds, solver times in seconds; ATE is the global RMSE (m) after a
+        rigid Umeyama alignment to the ground-truth pose chain. GTSAM cells are
+        marked (\mredx) where we have not yet collected a measurement.
+        Runtime improvement factor is $\frac{\text{Baseline}}{\text{Ours}}$;
+        iteration improvement is $\frac{\text{Baseline iters}}{\text{Ours iters}}$.
+        Values $>1$ indicate Ours required less time/iterations than the baseline;
+        values $>1$ are green, values $<1$ are red.
+        Each row's fastest precompute, solver time, and lowest ATE are bolded.
+    }
+    \label{tab:cosmobench_irls_gnc}
+    \resizebox{\linewidth}{!}{%
+        \begin{tabular}{ll ccc cccc cccc ccc cc}
+            \toprule
+                & & \multicolumn{3}{c}{\textbf{Precompute (ms)} $\downarrow$}
+                  & \multicolumn{4}{c}{\textbf{Solver time (s)} $\downarrow$}
+                  & \multicolumn{4}{c}{\textbf{Solver iters} $\downarrow$}
+                  & \multicolumn{3}{c}{\textbf{ATE (m)} $\downarrow$}
+                  & \multicolumn{2}{c}{\textbf{Improvement} $\uparrow$} \\
+            \cmidrule(lr){3-5} \cmidrule(lr){6-9} \cmidrule(lr){10-13} \cmidrule(lr){14-16} \cmidrule(lr){17-18}
+                & Dataset
+                & Ours & Orig. & O+VP
+                & Ours & Orig. & O+VP & GTSAM
+                & Ours & Orig. & O+VP & GTSAM
+                & Ours & Orig. & O+VP
+                & \makecell[c]{Runtime \\{\scriptsize(Orig.\,/\,O+VP)}}
+                & \makecell[c]{Iterations \\{\scriptsize(Orig.\,/\,O+VP)}} \\
+            \midrule
+            % ================= Cosmobench Wi-Fi =================
+            \wifiMultiRow    &    \tableRow{kittredge\_loop}{4.10}{4.41}{4.02}{3.91}{39.14}{20.51}{\mredx}{100}{249}{149}{\mredx}{5.93}{5.93}{5.93}
+                            &    \tableRow{main\_campus}{2.79}{2.91}{2.86}{3.85}{37.62}{24.20}{\mredx}{91}{215}{150}{\mredx}{4.15}{4.15}{4.15}
+                            &    \tableRow{kth\_r3\_00\_d06\_d09\_d10}{0.79}{0.83}{0.83}{1.28}{28.61}{27.94}{\mredx}{95}{651}{625}{\mredx}{1.77}{1.77}{1.77}
+                            &    \tableRow{kth\_r3\_01\_n01\_n04\_n05}{0.77}{0.78}{0.77}{2.22}{92.92}{100.27}{\mredx}{149}{2023}{2156}{\mredx}{1.53}{1.46}{1.45}
+                            &    \tableRow{kth\_r4\_00\_d06\_d10\_n04\_n05}{1.29}{1.11}{1.26}{3.66}{92.99}{71.61}{\mredx}{143}{979}{743}{\mredx}{1.18}{1.18}{1.18}
+                            &    \tableRow{ntu\_r3\_00\_d01\_n04\_n08}{1.71}{1.74}{1.76}{3.48}{57.05}{255.48}{\mredx}{117}{625}{2648}{\mredx}{2.40}{213.04}{2.40}
+                            &    \tableRow{ntu\_r3\_01\_n04\_n08\_n13}{1.16}{1.19}{1.15}{1.99}{41.61}{214.33}{\mredx}{116}{673}{3208}{\mredx}{2.82}{139.76}{2.83}
+                            &    \tableRow{ntu\_r3\_02\_d02\_n04\_n13}{0.74}{0.74}{0.74}{0.92}{8.53}{69.28}{\mredx}{92}{245}{1720}{\mredx}{2.70}{147.11}{6.33}
+                            &    \tableRow{ntu\_r4\_00\_d01\_n04\_n08\_n13}{2.36}{2.24}{2.14}{3.67}{126.59}{127.21}{\mredx}{102}{1141}{1116}{\mredx}{2.47}{69.28}{2.47}
+                            &    \tableRow{ntu\_r5\_00\_d01\_d02\_n04\_n08\_n13}{2.42}{2.38}{2.27}{6.24}{129.54}{95.86}{\mredx}{147}{1094}{787}{\mredx}{2.16}{153.00}{149.99}
+                            &    \tableRow{tuhh\_r3\_00\_day}{0.61}{0.60}{0.71}{0.84}{21.22}{16.18}{\mredx}{86}{727}{546}{\mredx}{129.69}{129.66}{129.66}
+                            &    \tableRow{tuhh\_r3\_01\_night}{0.51}{0.51}{0.52}{0.88}{13.77}{9.16}{\mredx}{88}{521}{335}{\mredx}{104.50}{104.50}{104.49}
+            \midrule
+            % ================= Cosmobench Pro-Radio =================
+            \proradioMultiRow    &    \tableRow{kittredge\_loop}{5.31}{4.47}{4.39}{4.50}{43.37}{22.09}{\mredx}{97}{235}{143}{\mredx}{5.52}{5.51}{5.51}
+                            &    \tableRow{main\_campus}{3.86}{3.58}{3.61}{3.99}{27.51}{17.41}{\mredx}{90}{152}{110}{\mredx}{3.49}{3.49}{3.49}
+                            &    \tableRow{kth\_r3\_00\_d06\_d09\_d10}{0.93}{1.09}{1.13}{1.66}{46.55}{44.31}{\mredx}{94}{612}{575}{\mredx}{1.11}{1.10}{1.10}
+                            &    \tableRow{kth\_r3\_01\_n01\_n04\_n05}{1.06}{0.99}{0.97}{2.55}{77.05}{128.64}{\mredx}{129}{1075}{1644}{\mredx}{1.39}{1.39}{1.39}
+                            &    \tableRow{kth\_r4\_00\_d06\_d10\_n04\_n05}{1.30}{1.25}{1.21}{3.08}{138.91}{121.80}{\mredx}{128}{1407}{1227}{\mredx}{1.14}{4.03}{1.20}
+                            &    \tableRow{ntu\_r3\_00\_d01\_n04\_n08}{2.02}{1.85}{1.85}{2.77}{142.94}{175.06}{\mredx}{104}{1461}{1753}{\mredx}{2.26}{140.68}{79.51}
+                            &    \tableRow{ntu\_r3\_01\_n04\_n08\_n13}{1.26}{1.50}{1.27}{1.69}{25.92}{24.51}{\mredx}{97}{415}{387}{\mredx}{2.40}{142.06}{138.24}
+                            &    \tableRow{ntu\_r3\_02\_d02\_n04\_n13}{0.80}{0.79}{1.04}{0.98}{33.72}{47.25}{\mredx}{94}{891}{1151}{\mredx}{3.44}{112.50}{3.32}
+                            &    \tableRow{ntu\_r4\_00\_d01\_n04\_n08\_n13}{2.11}{2.13}{2.02}{5.67}{213.09}{270.74}{\mredx}{140}{1906}{2378}{\mredx}{2.45}{65.10}{2.45}
+                            &    \tableRow{ntu\_r5\_00\_d01\_d02\_n04\_n08\_n13}{2.19}{2.18}{2.17}{4.28}{164.67}{212.62}{\mredx}{114}{1370}{1722}{\mredx}{2.18}{68.84}{2.18}
+                            &    \tableRow{tuhh\_r3\_00\_day}{0.66}{0.73}{0.63}{0.99}{9.96}{7.86}{\mredx}{94}{356}{264}{\mredx}{140.53}{121.83}{122.18}
+                            &    \tableRow{tuhh\_r3\_01\_night}{0.58}{0.59}{0.59}{0.92}{9.48}{7.45}{\mredx}{91}{332}{261}{\mredx}{104.61}{104.61}{104.61}
+            \midrule
+            % ================= Nebula =================
+            \nebulaMultiRow    &    \tableRow{finals}{0.54}{0.49}{0.61}{0.55}{3.16}{3.09}{\mredx}{100}{190}{133}{\mredx}{4.56}{4.56}{4.59}
+                            &    \tableRow{kentucky\_underground}{0.95}{0.97}{0.95}{4.11}{309.22}{137.62}{\mredx}{95}{3657}{1658}{\mredx}{1.21}{52.41}{25.29}
+                            &    \tableRow{tunnel}{1.67}{1.54}{1.78}{1.35}{7.72}{6.08}{\mredx}{77}{156}{101}{\mredx}{1.91}{1.91}{1.92}
+                            &    \tableRow{urban}{0.54}{0.54}{0.54}{0.53}{1.87}{1.56}{\mredx}{97}{142}{101}{\mredx}{3.96}{3.96}{3.96}
+            \bottomrule
+        \end{tabular}
+    }
+    \vspace{-1em}
+\end{table*}

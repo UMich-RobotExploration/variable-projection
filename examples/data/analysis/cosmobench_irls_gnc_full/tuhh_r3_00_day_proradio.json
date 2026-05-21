@@ -1,0 +1,104 @@
+{
+  "dataset": "tuhh_r3_00_day_proradio",
+  "source_pyfg": "examples/data/cosmobench/proradio/tuhh_r3_00_day_proradio.pyfg",
+  "stripped_priors": true,
+  "n_priors_stripped": 3,
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 1041,
+  "n_edges": 1906,
+  "n_edges_inlier_truth": 1824,
+  "n_outliers_truth": 82,
+  "n_robots": 3,
+  "robots": [
+    "A",
+    "B",
+    "C"
+  ],
+  "poses_per_robot": {
+    "A": 355,
+    "B": 543,
+    "C": 143
+  },
+  "methods": {
+    "explicit": {
+      "kernel": "gm",
+      "form": "explicit",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 18,
+      "inner_iters_total": 356,
+      "inner_cost": 959.475,
+      "robust_cost": 9446.42,
+      "wall_s": 9.95891,
+      "precompute_s": 0.000727174,
+      "status": "ok",
+      "ate_global_rmse_m": 121.82762936899765,
+      "ate_global_per_robot_rmse_m": {
+        "A": 49.39509180312968,
+        "B": 51.12385440171093,
+        "C": 303.4201927551337
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 0.759612000232081,
+        "B": 1.8647184112135764,
+        "C": 0.5993133904822047
+      }
+    },
+    "expvp": {
+      "kernel": "gm",
+      "form": "expvp",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 18,
+      "inner_iters_total": 264,
+      "inner_cost": 959.456,
+      "robust_cost": 9446.42,
+      "wall_s": 7.85931,
+      "precompute_s": 0.000628728,
+      "status": "ok",
+      "ate_global_rmse_m": 122.1806586886494,
+      "ate_global_per_robot_rmse_m": {
+        "A": 49.46830368572628,
+        "B": 50.83377569154417,
+        "C": 304.6066977134539
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 0.7568452679278294,
+        "B": 1.8624325493091507,
+        "C": 0.5993081692192572
+      }
+    },
+    "impl": {
+      "kernel": "gm",
+      "form": "impl",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 18,
+      "inner_iters_total": 94,
+      "inner_cost": 959.438,
+      "robust_cost": 9421.4,
+      "wall_s": 0.985955,
+      "precompute_s": 0.000663812,
+      "status": "ok",
+      "ate_global_rmse_m": 140.52552813679975,
+      "ate_global_per_robot_rmse_m": {
+        "A": 55.805936824160796,
+        "B": 58.368141839992155,
+        "C": 350.8389238194543
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 0.7621944174729087,
+        "B": 1.9960363450253824,
+        "C": 0.5992914914959853
+      }
+    }
+  },
+  "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_00_day_proradio_perRobot.png",
+  "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_00_day_proradio_global.png",
+  "dataset_wall_s": 20.05589461326599
+}

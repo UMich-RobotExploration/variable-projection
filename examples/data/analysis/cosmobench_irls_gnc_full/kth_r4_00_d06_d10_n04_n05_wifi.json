@@ -1,0 +1,112 @@
+{
+  "dataset": "kth_r4_00_d06_d10_n04_n05_wifi",
+  "source_pyfg": "examples/data/cosmobench/wifi/kth_r4_00_d06_d10_n04_n05_wifi.pyfg",
+  "stripped_priors": true,
+  "n_priors_stripped": 4,
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 2036,
+  "n_edges": 3196,
+  "n_edges_inlier_truth": 3061,
+  "n_outliers_truth": 135,
+  "n_robots": 4,
+  "robots": [
+    "A",
+    "B",
+    "C",
+    "D"
+  ],
+  "poses_per_robot": {
+    "A": 663,
+    "B": 434,
+    "C": 501,
+    "D": 438
+  },
+  "methods": {
+    "explicit": {
+      "kernel": "gm",
+      "form": "explicit",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 979,
+      "inner_cost": 1579.41,
+      "robust_cost": 7175.37,
+      "wall_s": 92.9916,
+      "precompute_s": 0.00110735,
+      "status": "ok",
+      "ate_global_rmse_m": 1.1781983739415627,
+      "ate_global_per_robot_rmse_m": {
+        "A": 1.164909925337554,
+        "B": 1.215803386651676,
+        "C": 1.1454356892892128,
+        "D": 1.1971451521059249
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 1.1335158095529543,
+        "B": 1.0177755709551866,
+        "C": 0.4982532357838476,
+        "D": 1.0214833489832473
+      }
+    },
+    "expvp": {
+      "kernel": "gm",
+      "form": "expvp",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 743,
+      "inner_cost": 1579.41,
+      "robust_cost": 7175.37,
+      "wall_s": 71.6094,
+      "precompute_s": 0.00126098,
+      "status": "ok",
+      "ate_global_rmse_m": 1.1788150558771087,
+      "ate_global_per_robot_rmse_m": {
+        "A": 1.1651604457467806,
+        "B": 1.216150465746277,
+        "C": 1.1470721916323259,
+        "D": 1.1974563918341103
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 1.1338035959324688,
+        "B": 1.0179505454472442,
+        "C": 0.4986637522123263,
+        "D": 1.0215306200240484
+      }
+    },
+    "impl": {
+      "kernel": "gm",
+      "form": "impl",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 143,
+      "inner_cost": 1579.42,
+      "robust_cost": 7175.38,
+      "wall_s": 3.65794,
+      "precompute_s": 0.00129184,
+      "status": "ok",
+      "ate_global_rmse_m": 1.1821070444338078,
+      "ate_global_per_robot_rmse_m": {
+        "A": 1.1675690048353284,
+        "B": 1.2187495596594404,
+        "C": 1.1532320126708187,
+        "D": 1.1996027555816748
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 1.1363751519215823,
+        "B": 1.018338460673131,
+        "C": 0.4997095243983819,
+        "D": 1.021705371513211
+      }
+    }
+  },
+  "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r4_00_d06_d10_n04_n05_wifi_perRobot.png",
+  "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r4_00_d06_d10_n04_n05_wifi_global.png",
+  "dataset_wall_s": 169.68470239639282
+}

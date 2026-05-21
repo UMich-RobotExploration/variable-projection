@@ -1,0 +1,104 @@
+{
+  "dataset": "kth_r3_01_n01_n04_n05_wifi",
+  "source_pyfg": "examples/data/cosmobench/wifi/kth_r3_01_n01_n04_n05_wifi.pyfg",
+  "stripped_priors": true,
+  "n_priors_stripped": 3,
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 1609,
+  "n_edges": 2260,
+  "n_edges_inlier_truth": 2179,
+  "n_outliers_truth": 81,
+  "n_robots": 3,
+  "robots": [
+    "A",
+    "B",
+    "C"
+  ],
+  "poses_per_robot": {
+    "A": 670,
+    "B": 501,
+    "C": 438
+  },
+  "methods": {
+    "explicit": {
+      "kernel": "gm",
+      "form": "explicit",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 2023,
+      "inner_cost": 818.699,
+      "robust_cost": 3952.24,
+      "wall_s": 92.9163,
+      "precompute_s": 0.000784716,
+      "status": "ok",
+      "ate_global_rmse_m": 1.4568558438746317,
+      "ate_global_per_robot_rmse_m": {
+        "A": 1.4374071880108032,
+        "B": 1.1253308998216118,
+        "C": 1.7854201374386942
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 1.4006499244666164,
+        "B": 0.4708016410674518,
+        "C": 1.4698732315639538
+      }
+    },
+    "expvp": {
+      "kernel": "gm",
+      "form": "expvp",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 2156,
+      "inner_cost": 818.691,
+      "robust_cost": 3952.24,
+      "wall_s": 100.268,
+      "precompute_s": 0.000770808,
+      "status": "ok",
+      "ate_global_rmse_m": 1.4548652971025469,
+      "ate_global_per_robot_rmse_m": {
+        "A": 1.436877926664427,
+        "B": 1.1232923327088407,
+        "C": 1.7815734628834643
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 1.400119302093992,
+        "B": 0.4700939546762998,
+        "C": 1.4664106575927
+      }
+    },
+    "impl": {
+      "kernel": "gm",
+      "form": "impl",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 149,
+      "inner_cost": 818.674,
+      "robust_cost": 3952.23,
+      "wall_s": 2.22167,
+      "precompute_s": 0.000771258,
+      "status": "ok",
+      "ate_global_rmse_m": 1.5316067896986552,
+      "ate_global_per_robot_rmse_m": {
+        "A": 1.478804954763938,
+        "B": 1.1962683812063493,
+        "C": 1.9066480223359348
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 1.4404142221210208,
+        "B": 0.47430899851660385,
+        "C": 1.5498834792918383
+      }
+    }
+  },
+  "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_01_n01_n04_n05_wifi_perRobot.png",
+  "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_01_n01_n04_n05_wifi_global.png",
+  "dataset_wall_s": 196.75158262252808
+}

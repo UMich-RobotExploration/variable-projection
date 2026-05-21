@@ -1,0 +1,3126 @@
+{
+  "n_datasets": 28,
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "priors": "stripped",
+  "datasets": [
+    "finals",
+    "kentucky_underground",
+    "kittredge_loop_proradio",
+    "kittredge_loop_wifi",
+    "kth_r3_00_d06_d09_d10_proradio",
+    "kth_r3_00_d06_d09_d10_wifi",
+    "kth_r3_01_n01_n04_n05_proradio",
+    "kth_r3_01_n01_n04_n05_wifi",
+    "kth_r4_00_d06_d10_n04_n05_proradio",
+    "kth_r4_00_d06_d10_n04_n05_wifi",
+    "main_campus_proradio",
+    "main_campus_wifi",
+    "ntu_r3_00_d01_n04_n08_proradio",
+    "ntu_r3_00_d01_n04_n08_wifi",
+    "ntu_r3_01_n04_n08_n13_proradio",
+    "ntu_r3_01_n04_n08_n13_wifi",
+    "ntu_r3_02_d02_n04_n13_proradio",
+    "ntu_r3_02_d02_n04_n13_wifi",
+    "ntu_r4_00_d01_n04_n08_n13_proradio",
+    "ntu_r4_00_d01_n04_n08_n13_wifi",
+    "ntu_r5_00_d01_d02_n04_n08_n13_proradio",
+    "ntu_r5_00_d01_d02_n04_n08_n13_wifi",
+    "tuhh_r3_00_day_proradio",
+    "tuhh_r3_00_day_wifi",
+    "tuhh_r3_01_night_proradio",
+    "tuhh_r3_01_night_wifi",
+    "tunnel",
+    "urban"
+  ],
+  "per_method_aggregate": {
+    "Explicit": {
+      "median": {
+        "outer_iters": 20.0,
+        "inner_iters_total": 638.0,
+        "wall_s": 40.3742,
+        "precompute_s": 0.001149615,
+        "inner_cost": 1781.92,
+        "robust_cost": 9892.09,
+        "ate_global_rmse_m": 58.75635170081729,
+        "ate_per_robot_mean_m": 2.706170734444979
+      },
+      "mean": {
+        "outer_iters": 19.785714285714285,
+        "inner_iters_total": 839.2857142857143,
+        "wall_s": 69.45449107142858,
+        "precompute_s": 0.0015759600357142856,
+        "inner_cost": 2038.7994642857143,
+        "robust_cost": 11523.238821428571,
+        "ate_global_rmse_m": 64.45842545582585,
+        "ate_per_robot_mean_m": 2.4901552107997404
+      },
+      "n_runs": 28
+    },
+    "ExpVP": {
+      "median": {
+        "outer_iters": 20.0,
+        "inner_iters_total": 684.0,
+        "wall_s": 45.777249999999995,
+        "precompute_s": 0.001183355,
+        "inner_cost": 1793.3449999999998,
+        "robust_cost": 9742.52,
+        "ate_global_rmse_m": 3.7229167904967833,
+        "ate_per_robot_mean_m": 2.3743520231506827
+      },
+      "mean": {
+        "outer_iters": 19.785714285714285,
+        "inner_iters_total": 992.5357142857143,
+        "wall_s": 80.7188625,
+        "precompute_s": 0.0015637781785714285,
+        "inner_cost": 2098.281892857143,
+        "robust_cost": 10513.941357142858,
+        "ate_global_rmse_m": 32.628610420389876,
+        "ate_per_robot_mean_m": 2.2694059898560917
+      },
+      "n_runs": 28
+    },
+    "Implicit": {
+      "median": {
+        "outer_iters": 20.0,
+        "inner_iters_total": 97.0,
+        "wall_s": 2.3881449999999997,
+        "precompute_s": 0.00120901,
+        "inner_cost": 1796.8049999999998,
+        "robust_cost": 9519.814999999999,
+        "ate_global_rmse_m": 2.4576660626616453,
+        "ate_per_robot_mean_m": 2.1168266421140034
+      },
+      "mean": {
+        "outer_iters": 19.75,
+        "inner_iters_total": 105.96428571428571,
+        "wall_s": 2.5910263571428573,
+        "precompute_s": 0.0016082752857142857,
+        "inner_cost": 2126.230107142857,
+        "robust_cost": 10024.547428571428,
+        "ate_global_rmse_m": 19.408900292638783,
+        "ate_per_robot_mean_m": 2.1213312155511566
+      },
+      "n_runs": 28
+    }
+  },
+  "per_dataset": [
+    {
+      "dataset": "finals",
+      "source_pyfg": "examples/data/nebula/finals.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 613,
+      "n_edges": 2072,
+      "n_edges_inlier_truth": 1758,
+      "n_outliers_truth": 314,
+      "n_robots": 4,
+      "robots": [
+        "C",
+        "E",
+        "G",
+        "H"
+      ],
+      "poses_per_robot": {
+        "C": 36,
+        "E": 215,
+        "G": 243,
+        "H": 119
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 190,
+          "inner_cost": 1273.49,
+          "robust_cost": 11506.4,
+          "wall_s": 3.16456,
+          "precompute_s": 0.000489359,
+          "status": "ok",
+          "ate_global_rmse_m": 4.564524879482923,
+          "ate_global_per_robot_rmse_m": {
+            "C": 1.9572601174736344,
+            "E": 2.4062289791443257,
+            "G": 5.443865095614604,
+            "H": 5.932088335236909
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "C": 0.33285683079822603,
+            "E": 0.2537917535624779,
+            "G": 5.369058046198285,
+            "H": 4.456620490726614
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 133,
+          "inner_cost": 1273.36,
+          "robust_cost": 11505.8,
+          "wall_s": 3.0949,
+          "precompute_s": 0.000606347,
+          "status": "ok",
+          "ate_global_rmse_m": 4.5898163215650625,
+          "ate_global_per_robot_rmse_m": {
+            "C": 1.9517276516181876,
+            "E": 2.417570284327945,
+            "G": 5.480920466100539,
+            "H": 5.955113090086007
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "C": 0.33281315557002145,
+            "E": 0.2537602710129546,
+            "G": 5.405922270224947,
+            "H": 4.470280081223392
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 100,
+          "inner_cost": 1273.39,
+          "robust_cost": 11505.8,
+          "wall_s": 0.553226,
+          "precompute_s": 0.000542871,
+          "status": "ok",
+          "ate_global_rmse_m": 4.557225048562037,
+          "ate_global_per_robot_rmse_m": {
+            "C": 1.9599554118854363,
+            "E": 2.402040592993429,
+            "G": 5.433261175986856,
+            "H": 5.9258232986134916
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "C": 0.3328797538028028,
+            "E": 0.25375169796247177,
+            "G": 5.3585144025678195,
+            "H": 4.453036196391833
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/finals_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/finals_global.png",
+      "dataset_wall_s": 8.155901193618774
+    },
+    {
+      "dataset": "kentucky_underground",
+      "source_pyfg": "examples/data/nebula/kentucky_underground.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 3153,
+      "n_edges": 4034,
+      "n_edges_inlier_truth": 3913,
+      "n_outliers_truth": 121,
+      "n_robots": 4,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "A": 1103,
+        "B": 763,
+        "C": 839,
+        "D": 448
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 3657,
+          "inner_cost": 255.95,
+          "robust_cost": 750.497,
+          "wall_s": 309.218,
+          "precompute_s": 0.000965851,
+          "status": "ok",
+          "ate_global_rmse_m": 52.408255507579966,
+          "ate_global_per_robot_rmse_m": {
+            "A": 39.50517445488856,
+            "B": 40.531698702616424,
+            "C": 80.27522746420182,
+            "D": 24.938408585793407
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.658109529136823,
+            "B": 0.6878110957347704,
+            "C": 12.193059205169343,
+            "D": 0.25450297526667587
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1658,
+          "inner_cost": 255.099,
+          "robust_cost": 748.758,
+          "wall_s": 137.625,
+          "precompute_s": 0.000953415,
+          "status": "ok",
+          "ate_global_rmse_m": 25.288565306394332,
+          "ate_global_per_robot_rmse_m": {
+            "A": 19.718583340812714,
+            "B": 18.337257320368106,
+            "C": 38.89124955461123,
+            "D": 11.757783866058716
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.3596118690562398,
+            "B": 0.7941333991929844,
+            "C": 9.92204683724265,
+            "D": 0.2564349242337781
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 95,
+          "inner_cost": 254.839,
+          "robust_cost": 748.228,
+          "wall_s": 4.11162,
+          "precompute_s": 0.000952153,
+          "status": "ok",
+          "ate_global_rmse_m": 1.2070873272612441,
+          "ate_global_per_robot_rmse_m": {
+            "A": 0.8223634846735475,
+            "B": 0.7586561845945102,
+            "C": 1.9023754461859006,
+            "D": 0.9120364236867528
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.3484657050877296,
+            "B": 0.6542657804096939,
+            "C": 1.6298547118232423,
+            "D": 0.36342846886820385
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kentucky_underground_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kentucky_underground_global.png",
+      "dataset_wall_s": 452.45405888557434
+    },
+    {
+      "dataset": "kittredge_loop_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/kittredge_loop_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 3410,
+      "n_edges": 6696,
+      "n_edges_inlier_truth": 6031,
+      "n_outliers_truth": 665,
+      "n_robots": 4,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "A": 582,
+        "B": 619,
+        "C": 842,
+        "D": 1367
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 235,
+          "inner_cost": 3068.75,
+          "robust_cost": 24089.3,
+          "wall_s": 43.3713,
+          "precompute_s": 0.00447472,
+          "status": "ok",
+          "ate_global_rmse_m": 5.5146995624569755,
+          "ate_global_per_robot_rmse_m": {
+            "A": 5.484933974421616,
+            "B": 5.143988443711039,
+            "C": 4.191648144023336,
+            "D": 6.344329028023053
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 4.790929761489712,
+            "B": 4.6374802181750585,
+            "C": 4.099080907776457,
+            "D": 6.07748365923193
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 143,
+          "inner_cost": 3068.75,
+          "robust_cost": 24089.3,
+          "wall_s": 22.0892,
+          "precompute_s": 0.00438938,
+          "status": "ok",
+          "ate_global_rmse_m": 5.514946212976056,
+          "ate_global_per_robot_rmse_m": {
+            "A": 5.485278379974735,
+            "B": 5.144309021612172,
+            "C": 4.191683388169258,
+            "D": 6.344605032752409
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 4.7910892276075465,
+            "B": 4.637622346003763,
+            "C": 4.099202268943763,
+            "D": 6.077683433030764
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 97,
+          "inner_cost": 3068.75,
+          "robust_cost": 24089.3,
+          "wall_s": 4.50245,
+          "precompute_s": 0.00530906,
+          "status": "ok",
+          "ate_global_rmse_m": 5.5150331813388895,
+          "ate_global_per_robot_rmse_m": {
+            "A": 5.4853615532024,
+            "B": 5.144439001501796,
+            "C": 4.191684832976675,
+            "D": 6.344714682313659
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 4.791152756966826,
+            "B": 4.637691417439255,
+            "C": 4.09925503409144,
+            "D": 6.0777845605478795
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kittredge_loop_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kittredge_loop_proradio_global.png",
+      "dataset_wall_s": 71.52049231529236
+    },
+    {
+      "dataset": "kittredge_loop_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/kittredge_loop_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 3410,
+      "n_edges": 6786,
+      "n_edges_inlier_truth": 6139,
+      "n_outliers_truth": 647,
+      "n_robots": 4,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "A": 582,
+        "B": 619,
+        "C": 842,
+        "D": 1367
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 249,
+          "inner_cost": 2947.73,
+          "robust_cost": 23206.5,
+          "wall_s": 39.141,
+          "precompute_s": 0.00441253,
+          "status": "ok",
+          "ate_global_rmse_m": 5.93288385741319,
+          "ate_global_per_robot_rmse_m": {
+            "A": 5.905184720505878,
+            "B": 5.5656067773018165,
+            "C": 4.60139947744369,
+            "D": 6.774248346482905
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 5.092429463842466,
+            "B": 4.8889876326634845,
+            "C": 4.4191731783446775,
+            "D": 6.434270464977128
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 149,
+          "inner_cost": 2947.72,
+          "robust_cost": 23206.5,
+          "wall_s": 20.5146,
+          "precompute_s": 0.00401709,
+          "status": "ok",
+          "ate_global_rmse_m": 5.932837017483441,
+          "ate_global_per_robot_rmse_m": {
+            "A": 5.905242392983705,
+            "B": 5.565635195852953,
+            "C": 4.601453547739195,
+            "D": 6.774091415416884
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 5.092760408383195,
+            "B": 4.889290766811869,
+            "C": 4.419215086537677,
+            "D": 6.434176543341812
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 100,
+          "inner_cost": 2947.72,
+          "robust_cost": 23206.5,
+          "wall_s": 3.9095,
+          "precompute_s": 0.00409991,
+          "status": "ok",
+          "ate_global_rmse_m": 5.9328384943639545,
+          "ate_global_per_robot_rmse_m": {
+            "A": 5.905252574187608,
+            "B": 5.565636759865484,
+            "C": 4.601469580417774,
+            "D": 6.774083573418061
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 5.092791308784403,
+            "B": 4.889311540717397,
+            "C": 4.419214097817485,
+            "D": 6.434175175880295
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kittredge_loop_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kittredge_loop_wifi_global.png",
+      "dataset_wall_s": 65.13051152229309
+    },
+    {
+      "dataset": "kth_r3_00_d06_d09_d10_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/kth_r3_00_d06_d09_d10_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1604,
+      "n_edges": 2805,
+      "n_edges_inlier_truth": 2687,
+      "n_outliers_truth": 118,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 663,
+        "B": 507,
+        "C": 434
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 612,
+          "inner_cost": 1738.84,
+          "robust_cost": 7108.41,
+          "wall_s": 46.5541,
+          "precompute_s": 0.00108933,
+          "status": "ok",
+          "ate_global_rmse_m": 1.0997322523406923,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.0785664841279967,
+            "B": 1.0187010386258577,
+            "C": 1.216707300513825
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.075435914819502,
+            "B": 0.6098955075719563,
+            "C": 1.0222733453059514
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 575,
+          "inner_cost": 1738.84,
+          "robust_cost": 7108.41,
+          "wall_s": 44.3092,
+          "precompute_s": 0.0011259,
+          "status": "ok",
+          "ate_global_rmse_m": 1.1013957251106676,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.0801396522814166,
+            "B": 1.0207138672018417,
+            "C": 1.218164892710256
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.0769905493487522,
+            "B": 0.610377096741107,
+            "C": 1.0231701072064834
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 94,
+          "inner_cost": 1738.77,
+          "robust_cost": 7108.38,
+          "wall_s": 1.66372,
+          "precompute_s": 0.000930159,
+          "status": "ok",
+          "ate_global_rmse_m": 1.1115086622885806,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.0897979675851126,
+            "B": 1.0342015257828947,
+            "C": 1.2256593138788243
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.0865207240143726,
+            "B": 0.6132430480898055,
+            "C": 1.0262130239081872
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_00_d06_d09_d10_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_00_d06_d09_d10_proradio_global.png",
+      "dataset_wall_s": 93.86862850189209
+    },
+    {
+      "dataset": "kth_r3_00_d06_d09_d10_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/kth_r3_00_d06_d09_d10_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1604,
+      "n_edges": 2263,
+      "n_edges_inlier_truth": 2191,
+      "n_outliers_truth": 72,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 663,
+        "B": 507,
+        "C": 434
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 651,
+          "inner_cost": 1084.25,
+          "robust_cost": 4379.92,
+          "wall_s": 28.61,
+          "precompute_s": 0.000826627,
+          "status": "ok",
+          "ate_global_rmse_m": 1.7741134403159584,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.5724919935897046,
+            "B": 1.4664142806256175,
+            "C": 2.3115103667052725
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.5294682608357955,
+            "B": 0.8775784288691566,
+            "C": 1.8695496491446915
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 625,
+          "inner_cost": 1084.24,
+          "robust_cost": 4379.92,
+          "wall_s": 27.9416,
+          "precompute_s": 0.000826257,
+          "status": "ok",
+          "ate_global_rmse_m": 1.772291642092832,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.571376430195861,
+            "B": 1.4641329087847277,
+            "C": 2.3091924669017128
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.5281685322816907,
+            "B": 0.875425849871211,
+            "C": 1.8678346006085438
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 95,
+          "inner_cost": 1084.22,
+          "robust_cost": 4379.91,
+          "wall_s": 1.28254,
+          "precompute_s": 0.0007903,
+          "status": "ok",
+          "ate_global_rmse_m": 1.7699430320319693,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.5684874086785416,
+            "B": 1.4607565944820855,
+            "C": 2.3080330939163445
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.524923102215582,
+            "B": 0.8741120228548561,
+            "C": 1.867339710107375
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_00_d06_d09_d10_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_00_d06_d09_d10_wifi_global.png",
+      "dataset_wall_s": 59.17531418800354
+    },
+    {
+      "dataset": "kth_r3_01_n01_n04_n05_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/kth_r3_01_n01_n04_n05_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1609,
+      "n_edges": 2607,
+      "n_edges_inlier_truth": 2513,
+      "n_outliers_truth": 94,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 670,
+        "B": 501,
+        "C": 438
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1075,
+          "inner_cost": 1195.62,
+          "robust_cost": 5140.4,
+          "wall_s": 77.0518,
+          "precompute_s": 0.000986455,
+          "status": "ok",
+          "ate_global_rmse_m": 1.3924030132339464,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.0304761454877265,
+            "B": 0.9979575111230218,
+            "C": 2.0877393080689357
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.9948856600098309,
+            "B": 0.5296660560089421,
+            "C": 1.7173050444763032
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1644,
+          "inner_cost": 1195.62,
+          "robust_cost": 5140.4,
+          "wall_s": 128.643,
+          "precompute_s": 0.000974796,
+          "status": "ok",
+          "ate_global_rmse_m": 1.3929525754424983,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.031263197649289,
+            "B": 1.0004320728104443,
+            "C": 2.0871367787839126
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.9958766157774165,
+            "B": 0.529759254823859,
+            "C": 1.7167370433059526
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 129,
+          "inner_cost": 1195.62,
+          "robust_cost": 5140.4,
+          "wall_s": 2.55462,
+          "precompute_s": 0.00105656,
+          "status": "ok",
+          "ate_global_rmse_m": 1.3936780081341447,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.0326884242481258,
+            "B": 1.0075867366450382,
+            "C": 2.083898544770486
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.9981507798526122,
+            "B": 0.530702592089345,
+            "C": 1.7139691851957366
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_01_n01_n04_n05_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_01_n01_n04_n05_proradio_global.png",
+      "dataset_wall_s": 209.5950117111206
+    },
+    {
+      "dataset": "kth_r3_01_n01_n04_n05_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/kth_r3_01_n01_n04_n05_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1609,
+      "n_edges": 2260,
+      "n_edges_inlier_truth": 2179,
+      "n_outliers_truth": 81,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 670,
+        "B": 501,
+        "C": 438
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 2023,
+          "inner_cost": 818.699,
+          "robust_cost": 3952.24,
+          "wall_s": 92.9163,
+          "precompute_s": 0.000784716,
+          "status": "ok",
+          "ate_global_rmse_m": 1.4568558438746317,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.4374071880108032,
+            "B": 1.1253308998216118,
+            "C": 1.7854201374386942
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.4006499244666164,
+            "B": 0.4708016410674518,
+            "C": 1.4698732315639538
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 2156,
+          "inner_cost": 818.691,
+          "robust_cost": 3952.24,
+          "wall_s": 100.268,
+          "precompute_s": 0.000770808,
+          "status": "ok",
+          "ate_global_rmse_m": 1.4548652971025469,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.436877926664427,
+            "B": 1.1232923327088407,
+            "C": 1.7815734628834643
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.400119302093992,
+            "B": 0.4700939546762998,
+            "C": 1.4664106575927
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 149,
+          "inner_cost": 818.674,
+          "robust_cost": 3952.23,
+          "wall_s": 2.22167,
+          "precompute_s": 0.000771258,
+          "status": "ok",
+          "ate_global_rmse_m": 1.5316067896986552,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.478804954763938,
+            "B": 1.1962683812063493,
+            "C": 1.9066480223359348
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.4404142221210208,
+            "B": 0.47430899851660385,
+            "C": 1.5498834792918383
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_01_n01_n04_n05_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r3_01_n01_n04_n05_wifi_global.png",
+      "dataset_wall_s": 196.75158262252808
+    },
+    {
+      "dataset": "kth_r4_00_d06_d10_n04_n05_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/kth_r4_00_d06_d10_n04_n05_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 2036,
+      "n_edges": 3397,
+      "n_edges_inlier_truth": 3256,
+      "n_outliers_truth": 141,
+      "n_robots": 4,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "A": 663,
+        "B": 434,
+        "C": 501,
+        "D": 438
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1407,
+          "inner_cost": 1825.0,
+          "robust_cost": 8599.53,
+          "wall_s": 138.909,
+          "precompute_s": 0.00125329,
+          "status": "ok",
+          "ate_global_rmse_m": 4.029121125809732,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.5740464009975073,
+            "B": 3.9115853124521873,
+            "C": 2.8214907978590613,
+            "D": 5.644376155022511
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 3.5309637012277717,
+            "B": 3.564409632328301,
+            "C": 0.6258067441833949,
+            "D": 4.328916874986615
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1227,
+          "inner_cost": 1847.85,
+          "robust_cost": 8050.27,
+          "wall_s": 121.797,
+          "precompute_s": 0.00121339,
+          "status": "ok",
+          "ate_global_rmse_m": 1.2003795467367262,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.2002335762096978,
+            "B": 1.2180325024665095,
+            "C": 1.2024366070109822,
+            "D": 1.1804598963083304
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.1644476392542553,
+            "B": 0.8769211320535152,
+            "C": 0.49104947388202486,
+            "D": 0.8629796750914908
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 128,
+          "inner_cost": 1854.84,
+          "robust_cost": 8015.39,
+          "wall_s": 3.07863,
+          "precompute_s": 0.00129511,
+          "status": "ok",
+          "ate_global_rmse_m": 1.1410668383863796,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.1362116368326487,
+            "B": 1.1458224364913177,
+            "C": 1.1642092244790734,
+            "D": 1.1166783751174079
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.1059185774856126,
+            "B": 0.9600012766392938,
+            "C": 0.5308546891451099,
+            "D": 0.940546370139593
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r4_00_d06_d10_n04_n05_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r4_00_d06_d10_n04_n05_proradio_global.png",
+      "dataset_wall_s": 265.19857478141785
+    },
+    {
+      "dataset": "kth_r4_00_d06_d10_n04_n05_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/kth_r4_00_d06_d10_n04_n05_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 2036,
+      "n_edges": 3196,
+      "n_edges_inlier_truth": 3061,
+      "n_outliers_truth": 135,
+      "n_robots": 4,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "A": 663,
+        "B": 434,
+        "C": 501,
+        "D": 438
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 979,
+          "inner_cost": 1579.41,
+          "robust_cost": 7175.37,
+          "wall_s": 92.9916,
+          "precompute_s": 0.00110735,
+          "status": "ok",
+          "ate_global_rmse_m": 1.1781983739415627,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.164909925337554,
+            "B": 1.215803386651676,
+            "C": 1.1454356892892128,
+            "D": 1.1971451521059249
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.1335158095529543,
+            "B": 1.0177755709551866,
+            "C": 0.4982532357838476,
+            "D": 1.0214833489832473
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 743,
+          "inner_cost": 1579.41,
+          "robust_cost": 7175.37,
+          "wall_s": 71.6094,
+          "precompute_s": 0.00126098,
+          "status": "ok",
+          "ate_global_rmse_m": 1.1788150558771087,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.1651604457467806,
+            "B": 1.216150465746277,
+            "C": 1.1470721916323259,
+            "D": 1.1974563918341103
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.1338035959324688,
+            "B": 1.0179505454472442,
+            "C": 0.4986637522123263,
+            "D": 1.0215306200240484
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 143,
+          "inner_cost": 1579.42,
+          "robust_cost": 7175.38,
+          "wall_s": 3.65794,
+          "precompute_s": 0.00129184,
+          "status": "ok",
+          "ate_global_rmse_m": 1.1821070444338078,
+          "ate_global_per_robot_rmse_m": {
+            "A": 1.1675690048353284,
+            "B": 1.2187495596594404,
+            "C": 1.1532320126708187,
+            "D": 1.1996027555816748
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.1363751519215823,
+            "B": 1.018338460673131,
+            "C": 0.4997095243983819,
+            "D": 1.021705371513211
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r4_00_d06_d10_n04_n05_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kth_r4_00_d06_d10_n04_n05_wifi_global.png",
+      "dataset_wall_s": 169.68470239639282
+    },
+    {
+      "dataset": "main_campus_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/main_campus_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 4394,
+      "n_edges": 8636,
+      "n_edges_inlier_truth": 8267,
+      "n_outliers_truth": 369,
+      "n_robots": 4,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "A": 533,
+        "B": 648,
+        "C": 1321,
+        "D": 1892
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 152,
+          "inner_cost": 2960.79,
+          "robust_cost": 16017.2,
+          "wall_s": 27.5074,
+          "precompute_s": 0.00358316,
+          "status": "ok",
+          "ate_global_rmse_m": 3.4887786681474537,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.2453524607114623,
+            "B": 3.062236491917022,
+            "C": 3.3199080623657395,
+            "D": 3.793835793285069
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.1853624353841274,
+            "B": 2.3972851079023476,
+            "C": 3.2242415867861136,
+            "D": 3.540513599753062
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 110,
+          "inner_cost": 2960.79,
+          "robust_cost": 16017.2,
+          "wall_s": 17.4079,
+          "precompute_s": 0.00361001,
+          "status": "ok",
+          "ate_global_rmse_m": 3.488642296792877,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.2456901652045356,
+            "B": 3.06250830252584,
+            "C": 3.3197915947934713,
+            "D": 3.7934591639894855
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.185406142489659,
+            "B": 2.397329278801683,
+            "C": 3.2241765650896994,
+            "D": 3.5400244110761396
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 90,
+          "inner_cost": 2960.8,
+          "robust_cost": 16017.2,
+          "wall_s": 3.99083,
+          "precompute_s": 0.00386383,
+          "status": "ok",
+          "ate_global_rmse_m": 3.4881788813657026,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.245580092502794,
+            "B": 3.062350629673076,
+            "C": 3.319577052133518,
+            "D": 3.7926705989222413
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.185441668990403,
+            "B": 2.397339604318519,
+            "C": 3.2240697331427013,
+            "D": 3.5393002474298028
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/main_campus_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/main_campus_proradio_global.png",
+      "dataset_wall_s": 50.417715311050415
+    },
+    {
+      "dataset": "main_campus_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/main_campus_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 4394,
+      "n_edges": 7538,
+      "n_edges_inlier_truth": 7337,
+      "n_outliers_truth": 201,
+      "n_robots": 4,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "A": 533,
+        "B": 648,
+        "C": 1321,
+        "D": 1892
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 215,
+          "inner_cost": 2186.34,
+          "robust_cost": 9917.39,
+          "wall_s": 37.621,
+          "precompute_s": 0.00290859,
+          "status": "ok",
+          "ate_global_rmse_m": 4.154133279216796,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.4746998100975786,
+            "B": 3.29743080665907,
+            "C": 3.4975553772672967,
+            "D": 4.94076415388889
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.3258309425421584,
+            "B": 2.570428123321482,
+            "C": 3.2513310231485244,
+            "D": 4.607664630024244
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 150,
+          "inner_cost": 2186.34,
+          "robust_cost": 9917.39,
+          "wall_s": 24.195,
+          "precompute_s": 0.00285942,
+          "status": "ok",
+          "ate_global_rmse_m": 4.153937498600004,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.4747456176574114,
+            "B": 3.2973948577423777,
+            "C": 3.496917404858261,
+            "D": 4.940696305409935
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.325704494942729,
+            "B": 2.5703146422788077,
+            "C": 3.2510659904792982,
+            "D": 4.607653294126092
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 91,
+          "inner_cost": 2186.34,
+          "robust_cost": 9917.39,
+          "wall_s": 3.84821,
+          "precompute_s": 0.00278503,
+          "status": "ok",
+          "ate_global_rmse_m": 4.153693258333853,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.4746782406592844,
+            "B": 3.297270953055076,
+            "C": 3.496008809545457,
+            "D": 4.940710033997721
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.3255291120327137,
+            "B": 2.5701561360253047,
+            "C": 3.250867728997463,
+            "D": 4.6077710446754745
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/main_campus_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/main_campus_wifi_global.png",
+      "dataset_wall_s": 67.1936469078064
+    },
+    {
+      "dataset": "ntu_r3_00_d01_n04_n08_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/ntu_r3_00_d01_n04_n08_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 3035,
+      "n_edges": 5441,
+      "n_edges_inlier_truth": 5361,
+      "n_outliers_truth": 80,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 1377,
+        "B": 615,
+        "C": 1043
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1461,
+          "inner_cost": 3213.03,
+          "robust_cost": 16557.0,
+          "wall_s": 142.938,
+          "precompute_s": 0.00184983,
+          "status": "ok",
+          "ate_global_rmse_m": 140.68229303035938,
+          "ate_global_per_robot_rmse_m": {
+            "A": 63.50576561720639,
+            "B": 285.6099915327893,
+            "C": 64.55372675028836
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.3939305391917247,
+            "B": 3.6862815305062644,
+            "C": 2.452746372828022
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1753,
+          "inner_cost": 3212.4,
+          "robust_cost": 16531.4,
+          "wall_s": 175.061,
+          "precompute_s": 0.00184714,
+          "status": "ok",
+          "ate_global_rmse_m": 79.51131372354612,
+          "ate_global_per_robot_rmse_m": {
+            "A": 39.65074712470965,
+            "B": 158.22506291127638,
+            "C": 39.482445109890975
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.3995647658296115,
+            "B": 2.9381250100535996,
+            "C": 2.4544510866101352
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 104,
+          "inner_cost": 3511.49,
+          "robust_cost": 10974.9,
+          "wall_s": 2.76978,
+          "precompute_s": 0.00202017,
+          "status": "ok",
+          "ate_global_rmse_m": 2.2564854965374384,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.2104116835335166,
+            "B": 2.263938170911104,
+            "C": 2.3116173278258487
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.2032335892259853,
+            "B": 2.2040913818165175,
+            "C": 2.3016252169912734
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_00_d01_n04_n08_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_00_d01_n04_n08_proradio_global.png",
+      "dataset_wall_s": 322.15781903266907
+    },
+    {
+      "dataset": "ntu_r3_00_d01_n04_n08_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/ntu_r3_00_d01_n04_n08_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 3035,
+      "n_edges": 5028,
+      "n_edges_inlier_truth": 4955,
+      "n_outliers_truth": 73,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 1377,
+        "B": 615,
+        "C": 1043
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 625,
+          "inner_cost": 2556.99,
+          "robust_cost": 18156.5,
+          "wall_s": 57.0521,
+          "precompute_s": 0.00173678,
+          "status": "ok",
+          "ate_global_rmse_m": 213.0397930066613,
+          "ate_global_per_robot_rmse_m": {
+            "A": 147.16549175793807,
+            "B": 246.9256331401643,
+            "C": 259.8506015045402
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.5171017861759544,
+            "B": 3.5062213423129838,
+            "C": 3.289060813870613
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 2648,
+          "inner_cost": 3044.15,
+          "robust_cost": 9618.25,
+          "wall_s": 255.481,
+          "precompute_s": 0.00175537,
+          "status": "ok",
+          "ate_global_rmse_m": 2.4041178539487773,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.3933712733297132,
+            "B": 2.3338123114173723,
+            "C": 2.458508021561695
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.386489625322997,
+            "B": 2.2865109435868574,
+            "C": 2.4331691164721985
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 117,
+          "inner_cost": 3044.07,
+          "robust_cost": 9618.23,
+          "wall_s": 3.47566,
+          "precompute_s": 0.00171283,
+          "status": "ok",
+          "ate_global_rmse_m": 2.404206731768095,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.393799587266709,
+            "B": 2.332720038552103,
+            "C": 2.4588216116909885
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.386969383038862,
+            "B": 2.285421701214676,
+            "C": 2.4335615712599505
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_00_d01_n04_n08_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_00_d01_n04_n08_wifi_global.png",
+      "dataset_wall_s": 317.44796204566956
+    },
+    {
+      "dataset": "ntu_r3_01_n04_n08_n13_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/ntu_r3_01_n04_n08_n13_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 2178,
+      "n_edges": 3665,
+      "n_edges_inlier_truth": 3623,
+      "n_outliers_truth": 42,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 615,
+        "B": 1043,
+        "C": 520
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 415,
+          "inner_cost": 2228.11,
+          "robust_cost": 11346.3,
+          "wall_s": 25.9194,
+          "precompute_s": 0.00150187,
+          "status": "ok",
+          "ate_global_rmse_m": 142.06134290206964,
+          "ate_global_per_robot_rmse_m": {
+            "A": 240.7442443003951,
+            "B": 76.95941215364844,
+            "C": 64.05636021382426
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 3.0631517843051137,
+            "B": 2.6185639191926224,
+            "C": 2.874121035755249
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 387,
+          "inner_cost": 2228.14,
+          "robust_cost": 11346.2,
+          "wall_s": 24.5141,
+          "precompute_s": 0.00127123,
+          "status": "ok",
+          "ate_global_rmse_m": 138.2361311608536,
+          "ate_global_per_robot_rmse_m": {
+            "A": 232.85978369335848,
+            "B": 70.83815592420602,
+            "C": 76.44147776781362
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.892646581726559,
+            "B": 2.6188689716836238,
+            "C": 2.874997440826938
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 97,
+          "inner_cost": 2456.93,
+          "robust_cost": 7561.91,
+          "wall_s": 1.68661,
+          "precompute_s": 0.0012566,
+          "status": "ok",
+          "ate_global_rmse_m": 2.3957440950225437,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.3056133392183003,
+            "B": 2.254606917214849,
+            "C": 2.749036474291532
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.207193058083418,
+            "B": 2.2385785313001594,
+            "C": 2.511709426197304
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_01_n04_n08_n13_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_01_n04_n08_n13_proradio_global.png",
+      "dataset_wall_s": 53.497864961624146
+    },
+    {
+      "dataset": "ntu_r3_01_n04_n08_n13_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/ntu_r3_01_n04_n08_n13_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 2178,
+      "n_edges": 3471,
+      "n_edges_inlier_truth": 3437,
+      "n_outliers_truth": 34,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 615,
+        "B": 1043,
+        "C": 520
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 673,
+          "inner_cost": 2045.38,
+          "robust_cost": 9865.36,
+          "wall_s": 41.6074,
+          "precompute_s": 0.00119188,
+          "status": "ok",
+          "ate_global_rmse_m": 139.76469641994444,
+          "ate_global_per_robot_rmse_m": {
+            "A": 236.38575155896592,
+            "B": 76.11673236614287,
+            "C": 64.11268750908259
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 3.2118978135964857,
+            "B": 3.313981028074778,
+            "C": 2.98548585829165
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 3208,
+          "inner_cost": 2209.6,
+          "robust_cost": 6716.09,
+          "wall_s": 214.331,
+          "precompute_s": 0.00115332,
+          "status": "ok",
+          "ate_global_rmse_m": 2.8276377024797874,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.457060767231816,
+            "B": 3.053023167264748,
+            "C": 2.7664466470914126
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.402670277107232,
+            "B": 3.0240047692862664,
+            "C": 2.456884639080175
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 116,
+          "inner_cost": 2209.06,
+          "robust_cost": 6716.02,
+          "wall_s": 1.99137,
+          "precompute_s": 0.00116142,
+          "status": "ok",
+          "ate_global_rmse_m": 2.820467025542169,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.429453265653713,
+            "B": 3.047988313875594,
+            "C": 2.7757439264903168
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.3732479660685404,
+            "B": 3.019572895084984,
+            "C": 2.475595421373821
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_01_n04_n08_n13_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_01_n04_n08_n13_wifi_global.png",
+      "dataset_wall_s": 259.2915852069855
+    },
+    {
+      "dataset": "ntu_r3_02_d02_n04_n13_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/ntu_r3_02_d02_n04_n13_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1417,
+      "n_edges": 2322,
+      "n_edges_inlier_truth": 2287,
+      "n_outliers_truth": 35,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 282,
+        "B": 615,
+        "C": 520
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 891,
+          "inner_cost": 1523.09,
+          "robust_cost": 6989.85,
+          "wall_s": 33.7197,
+          "precompute_s": 0.00078681,
+          "status": "ok",
+          "ate_global_rmse_m": 112.49831551517268,
+          "ate_global_per_robot_rmse_m": {
+            "A": 105.03898085249057,
+            "B": 128.45826604974874,
+            "C": 94.80315397532307
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.2313639698728838,
+            "B": 3.2599390132322847,
+            "C": 4.2450200685212875
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1151,
+          "inner_cost": 1627.44,
+          "robust_cost": 5373.7,
+          "wall_s": 47.2453,
+          "precompute_s": 0.00103846,
+          "status": "ok",
+          "ate_global_rmse_m": 3.317044028824921,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.2289683322016343,
+            "B": 2.9493339169647386,
+            "C": 3.747081228847107
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.2500767743692307,
+            "B": 2.789649472485332,
+            "C": 3.6750979576294194
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 94,
+          "inner_cost": 1627.36,
+          "robust_cost": 5373.66,
+          "wall_s": 0.976883,
+          "precompute_s": 0.000799494,
+          "status": "ok",
+          "ate_global_rmse_m": 3.4389623102321,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.3880232330547555,
+            "B": 3.0604930110139166,
+            "C": 3.863197356224633
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.24886581228904,
+            "B": 2.881119781739389,
+            "C": 3.7875720059195075
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_02_d02_n04_n13_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_02_d02_n04_n13_proradio_global.png",
+      "dataset_wall_s": 83.29097962379456
+    },
+    {
+      "dataset": "ntu_r3_02_d02_n04_n13_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/ntu_r3_02_d02_n04_n13_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1417,
+      "n_edges": 2154,
+      "n_edges_inlier_truth": 2124,
+      "n_outliers_truth": 30,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 282,
+        "B": 615,
+        "C": 520
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 245,
+          "inner_cost": 1336.72,
+          "robust_cost": 5138.37,
+          "wall_s": 8.52749,
+          "precompute_s": 0.000739126,
+          "status": "ok",
+          "ate_global_rmse_m": 147.1124959278323,
+          "ate_global_per_robot_rmse_m": {
+            "A": 209.04727054076238,
+            "B": 147.9951291346522,
+            "C": 96.80619513407301
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.392610521852432,
+            "B": 3.7241597015041106,
+            "C": 4.972791639812239
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1720,
+          "inner_cost": 1368.29,
+          "robust_cost": 4582.02,
+          "wall_s": 69.2786,
+          "precompute_s": 0.000739143,
+          "status": "ok",
+          "ate_global_rmse_m": 6.333971117367805,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.261737536136686,
+            "B": 6.151030140261799,
+            "C": 7.8615058942053935
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.422360328779549,
+            "B": 3.622844219512523,
+            "C": 4.6457687836379735
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 92,
+          "inner_cost": 1375.01,
+          "robust_cost": 4569.44,
+          "wall_s": 0.918994,
+          "precompute_s": 0.000737847,
+          "status": "ok",
+          "ate_global_rmse_m": 2.7009597247119945,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.307439332001471,
+            "B": 2.783601807862069,
+            "C": 2.797849111410338
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.4233485168291267,
+            "B": 2.660406406947003,
+            "C": 2.689190510363826
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_02_d02_n04_n13_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r3_02_d02_n04_n13_wifi_global.png",
+      "dataset_wall_s": 80.0740761756897
+    },
+    {
+      "dataset": "ntu_r4_00_d01_n04_n08_n13_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/ntu_r4_00_d01_n04_n08_n13_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 3555,
+      "n_edges": 5916,
+      "n_edges_inlier_truth": 5822,
+      "n_outliers_truth": 94,
+      "n_robots": 4,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "A": 1377,
+        "B": 615,
+        "C": 1043,
+        "D": 520
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1906,
+          "inner_cost": 3563.12,
+          "robust_cost": 14970.1,
+          "wall_s": 213.088,
+          "precompute_s": 0.00212654,
+          "status": "ok",
+          "ate_global_rmse_m": 65.10444789405462,
+          "ate_global_per_robot_rmse_m": {
+            "A": 28.077523173474347,
+            "B": 143.7725975456132,
+            "C": 28.62859970403712,
+            "D": 28.263746635480366
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.477976163566924,
+            "B": 3.244081597766318,
+            "C": 2.5404127170757036,
+            "D": 2.6485980445737263
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 2378,
+          "inner_cost": 3734.92,
+          "robust_cost": 12139.7,
+          "wall_s": 270.742,
+          "precompute_s": 0.00202246,
+          "status": "ok",
+          "ate_global_rmse_m": 2.446097360217819,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.333918257197735,
+            "B": 2.3176311504217963,
+            "C": 2.4020683276519073,
+            "D": 2.924939637720531
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.3138304084214174,
+            "B": 2.2681235361850627,
+            "C": 2.3909085864397404,
+            "D": 2.5470607403165024
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 140,
+          "inner_cost": 3734.97,
+          "robust_cost": 12139.8,
+          "wall_s": 5.67137,
+          "precompute_s": 0.00211306,
+          "status": "ok",
+          "ate_global_rmse_m": 2.4470567399042347,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.3339155231565085,
+            "B": 2.3178549874784338,
+            "C": 2.3978991657953257,
+            "D": 2.937058231776206
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.3137002008820717,
+            "B": 2.2680459827555763,
+            "C": 2.3866512422772237,
+            "D": 2.5527247050187882
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r4_00_d01_n04_n08_n13_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r4_00_d01_n04_n08_n13_proradio_global.png",
+      "dataset_wall_s": 490.96075105667114
+    },
+    {
+      "dataset": "ntu_r4_00_d01_n04_n08_n13_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/ntu_r4_00_d01_n04_n08_n13_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 4,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 3555,
+      "n_edges": 6031,
+      "n_edges_inlier_truth": 5950,
+      "n_outliers_truth": 81,
+      "n_robots": 4,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "A": 1377,
+        "B": 615,
+        "C": 1043,
+        "D": 520
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1141,
+          "inner_cost": 3770.73,
+          "robust_cost": 15599.3,
+          "wall_s": 126.587,
+          "precompute_s": 0.00223593,
+          "status": "ok",
+          "ate_global_rmse_m": 69.27655340961998,
+          "ate_global_per_robot_rmse_m": {
+            "A": 29.938132335703973,
+            "B": 152.957003675867,
+            "C": 30.487344002419274,
+            "D": 30.038984367802144
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.6313639667654543,
+            "B": 3.2877812370378527,
+            "C": 2.575728148332733,
+            "D": 2.7441126207148447
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1116,
+          "inner_cost": 3986.8,
+          "robust_cost": 12518.4,
+          "wall_s": 127.212,
+          "precompute_s": 0.00214451,
+          "status": "ok",
+          "ate_global_rmse_m": 2.4716545848445826,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.4337231370440797,
+            "B": 2.3077950534612643,
+            "C": 2.4760496852605054,
+            "D": 2.735766362898581
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.415347546050906,
+            "B": 2.253893769791934,
+            "C": 2.4635421832708926,
+            "D": 2.4406216605347053
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 102,
+          "inner_cost": 3986.74,
+          "robust_cost": 12518.3,
+          "wall_s": 3.66628,
+          "precompute_s": 0.00235629,
+          "status": "ok",
+          "ate_global_rmse_m": 2.4682753854190556,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.429838101064725,
+            "B": 2.3052433629127584,
+            "C": 2.471972058274924,
+            "D": 2.733993636538709
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.41165756355511,
+            "B": 2.2512634864529475,
+            "C": 2.459547754833666,
+            "D": 2.43847353644635
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r4_00_d01_n04_n08_n13_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r4_00_d01_n04_n08_n13_wifi_global.png",
+      "dataset_wall_s": 258.93792366981506
+    },
+    {
+      "dataset": "ntu_r5_00_d01_d02_n04_n08_n13_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/ntu_r5_00_d01_d02_n04_n08_n13_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 5,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 3837,
+      "n_edges": 6436,
+      "n_edges_inlier_truth": 6345,
+      "n_outliers_truth": 91,
+      "n_robots": 5,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "poses_per_robot": {
+        "A": 1377,
+        "B": 282,
+        "C": 615,
+        "D": 1043,
+        "E": 520
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1370,
+          "inner_cost": 4075.38,
+          "robust_cost": 14917.5,
+          "wall_s": 164.67,
+          "precompute_s": 0.00218204,
+          "status": "ok",
+          "ate_global_rmse_m": 68.84170010966494,
+          "ate_global_per_robot_rmse_m": {
+            "A": 27.8013247657852,
+            "B": 31.474426370351548,
+            "C": 159.1734465411405,
+            "D": 28.470622914480625,
+            "E": 28.195211103025464
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.421598564883154,
+            "B": 1.3264053070569934,
+            "C": 3.0869658012551984,
+            "D": 2.2570719209378716,
+            "E": 2.4820787873500274
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1722,
+          "inner_cost": 4179.0,
+          "robust_cost": 13329.0,
+          "wall_s": 212.617,
+          "precompute_s": 0.00216921,
+          "status": "ok",
+          "ate_global_rmse_m": 2.1756068939132978,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.174348206478567,
+            "B": 1.5536539999235721,
+            "C": 2.0629891962266425,
+            "D": 2.2557719261955556,
+            "E": 2.420252203565717
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.163522962813792,
+            "B": 1.3174066258581554,
+            "C": 2.040372269963328,
+            "D": 2.2253319623790215,
+            "E": 2.2382466549801365
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 114,
+          "inner_cost": 4178.88,
+          "robust_cost": 13328.9,
+          "wall_s": 4.27847,
+          "precompute_s": 0.00219107,
+          "status": "ok",
+          "ate_global_rmse_m": 2.175368456949921,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.175175172958979,
+            "B": 1.5502939836161915,
+            "C": 2.0661053568087393,
+            "D": 2.2520921872103776,
+            "E": 2.4216007696315303
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.1643534344145006,
+            "B": 1.3176118220255857,
+            "C": 2.0437055917857423,
+            "D": 2.2214450056526593,
+            "E": 2.2395669205385857
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r5_00_d01_d02_n04_n08_n13_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r5_00_d01_d02_n04_n08_n13_proradio_global.png",
+      "dataset_wall_s": 383.10007643699646
+    },
+    {
+      "dataset": "ntu_r5_00_d01_d02_n04_n08_n13_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/ntu_r5_00_d01_d02_n04_n08_n13_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 5,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 3837,
+      "n_edges": 6709,
+      "n_edges_inlier_truth": 6611,
+      "n_outliers_truth": 98,
+      "n_robots": 5,
+      "robots": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E"
+      ],
+      "poses_per_robot": {
+        "A": 1377,
+        "B": 282,
+        "C": 615,
+        "D": 1043,
+        "E": 520
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 1094,
+          "inner_cost": 3865.37,
+          "robust_cost": 24917.3,
+          "wall_s": 129.542,
+          "precompute_s": 0.00237627,
+          "status": "ok",
+          "ate_global_rmse_m": 152.99710109189093,
+          "ate_global_per_robot_rmse_m": {
+            "A": 76.6663483169721,
+            "B": 66.53689206669743,
+            "C": 141.1227441871934,
+            "D": 252.2356745716858,
+            "E": 59.93760818027653
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.3771265358290368,
+            "B": 1.2164401042854762,
+            "C": 2.608624274561719,
+            "D": 3.294516841540308,
+            "E": 2.5508360424952805
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 787,
+          "inner_cost": 4230.81,
+          "robust_cost": 18594.1,
+          "wall_s": 95.8621,
+          "precompute_s": 0.00227226,
+          "status": "ok",
+          "ate_global_rmse_m": 149.99202241359853,
+          "ate_global_per_robot_rmse_m": {
+            "A": 50.323201075553534,
+            "B": 53.59312524805812,
+            "C": 50.39891948229036,
+            "D": 275.9337571208069,
+            "E": 44.949461488722264
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.0973252501021005,
+            "B": 1.1900942633482052,
+            "C": 2.014842605720722,
+            "D": 3.2944034319709634,
+            "E": 2.1207012160686043
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 147,
+          "inner_cost": 4472.99,
+          "robust_cost": 14305.1,
+          "wall_s": 6.24256,
+          "precompute_s": 0.00242261,
+          "status": "ok",
+          "ate_global_rmse_m": 2.162599319316713,
+          "ate_global_per_robot_rmse_m": {
+            "A": 2.0978157560488033,
+            "B": 1.5832014997980064,
+            "C": 2.090594262320398,
+            "D": 2.2986730760114757,
+            "E": 2.3935889105486434
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.088063722104318,
+            "B": 1.2654738089090767,
+            "C": 2.060861805269021,
+            "D": 2.280275311808188,
+            "E": 2.166457979918556
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r5_00_d01_d02_n04_n08_n13_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/ntu_r5_00_d01_d02_n04_n08_n13_wifi_global.png",
+      "dataset_wall_s": 233.18961691856384
+    },
+    {
+      "dataset": "tuhh_r3_00_day_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/tuhh_r3_00_day_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1041,
+      "n_edges": 1906,
+      "n_edges_inlier_truth": 1824,
+      "n_outliers_truth": 82,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 355,
+        "B": 543,
+        "C": 143
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 18,
+          "inner_iters_total": 356,
+          "inner_cost": 959.475,
+          "robust_cost": 9446.42,
+          "wall_s": 9.95891,
+          "precompute_s": 0.000727174,
+          "status": "ok",
+          "ate_global_rmse_m": 121.82762936899765,
+          "ate_global_per_robot_rmse_m": {
+            "A": 49.39509180312968,
+            "B": 51.12385440171093,
+            "C": 303.4201927551337
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.759612000232081,
+            "B": 1.8647184112135764,
+            "C": 0.5993133904822047
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 18,
+          "inner_iters_total": 264,
+          "inner_cost": 959.456,
+          "robust_cost": 9446.42,
+          "wall_s": 7.85931,
+          "precompute_s": 0.000628728,
+          "status": "ok",
+          "ate_global_rmse_m": 122.1806586886494,
+          "ate_global_per_robot_rmse_m": {
+            "A": 49.46830368572628,
+            "B": 50.83377569154417,
+            "C": 304.6066977134539
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.7568452679278294,
+            "B": 1.8624325493091507,
+            "C": 0.5993081692192572
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 18,
+          "inner_iters_total": 94,
+          "inner_cost": 959.438,
+          "robust_cost": 9421.4,
+          "wall_s": 0.985955,
+          "precompute_s": 0.000663812,
+          "status": "ok",
+          "ate_global_rmse_m": 140.52552813679975,
+          "ate_global_per_robot_rmse_m": {
+            "A": 55.805936824160796,
+            "B": 58.368141839992155,
+            "C": 350.8389238194543
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.7621944174729087,
+            "B": 1.9960363450253824,
+            "C": 0.5992914914959853
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_00_day_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_00_day_proradio_global.png",
+      "dataset_wall_s": 20.05589461326599
+    },
+    {
+      "dataset": "tuhh_r3_00_day_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/tuhh_r3_00_day_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1041,
+      "n_edges": 1749,
+      "n_edges_inlier_truth": 1677,
+      "n_outliers_truth": 72,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 355,
+        "B": 543,
+        "C": 143
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 727,
+          "inner_cost": 806.102,
+          "robust_cost": 8564.58,
+          "wall_s": 21.2199,
+          "precompute_s": 0.000604722,
+          "status": "ok",
+          "ate_global_rmse_m": 129.6553370016462,
+          "ate_global_per_robot_rmse_m": {
+            "A": 52.404651293832394,
+            "B": 57.28940120553692,
+            "C": 321.08483433589004
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.84724062855031,
+            "B": 2.158419210654068,
+            "C": 0.5983701448596651
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 546,
+          "inner_cost": 806.1,
+          "robust_cost": 8564.58,
+          "wall_s": 16.1767,
+          "precompute_s": 0.000707616,
+          "status": "ok",
+          "ate_global_rmse_m": 129.65741344198574,
+          "ate_global_per_robot_rmse_m": {
+            "A": 52.40197894034653,
+            "B": 57.29143069855381,
+            "C": 321.09064590305076
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.8469880216504256,
+            "B": 2.1647754140473343,
+            "C": 0.5985388528293988
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 86,
+          "inner_cost": 806.078,
+          "robust_cost": 8564.56,
+          "wall_s": 0.840859,
+          "precompute_s": 0.000608891,
+          "status": "ok",
+          "ate_global_rmse_m": 129.690665241244,
+          "ate_global_per_robot_rmse_m": {
+            "A": 52.38076195298984,
+            "B": 57.31773074646381,
+            "C": 321.1791635624833
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.8488289291090452,
+            "B": 2.2900072279692174,
+            "C": 0.598252978634797
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_00_day_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_00_day_wifi_global.png",
+      "dataset_wall_s": 39.51663827896118
+    },
+    {
+      "dataset": "tuhh_r3_01_night_proradio",
+      "source_pyfg": "examples/data/cosmobench/proradio/tuhh_r3_01_night_proradio.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1025,
+      "n_edges": 1928,
+      "n_edges_inlier_truth": 1839,
+      "n_outliers_truth": 89,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 351,
+        "B": 535,
+        "C": 139
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 332,
+          "inner_cost": 982.223,
+          "robust_cost": 9866.79,
+          "wall_s": 9.48164,
+          "precompute_s": 0.000593874,
+          "status": "ok",
+          "ate_global_rmse_m": 104.61116361471237,
+          "ate_global_per_robot_rmse_m": {
+            "A": 42.28084434231354,
+            "B": 41.20918437682133,
+            "C": 263.9091231373895
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.45680072855364545,
+            "B": 3.9775057770363764,
+            "C": 0.4607764363373348
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 261,
+          "inner_cost": 982.233,
+          "robust_cost": 9866.79,
+          "wall_s": 7.45058,
+          "precompute_s": 0.000594421,
+          "status": "ok",
+          "ate_global_rmse_m": 104.6111245361738,
+          "ate_global_per_robot_rmse_m": {
+            "A": 42.278927864105356,
+            "B": 41.20944260867643,
+            "C": 263.9096290204268
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.4566989770868589,
+            "B": 3.9691959285560765,
+            "C": 0.4607948550390445
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 19,
+          "inner_iters_total": 91,
+          "inner_cost": 982.214,
+          "robust_cost": 9866.79,
+          "wall_s": 0.916071,
+          "precompute_s": 0.00057926,
+          "status": "ok",
+          "ate_global_rmse_m": 104.61397768311309,
+          "ate_global_per_robot_rmse_m": {
+            "A": 42.25818682260955,
+            "B": 41.217023383749996,
+            "C": 263.9218006440087
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 0.455971382022561,
+            "B": 3.8976525958748467,
+            "C": 0.46061308487728025
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_01_night_proradio_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_01_night_proradio_global.png",
+      "dataset_wall_s": 19.116106271743774
+    },
+    {
+      "dataset": "tuhh_r3_01_night_wifi",
+      "source_pyfg": "examples/data/cosmobench/wifi/tuhh_r3_01_night_wifi.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1025,
+      "n_edges": 1644,
+      "n_edges_inlier_truth": 1569,
+      "n_outliers_truth": 75,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "B",
+        "C"
+      ],
+      "poses_per_robot": {
+        "A": 351,
+        "B": 535,
+        "C": 139
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 521,
+          "inner_cost": 693.016,
+          "robust_cost": 7779.96,
+          "wall_s": 13.7653,
+          "precompute_s": 0.000506915,
+          "status": "ok",
+          "ate_global_rmse_m": 104.4983500897669,
+          "ate_global_per_robot_rmse_m": {
+            "A": 42.25488624793166,
+            "B": 41.26551529176417,
+            "C": 263.55592772940935
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.055363661175364,
+            "B": 3.965696247673502,
+            "C": 0.46093018202703273
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 335,
+          "inner_cost": 693.014,
+          "robust_cost": 7779.95,
+          "wall_s": 9.15802,
+          "precompute_s": 0.000516895,
+          "status": "ok",
+          "ate_global_rmse_m": 104.49446469445326,
+          "ate_global_per_robot_rmse_m": {
+            "A": 42.25010246136331,
+            "B": 41.26227959829156,
+            "C": 263.54845424529736
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.0530409675414178,
+            "B": 3.94068642964238,
+            "C": 0.4615644537121593
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 88,
+          "inner_cost": 692.98,
+          "robust_cost": 7779.91,
+          "wall_s": 0.875669,
+          "precompute_s": 0.000512598,
+          "status": "ok",
+          "ate_global_rmse_m": 104.4982182360722,
+          "ate_global_per_robot_rmse_m": {
+            "A": 42.222757681141985,
+            "B": 41.278871918868035,
+            "C": 263.5604940954822
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 1.0612013472816675,
+            "B": 3.8857708411289362,
+            "C": 0.46094746385985974
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_01_night_wifi_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_01_night_wifi_global.png",
+      "dataset_wall_s": 25.083322763442993
+    },
+    {
+      "dataset": "tunnel",
+      "source_pyfg": "examples/data/nebula/tunnel.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 2,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 1278,
+      "n_edges": 6832,
+      "n_edges_inlier_truth": 6403,
+      "n_outliers_truth": 429,
+      "n_robots": 2,
+      "robots": [
+        "C",
+        "D"
+      ],
+      "poses_per_robot": {
+        "C": 597,
+        "D": 681
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 156,
+          "inner_cost": 3243.96,
+          "robust_cost": 16498.3,
+          "wall_s": 7.72126,
+          "precompute_s": 0.00154165,
+          "status": "ok",
+          "ate_global_rmse_m": 1.9137712969918128,
+          "ate_global_per_robot_rmse_m": {
+            "C": 2.0214185352124594,
+            "D": 1.8141554507426172
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "C": 2.011123994710048,
+            "D": 1.8029736092586162
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 101,
+          "inner_cost": 3243.99,
+          "robust_cost": 16498.3,
+          "wall_s": 6.08114,
+          "precompute_s": 0.00177531,
+          "status": "ok",
+          "ate_global_rmse_m": 1.9151977896842975,
+          "ate_global_per_robot_rmse_m": {
+            "C": 2.02265660561845,
+            "D": 1.8157700848708642
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "C": 2.012402528755614,
+            "D": 1.8046395628051597
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 77,
+          "inner_cost": 3244.02,
+          "robust_cost": 16498.4,
+          "wall_s": 1.34538,
+          "precompute_s": 0.00167077,
+          "status": "ok",
+          "ate_global_rmse_m": 1.9094949395348586,
+          "ate_global_per_robot_rmse_m": {
+            "C": 2.016709625205291,
+            "D": 1.8102892276324025
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "C": 2.0064716710020143,
+            "D": 1.7991904840134456
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/tunnel_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/tunnel_global.png",
+      "dataset_wall_s": 16.38658571243286
+    },
+    {
+      "dataset": "urban",
+      "source_pyfg": "examples/data/nebula/urban.pyfg",
+      "stripped_priors": true,
+      "n_priors_stripped": 3,
+      "kernel": "gm",
+      "gnc": true,
+      "init": "odometry",
+      "n_poses": 765,
+      "n_edges": 2214,
+      "n_edges_inlier_truth": 1618,
+      "n_outliers_truth": 596,
+      "n_robots": 3,
+      "robots": [
+        "A",
+        "D",
+        "E"
+      ],
+      "poses_per_robot": {
+        "A": 306,
+        "D": 208,
+        "E": 251
+      },
+      "methods": {
+        "explicit": {
+          "kernel": "gm",
+          "form": "explicit",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 142,
+          "inner_cost": 1288.82,
+          "robust_cost": 10193.9,
+          "wall_s": 1.87159,
+          "precompute_s": 0.000543492,
+          "status": "ok",
+          "ate_global_rmse_m": 3.9572222799246752,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.142232987048231,
+            "D": 2.4158923536795305,
+            "E": 5.554607785370021
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.010884794808028,
+            "D": 1.9255302012585873,
+            "E": 4.117308018366254
+          }
+        },
+        "expvp": {
+          "kernel": "gm",
+          "form": "expvp",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 101,
+          "inner_cost": 1288.84,
+          "robust_cost": 10193.9,
+          "wall_s": 1.5635,
+          "precompute_s": 0.000541923,
+          "status": "ok",
+          "ate_global_rmse_m": 3.9571912842006896,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.1425220743196696,
+            "D": 2.415356531460843,
+            "E": 5.554534205157927
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.010711427926266,
+            "D": 1.925461067073589,
+            "E": 4.117210525300602
+          }
+        },
+        "impl": {
+          "kernel": "gm",
+          "form": "impl",
+          "gnc": true,
+          "init_seed": 0,
+          "dim": 3,
+          "outer_iters": 20,
+          "inner_iters_total": 97,
+          "inner_cost": 1288.83,
+          "robust_cost": 10193.9,
+          "wall_s": 0.531871,
+          "precompute_s": 0.000536905,
+          "status": "ok",
+          "ate_global_rmse_m": 3.95723210551854,
+          "ate_global_per_robot_rmse_m": {
+            "A": 3.1425982794400382,
+            "D": 2.4150916035741115,
+            "E": 5.554665740602883
+          },
+          "ate_per_robot_aligned_rmse_m": {
+            "A": 2.0105190112359903,
+            "D": 1.925405431633541,
+            "E": 4.117191686513882
+          }
+        }
+      },
+      "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/urban_perRobot.png",
+      "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/urban_global.png",
+      "dataset_wall_s": 5.341304779052734
+    }
+  ]
+}

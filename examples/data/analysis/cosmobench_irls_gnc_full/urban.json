@@ -1,0 +1,104 @@
+{
+  "dataset": "urban",
+  "source_pyfg": "examples/data/nebula/urban.pyfg",
+  "stripped_priors": true,
+  "n_priors_stripped": 3,
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 765,
+  "n_edges": 2214,
+  "n_edges_inlier_truth": 1618,
+  "n_outliers_truth": 596,
+  "n_robots": 3,
+  "robots": [
+    "A",
+    "D",
+    "E"
+  ],
+  "poses_per_robot": {
+    "A": 306,
+    "D": 208,
+    "E": 251
+  },
+  "methods": {
+    "explicit": {
+      "kernel": "gm",
+      "form": "explicit",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 142,
+      "inner_cost": 1288.82,
+      "robust_cost": 10193.9,
+      "wall_s": 1.87159,
+      "precompute_s": 0.000543492,
+      "status": "ok",
+      "ate_global_rmse_m": 3.9572222799246752,
+      "ate_global_per_robot_rmse_m": {
+        "A": 3.142232987048231,
+        "D": 2.4158923536795305,
+        "E": 5.554607785370021
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 2.010884794808028,
+        "D": 1.9255302012585873,
+        "E": 4.117308018366254
+      }
+    },
+    "expvp": {
+      "kernel": "gm",
+      "form": "expvp",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 101,
+      "inner_cost": 1288.84,
+      "robust_cost": 10193.9,
+      "wall_s": 1.5635,
+      "precompute_s": 0.000541923,
+      "status": "ok",
+      "ate_global_rmse_m": 3.9571912842006896,
+      "ate_global_per_robot_rmse_m": {
+        "A": 3.1425220743196696,
+        "D": 2.415356531460843,
+        "E": 5.554534205157927
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 2.010711427926266,
+        "D": 1.925461067073589,
+        "E": 4.117210525300602
+      }
+    },
+    "impl": {
+      "kernel": "gm",
+      "form": "impl",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 97,
+      "inner_cost": 1288.83,
+      "robust_cost": 10193.9,
+      "wall_s": 0.531871,
+      "precompute_s": 0.000536905,
+      "status": "ok",
+      "ate_global_rmse_m": 3.95723210551854,
+      "ate_global_per_robot_rmse_m": {
+        "A": 3.1425982794400382,
+        "D": 2.4150916035741115,
+        "E": 5.554665740602883
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 2.0105190112359903,
+        "D": 1.925405431633541,
+        "E": 4.117191686513882
+      }
+    }
+  },
+  "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/urban_perRobot.png",
+  "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/urban_global.png",
+  "dataset_wall_s": 5.341304779052734
+}

@@ -33,6 +33,14 @@ add_executable(test_scaled_stiefel test_scaled_stiefel.cpp)
 target_link_libraries(test_scaled_stiefel VARPRO)
 target_include_directories(test_scaled_stiefel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+add_executable(init_from_odometry init_from_odometry.cpp)
+target_link_libraries(init_from_odometry VARPRO)
+target_include_directories(init_from_odometry PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(irls_robust irls_robust.cpp)
+target_link_libraries(irls_robust VARPRO)
+target_include_directories(irls_robust PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
 add_executable(optimizer_diagnostics optimizer_diagnostics.cpp)
 target_link_libraries(optimizer_diagnostics VARPRO)
 target_include_directories(optimizer_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})

@@ -1,0 +1,104 @@
+{
+  "dataset": "tuhh_r3_01_night_wifi",
+  "source_pyfg": "examples/data/cosmobench/wifi/tuhh_r3_01_night_wifi.pyfg",
+  "stripped_priors": true,
+  "n_priors_stripped": 3,
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 1025,
+  "n_edges": 1644,
+  "n_edges_inlier_truth": 1569,
+  "n_outliers_truth": 75,
+  "n_robots": 3,
+  "robots": [
+    "A",
+    "B",
+    "C"
+  ],
+  "poses_per_robot": {
+    "A": 351,
+    "B": 535,
+    "C": 139
+  },
+  "methods": {
+    "explicit": {
+      "kernel": "gm",
+      "form": "explicit",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 521,
+      "inner_cost": 693.016,
+      "robust_cost": 7779.96,
+      "wall_s": 13.7653,
+      "precompute_s": 0.000506915,
+      "status": "ok",
+      "ate_global_rmse_m": 104.4983500897669,
+      "ate_global_per_robot_rmse_m": {
+        "A": 42.25488624793166,
+        "B": 41.26551529176417,
+        "C": 263.55592772940935
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 1.055363661175364,
+        "B": 3.965696247673502,
+        "C": 0.46093018202703273
+      }
+    },
+    "expvp": {
+      "kernel": "gm",
+      "form": "expvp",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 335,
+      "inner_cost": 693.014,
+      "robust_cost": 7779.95,
+      "wall_s": 9.15802,
+      "precompute_s": 0.000516895,
+      "status": "ok",
+      "ate_global_rmse_m": 104.49446469445326,
+      "ate_global_per_robot_rmse_m": {
+        "A": 42.25010246136331,
+        "B": 41.26227959829156,
+        "C": 263.54845424529736
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 1.0530409675414178,
+        "B": 3.94068642964238,
+        "C": 0.4615644537121593
+      }
+    },
+    "impl": {
+      "kernel": "gm",
+      "form": "impl",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 88,
+      "inner_cost": 692.98,
+      "robust_cost": 7779.91,
+      "wall_s": 0.875669,
+      "precompute_s": 0.000512598,
+      "status": "ok",
+      "ate_global_rmse_m": 104.4982182360722,
+      "ate_global_per_robot_rmse_m": {
+        "A": 42.222757681141985,
+        "B": 41.278871918868035,
+        "C": 263.5604940954822
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 1.0612013472816675,
+        "B": 3.8857708411289362,
+        "C": 0.46094746385985974
+      }
+    }
+  },
+  "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_01_night_wifi_perRobot.png",
+  "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/tuhh_r3_01_night_wifi_global.png",
+  "dataset_wall_s": 25.083322763442993
+}

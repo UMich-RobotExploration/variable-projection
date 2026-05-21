@@ -339,6 +339,20 @@ namespace VarPro
       return rel_pose_pose_measurements_;
     }
 
+    // Mutable accessor for IRLS / robust-cost weight refresh: callers may
+    // overwrite the per-measurement covariance and then call
+    // updateProblemData() to rebuild the precompute under the new weights.
+    inline std::vector<RelativePoseMeasurement> &getMutableRPMs()
+    {
+      return rel_pose_pose_measurements_;
+    }
+
+    // Same idea, for range measurements.
+    inline std::vector<RangeMeasurement> &getMutableRangeMeasurements()
+    {
+      return range_measurements_;
+    }
+
     // the data matrix that is used to construct the problem
     SparseMatrix data_matrix_;
 

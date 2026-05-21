@@ -1,0 +1,112 @@
+{
+  "dataset": "kittredge_loop_proradio",
+  "source_pyfg": "examples/data/cosmobench/proradio/kittredge_loop_proradio.pyfg",
+  "stripped_priors": true,
+  "n_priors_stripped": 4,
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 3410,
+  "n_edges": 6696,
+  "n_edges_inlier_truth": 6031,
+  "n_outliers_truth": 665,
+  "n_robots": 4,
+  "robots": [
+    "A",
+    "B",
+    "C",
+    "D"
+  ],
+  "poses_per_robot": {
+    "A": 582,
+    "B": 619,
+    "C": 842,
+    "D": 1367
+  },
+  "methods": {
+    "explicit": {
+      "kernel": "gm",
+      "form": "explicit",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 235,
+      "inner_cost": 3068.75,
+      "robust_cost": 24089.3,
+      "wall_s": 43.3713,
+      "precompute_s": 0.00447472,
+      "status": "ok",
+      "ate_global_rmse_m": 5.5146995624569755,
+      "ate_global_per_robot_rmse_m": {
+        "A": 5.484933974421616,
+        "B": 5.143988443711039,
+        "C": 4.191648144023336,
+        "D": 6.344329028023053
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 4.790929761489712,
+        "B": 4.6374802181750585,
+        "C": 4.099080907776457,
+        "D": 6.07748365923193
+      }
+    },
+    "expvp": {
+      "kernel": "gm",
+      "form": "expvp",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 143,
+      "inner_cost": 3068.75,
+      "robust_cost": 24089.3,
+      "wall_s": 22.0892,
+      "precompute_s": 0.00438938,
+      "status": "ok",
+      "ate_global_rmse_m": 5.514946212976056,
+      "ate_global_per_robot_rmse_m": {
+        "A": 5.485278379974735,
+        "B": 5.144309021612172,
+        "C": 4.191683388169258,
+        "D": 6.344605032752409
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 4.7910892276075465,
+        "B": 4.637622346003763,
+        "C": 4.099202268943763,
+        "D": 6.077683433030764
+      }
+    },
+    "impl": {
+      "kernel": "gm",
+      "form": "impl",
+      "gnc": true,
+      "init_seed": 0,
+      "dim": 3,
+      "outer_iters": 20,
+      "inner_iters_total": 97,
+      "inner_cost": 3068.75,
+      "robust_cost": 24089.3,
+      "wall_s": 4.50245,
+      "precompute_s": 0.00530906,
+      "status": "ok",
+      "ate_global_rmse_m": 5.5150331813388895,
+      "ate_global_per_robot_rmse_m": {
+        "A": 5.4853615532024,
+        "B": 5.144439001501796,
+        "C": 4.191684832976675,
+        "D": 6.344714682313659
+      },
+      "ate_per_robot_aligned_rmse_m": {
+        "A": 4.791152756966826,
+        "B": 4.637691417439255,
+        "C": 4.09925503409144,
+        "D": 6.0777845605478795
+      }
+    }
+  },
+  "plot_perRobot": "examples/data/analysis/cosmobench_irls_gnc_full/kittredge_loop_proradio_perRobot.png",
+  "plot_global": "examples/data/analysis/cosmobench_irls_gnc_full/kittredge_loop_proradio_global.png",
+  "dataset_wall_s": 71.52049231529236
+}
