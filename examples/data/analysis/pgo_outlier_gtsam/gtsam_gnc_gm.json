@@ -1,0 +1,29 @@
+{
+  "MIT_o10": {
+    "dim": 2,
+    "edges": 829,
+    "inliers": 738,
+    "outliers": 92,
+    "initial_cost": 414493.0,
+    "final_cost": 157929.0,
+    "total_s": 3.1065
+  },
+  "MIT_o20": {
+    "dim": 2,
+    "edges": 831,
+    "inliers": 817,
+    "outliers": 15,
+    "initial_cost": 565746.0,
+    "final_cost": 346022.0,
+    "total_s": 3.25591
+  },
+  "MIT_o30": {
+    "dim": 2,
+    "edges": 833,
+    "inliers": 825,
+    "outliers": 9,
+    "initial_cost": 475646.0,
+    "final_cost": 197380.0,
+    "total_s": 3.63441
+  }
+}

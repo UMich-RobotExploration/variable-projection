@@ -1,0 +1,46 @@
+{
+  "dataset": "tunnel",
+  "source_pyfg": "examples/data/nebula/tunnel.pyfg",
+  "method": "gtsam_gnc_gm",
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 1278,
+  "n_edges": 6832,
+  "n_edges_inlier_truth": 6403,
+  "n_outliers_truth": 429,
+  "n_robots": 2,
+  "robots": [
+    "C",
+    "D"
+  ],
+  "poses_per_robot": {
+    "C": 597,
+    "D": 681
+  },
+  "result": {
+    "loss": "gm",
+    "dim": 3,
+    "init_seed": 0,
+    "inliers": 6271,
+    "outliers": 561,
+    "outer": 29,
+    "inner": 60,
+    "initial_cost": 49525300.0,
+    "final_cost": 725454.0,
+    "robust_cost": 17611.9,
+    "wall_s": 3.5588,
+    "n_edges_seen": 6832,
+    "status": "ok",
+    "ate_global_rmse_m": 2.410198529843851,
+    "ate_global_per_robot_rmse_m": {
+      "C": 2.6012763657860085,
+      "D": 2.2292579458969115
+    },
+    "ate_per_robot_aligned_rmse_m": {
+      "C": 2.5883188391952974,
+      "D": 2.215058862433829
+    }
+  },
+  "dataset_wall_s": 3.5733776092529297
+}

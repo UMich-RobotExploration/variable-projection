@@ -45,4 +45,17 @@ add_executable(optimizer_diagnostics optimizer_diagnostics.cpp)
 target_link_libraries(optimizer_diagnostics VARPRO)
 target_include_directories(optimizer_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+# Optional GTSAM-based GNC-GM baseline for the PGO sweep. Builds only when
+# GTSAM is installed and locatable via its CMake config — does NOT link
+# against VARPRO so it stays a self-contained reference implementation.
+find_package(GTSAM QUIET)
+if(GTSAM_FOUND)
+  message(STATUS "Found GTSAM ${GTSAM_VERSION} — building gtsam_gnc_pgo")
+  add_executable(gtsam_gnc_pgo gtsam_gnc_pgo.cpp)
+  target_link_libraries(gtsam_gnc_pgo gtsam)
+  target_include_directories(gtsam_gnc_pgo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+else()
+  message(STATUS "GTSAM not found — skipping gtsam_gnc_pgo executable")
+endif()
+
 message(STATUS "Building main varpro_example command-line executable in directory ${EXECUTABLE_OUTPUT_PATH}\n")

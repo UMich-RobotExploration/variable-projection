@@ -1,0 +1,50 @@
+{
+  "dataset": "kth_r3_01_n01_n04_n05_proradio",
+  "source_pyfg": "examples/data/cosmobench/proradio/kth_r3_01_n01_n04_n05_proradio.pyfg",
+  "method": "gtsam_gnc_gm",
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 1609,
+  "n_edges": 2607,
+  "n_edges_inlier_truth": 2513,
+  "n_outliers_truth": 94,
+  "n_robots": 3,
+  "robots": [
+    "A",
+    "B",
+    "C"
+  ],
+  "poses_per_robot": {
+    "A": 670,
+    "B": 501,
+    "C": 438
+  },
+  "result": {
+    "loss": "gm",
+    "dim": 3,
+    "init_seed": 0,
+    "inliers": 2483,
+    "outliers": 127,
+    "outer": 34,
+    "inner": 60,
+    "initial_cost": 50113900000.0,
+    "final_cost": 194782000.0,
+    "robust_cost": 5309.06,
+    "wall_s": 2.32543,
+    "n_edges_seen": 2607,
+    "status": "ok",
+    "ate_global_rmse_m": 1.3521612144022714,
+    "ate_global_per_robot_rmse_m": {
+      "A": 1.1905357693661953,
+      "B": 0.9413408253464915,
+      "C": 1.8800867387975257
+    },
+    "ate_per_robot_aligned_rmse_m": {
+      "A": 1.0915066427200966,
+      "B": 0.5028538220434802,
+      "C": 1.4957698068360987
+    }
+  },
+  "dataset_wall_s": 2.335299253463745
+}

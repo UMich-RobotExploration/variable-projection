@@ -1,0 +1,62 @@
+{
+  "MIT_o10": {
+    "1": {
+      "dim": 2,
+      "edges": 829,
+      "inliers": 816,
+      "outliers": 14,
+      "initial_cost": 319250.0,
+      "final_cost": 306016.0,
+      "total_s": 4.95009
+    },
+    "2": {
+      "dim": 2,
+      "edges": 829,
+      "inliers": 824,
+      "outliers": 6,
+      "initial_cost": 355097.0,
+      "final_cost": 598259.0,
+      "total_s": 2.96294
+    }
+  },
+  "MIT_o20": {
+    "1": {
+      "dim": 2,
+      "edges": 831,
+      "inliers": 812,
+      "outliers": 20,
+      "initial_cost": 405027.0,
+      "final_cost": 167910.0,
+      "total_s": 2.9593
+    },
+    "2": {
+      "dim": 2,
+      "edges": 831,
+      "inliers": 824,
+      "outliers": 8,
+      "initial_cost": 442731.0,
+      "final_cost": 278573.0,
+      "total_s": 4.4784
+    }
+  },
+  "MIT_o30": {
+    "1": {
+      "dim": 2,
+      "edges": 833,
+      "inliers": 810,
+      "outliers": 24,
+      "initial_cost": 327630.0,
+      "final_cost": 179778.0,
+      "total_s": 2.77848
+    },
+    "2": {
+      "dim": 2,
+      "edges": 833,
+      "inliers": 615,
+      "outliers": 219,
+      "initial_cost": 396661.0,
+      "final_cost": 310559.0,
+      "total_s": 3.72995
+    }
+  }
+}

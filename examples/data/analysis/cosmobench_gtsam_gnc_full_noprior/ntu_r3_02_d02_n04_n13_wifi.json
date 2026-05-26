@@ -1,0 +1,50 @@
+{
+  "dataset": "ntu_r3_02_d02_n04_n13_wifi",
+  "source_pyfg": "examples/data/cosmobench/wifi/ntu_r3_02_d02_n04_n13_wifi.pyfg",
+  "method": "gtsam_gnc_gm",
+  "kernel": "gm",
+  "gnc": true,
+  "init": "odometry",
+  "n_poses": 1417,
+  "n_edges": 2154,
+  "n_edges_inlier_truth": 2124,
+  "n_outliers_truth": 30,
+  "n_robots": 3,
+  "robots": [
+    "A",
+    "B",
+    "C"
+  ],
+  "poses_per_robot": {
+    "A": 282,
+    "B": 615,
+    "C": 520
+  },
+  "result": {
+    "loss": "gm",
+    "dim": 3,
+    "init_seed": 0,
+    "inliers": 2063,
+    "outliers": 91,
+    "outer": 32,
+    "inner": 48,
+    "initial_cost": 180113000.0,
+    "final_cost": 10040800.0,
+    "robust_cost": 4158.02,
+    "wall_s": 1.51905,
+    "n_edges_seen": 2154,
+    "status": "ok",
+    "ate_global_rmse_m": 2.306267385808545,
+    "ate_global_per_robot_rmse_m": {
+      "A": 1.9317500202528122,
+      "B": 2.377371151380295,
+      "C": 2.4053608316006403
+    },
+    "ate_per_robot_aligned_rmse_m": {
+      "A": 1.2371302651685607,
+      "B": 2.260054229915498,
+      "C": 2.30523110995594
+    }
+  },
+  "dataset_wall_s": 1.5282623767852783
+}
