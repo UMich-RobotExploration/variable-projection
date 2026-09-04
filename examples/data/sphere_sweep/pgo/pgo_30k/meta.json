@@ -1,0 +1,21 @@
+{
+  "axis": "pgo",
+  "scenario": "pgo_30k",
+  "poses": 30000,
+  "landmarks": 0,
+  "obs_per_landmark": 0,
+  "total_vars": 30000,
+  "total_observations": 0,
+  "pose_to_landmark_ratio": 0.0,
+  "pose_pose_edges": 118602,
+  "odom_edges": 29999,
+  "loop_closure_edges": 88603,
+  "num_laps": 600,
+  "nodes_per_level": 50,
+  "radius": 100.0,
+  "seed": 32042,
+  "sigma_t_odom": 0.01,
+  "sigma_r_odom": 0.005,
+  "sigma_t_lmk": 0.05,
+  "rank": 5
+}

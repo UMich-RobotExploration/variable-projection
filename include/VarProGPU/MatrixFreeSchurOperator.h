@@ -39,6 +39,8 @@
 #ifdef VARPRO_HAVE_CUDA
 #include <VarProGPU/GpuLinearAlgebra.h>
 #include <VarProGPU/ManifoldKernels.h>
+#include <VarProGPU/GpuSparseSolver.h>
+#include <VarProGPU/GpuDenseSchur.h>
 #endif
 
 namespace VarProGPU {
@@ -53,6 +55,7 @@ struct VarProPrecomputeResult {
   VarPro::SparseMatrix Qmain;           ///< Upper-left block Q_c  (p × p)
   VarPro::SparseMatrix TransOffDiagRed; ///< B^T block (p × m), last col removed
   VarPro::CholFactorPtr LtransCholRed;  ///< Cholesky of M = C^T Ω C  (m × m)
+  VarPro::SparseMatrix LtransBlockRed;  ///< M itself, for the device solver
 
   // Dimensions
   int p{0};  ///< rows of X_c (dim*n_poses + n_ranges)
@@ -88,14 +91,16 @@ struct VarProPrecomputeResult {
 // ---------------------------------------------------------------------------
 
 inline VarProPrecomputeResult buildPrecomputeResult(VarPro::Problem& prob) {
-  if (prob.getFormulation() != VarPro::Formulation::Implicit)
+  if (!VarPro::isMarginalized(prob.getFormulation()))
     throw std::runtime_error(
-        "buildPrecomputeResult: problem must use Formulation::Implicit");
+        "buildPrecomputeResult: problem must use Formulation::Implicit or "
+        "Formulation::Dense");
 
   VarProPrecomputeResult res;
   res.Qmain           = prob.Qmain_;
   res.TransOffDiagRed = prob.TransOffDiagRed_;
   res.LtransCholRed   = prob.LtransCholRed_;
+  res.LtransBlockRed  = prob.LtransBlockRed_;
   res.p               = prob.rotAndRangeMatrixSize();
   res.m               = prob.numTranslationalStates() - 1;
   res.r               = static_cast<int>(prob.getRelaxationRank());
@@ -231,6 +236,44 @@ class GpuSchurOperator {
     p_ = pre_.p;
     m_ = pre_.m;
     r_ = pre_.r;
+
+    // Device-resident M^{-1}. Without this every Hessian-vector product pays a
+    // synchronize + D2H + host CHOLMOD solve + H2D; with it the whole operator
+    // stays on the stream.
+    if (gpuSparseSolverAvailable() && pre_.LtransBlockRed.rows() == m_) {
+      try {
+        Msolver_ = std::make_unique<GpuSparseSolver>(pre_.LtransBlockRed, ctx_);
+      } catch (const std::exception&) {
+        Msolver_.reset();  // fall back to the host path below
+      }
+    }
+  }
+
+  /// True when M^{-1} is applied on device (no host round-trip per product).
+  bool deviceResident() const { return static_cast<bool>(Msolver_); }
+
+  /**
+   * @brief Refresh the operator after an IRLS reweighting (Algorithm 2, line 5).
+   *
+   * Reweighting rescales measurement precisions, so Qmain/B/M change value but
+   * not sparsity pattern. Rebuilding would redo three CSR uploads plus a full
+   * cuDSS reordering + symbolic analysis every outer iteration; this refreshes
+   * values and reuses the symbolic factorization. Returns false if the pattern
+   * moved and a full rebuild is required.
+   */
+  bool update() {
+    Eigen::SparseMatrix<double, Eigen::RowMajor> Qrm = pre_.Qmain;
+    Eigen::SparseMatrix<double, Eigen::RowMajor> Brm = pre_.TransOffDiagRed;
+    Eigen::SparseMatrix<double, Eigen::RowMajor> Btrm =
+        VarPro::SparseMatrix(pre_.TransOffDiagRed.transpose());
+    if (!updateEigenSparseValues(Qmain_dev_, Qrm)) return false;
+    if (!updateEigenSparseValues(TransOffDiagRed_dev_, Brm)) return false;
+    if (!updateEigenSparseValues(TransOffDiagRedT_dev_, Btrm)) return false;
+    if (Msolver_) {
+      try { Msolver_->refactorize(pre_.LtransBlockRed); }
+      catch (const std::exception&) { return false; }
+    }
+    return true;
   }
 
   ~GpuSchurOperator() = default;
@@ -268,11 +311,16 @@ class GpuSchurOperator {
     // P1 = TransOffDiagRed^T * X    (m × cols)
     spmmCSR(ctx_, TransOffDiagRedT_dev_, X, P1_dev_);
 
-    // CPU triangular solve: P2 = (L L^T)^{-1} P1 via CHOLMOD
-    ctx_.synchronize();
-    VarPro::Matrix P1_host = P1_dev_.download();
-    VarPro::Matrix P2_host = pre_.LtransCholRed->solve(P1_host);
-    P2_dev_.upload(P2_host);
+    // P2 = M^{-1} P1. On device via cuDSS when available; otherwise the
+    // legacy host CHOLMOD round-trip (synchronize + D2H + solve + H2D).
+    if (Msolver_) {
+      Msolver_->solve(P1_dev_, P2_dev_);
+    } else {
+      ctx_.synchronize();
+      VarPro::Matrix P1_host = P1_dev_.download();
+      VarPro::Matrix P2_host = pre_.LtransCholRed->solve(P1_host);
+      P2_dev_.upload(P2_host);
+    }
 
     // QX = Qmain * X                (p × cols), stored in Y
     spmmCSR(ctx_, Qmain_dev_, X, Y);
@@ -319,7 +367,118 @@ class GpuSchurOperator {
   mutable GpuDenseMatrix P2_dev_;   // m × r
   mutable GpuDenseMatrix P3_dev_;   // p × r
 
+  std::unique_ptr<GpuSparseSolver> Msolver_;
+
   int p_, m_, r_;
+};
+
+// ---------------------------------------------------------------------------
+// GpuDenseSchurOperator — for Formulation::Dense
+//
+// The reduced system Q_sc is formed explicitly and each operator application
+// is then a single cuBLAS SYMM. Unlike GpuSchurOperator this has *no* host
+// round-trip per application -- there is no triangular solve left to do --
+// but it costs p^2 doubles of VRAM, which is the trade this baseline exists
+// to measure.
+//
+// Two ways to get Q_sc:
+//   - the (pre) constructor forms it on device (formDenseSchurOnDevice), which
+//     is what you want: on the larger problems the host formation costs more
+//     than the whole solve that follows it;
+//   - the (pre, Qsc) constructor uploads an already-formed host matrix, for
+//     builds without cuDSS and for tests that want to compare the two.
+// ---------------------------------------------------------------------------
+
+class GpuDenseSchurOperator {
+ public:
+  /// Form Q_sc on the device from the precompute. Requires cuDSS.
+  GpuDenseSchurOperator(const VarProPrecomputeResult& pre, GpuContext& ctx)
+      : pre_(pre), ctx_(ctx), p_(pre.p) {
+    pre_.check();
+    if (pre_.LtransBlockRed.rows() != pre_.m)
+      throw std::runtime_error(
+          "GpuDenseSchurOperator: precompute is missing M (LtransBlockRed); "
+          "device formation needs it.");
+    Msolver_ = std::make_unique<GpuSparseSolver>(pre_.LtransBlockRed, ctx_);
+    formDenseSchurOnDevice(pre_.Qmain, pre_.TransOffDiagRed, ctx_, *Msolver_,
+                           Qsc_dev_);
+    device_formed_ = true;
+  }
+
+  /// Upload an already-formed host Q_sc (Problem::fillDenseSchurMatrix).
+  GpuDenseSchurOperator(const VarProPrecomputeResult& pre,
+                        const VarPro::Matrix& Qsc,
+                        GpuContext& ctx)
+      : pre_(pre), ctx_(ctx), p_(pre.p) {
+    pre_.check();
+    if (Qsc.rows() != p_ || Qsc.cols() != p_)
+      throw std::runtime_error(
+          "GpuDenseSchurOperator: Q_sc must be p x p");
+    // Eigen is column-major by default, matching cuBLAS.
+    Qsc_dev_.allocate(static_cast<std::size_t>(p_) * p_);
+    Qsc_dev_.upload(Qsc.data(), static_cast<std::size_t>(p_) * p_);
+  }
+
+  GpuDenseSchurOperator(const GpuDenseSchurOperator&) = delete;
+  GpuDenseSchurOperator& operator=(const GpuDenseSchurOperator&) = delete;
+
+  void applyDevice(const GpuDenseMatrix& X, GpuDenseMatrix& Y) const {
+    dsymm(ctx_, Qsc_dev_.get(), p_, X, Y);
+  }
+
+  VarPro::Matrix apply(const VarPro::Matrix& X) const {
+    X_dev_.upload(X);
+    applyDevice(X_dev_, Y_dev_);
+    ctx_.synchronize();
+    return Y_dev_.download();
+  }
+
+  VarPro::Scalar cost(const VarPro::Matrix& X) const {
+    return 0.5 * (X.transpose() * apply(X)).trace();
+  }
+
+  GpuContext& context() const { return ctx_; }
+  const VarProPrecomputeResult& precompute() const { return pre_; }
+
+  /// True when Q_sc was built on the device rather than uploaded.
+  bool deviceFormed() const { return device_formed_; }
+
+  /**
+   * @brief Re-form Q_sc after an IRLS reweighting, reusing the cached cuDSS
+   * symbolic factorization of M (Algorithm 2, line 5). Q_sc's values all change
+   * so the p x p matrix must be rebuilt, but M's pattern does not, so only the
+   * numeric factorization repeats.
+   */
+  bool update() {
+    if (!device_formed_ || !Msolver_) return false;
+    try { Msolver_->refactorize(pre_.LtransBlockRed); }
+    catch (const std::exception&) { return false; }
+    formDenseSchurOnDevice(pre_.Qmain, pre_.TransOffDiagRed, ctx_, *Msolver_,
+                            Qsc_dev_);
+    return true;
+  }
+
+  /// Copy the reduced system back to the host (p x p -- for tests only).
+  VarPro::Matrix downloadQsc() const {
+    VarPro::Matrix Q(p_, p_);
+    Qsc_dev_.download(Q.data());
+    return Q;
+  }
+
+  // VRAM held by the reduced system, in GB.
+  double deviceGB() const {
+    return static_cast<double>(p_) * p_ * sizeof(double) / 1e9;
+  }
+
+ private:
+  const VarProPrecomputeResult& pre_;
+  GpuContext& ctx_;
+  DeviceBuffer<double> Qsc_dev_;
+  mutable GpuDenseMatrix X_dev_;
+  mutable GpuDenseMatrix Y_dev_;
+  int p_;
+  bool device_formed_{false};
+  std::unique_ptr<GpuSparseSolver> Msolver_;  // reused across IRLS iterations
 };
 
 // ---------------------------------------------------------------------------
@@ -335,6 +494,13 @@ class GpuExplicitOperator {
     uploadEigenSparse(Q_dev_, prob.data_matrix_);
     n_ = prob.getDataMatrixSize();
     r_ = static_cast<int>(prob.getRelaxationRank());
+  }
+
+  /// Refresh the data-matrix values after an IRLS reweighting; the pattern is
+  /// fixed, so no structure re-upload and no descriptor churn.
+  bool update() {
+    Eigen::SparseMatrix<double, Eigen::RowMajor> Qrm = prob_.data_matrix_;
+    return updateEigenSparseValues(Q_dev_, Qrm);
   }
 
   void applyDevice(const GpuDenseMatrix& X, GpuDenseMatrix& Y) const {

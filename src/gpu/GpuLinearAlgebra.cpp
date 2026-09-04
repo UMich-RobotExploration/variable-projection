@@ -126,6 +126,27 @@ double dnrm2(GpuContext& ctx, const GpuDenseMatrix& X) {
   return result;
 }
 
+void dsymm(GpuContext& ctx,
+           const double* A, int n,
+           const GpuDenseMatrix& X,
+           GpuDenseMatrix& Y,
+           double alpha,
+           double beta) {
+  if (X.rows != n)
+    throw std::runtime_error("dsymm: X.rows must equal n");
+  if (Y.rows != n || Y.cols != X.cols) Y.resize(n, X.cols);
+  // Y = alpha * A * X + beta * Y, A symmetric (lower triangle referenced),
+  // all matrices column-major with leading dimension = row count.
+  CUBLAS_CHECK(cublasDsymm(ctx.cublas.get(),
+                           CUBLAS_SIDE_LEFT, CUBLAS_FILL_MODE_LOWER,
+                           n, X.cols,
+                           &alpha,
+                           A, n,
+                           X.data.get(), X.rows,
+                           &beta,
+                           Y.data.get(), Y.rows));
+}
+
 void dcopy(GpuContext& ctx,
            const GpuDenseMatrix& X,
            GpuDenseMatrix& Y) {

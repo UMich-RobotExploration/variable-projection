@@ -54,9 +54,29 @@ enum class Formulation {
   // The original problem, but where the translations are set to their optimal
   // values at each iterate
   ExplicitVarPro,
-  // The problem in which translations are marginalized out
-  Implicit
+  // The problem in which translations are marginalized out, with the Schur
+  // complement applied matrix-free
+  Implicit,
+  // The problem in which translations are marginalized out, with the Schur
+  // complement Q_sc = Q_c - B M^{-1} B^T formed *explicitly* as a dense
+  // matrix (the classical "reduced camera system" of dense bundle
+  // adjustment). Identical to Implicit in every respect -- same variables,
+  // same manifold, same preconditioner, same translation recovery -- except
+  // that the operator application is a dense GEMM instead of the matrix-free
+  // sparse triple product. Exists as a baseline: it is quadratic in memory
+  // where Implicit is linear.
+  Dense
 };
+
+/** True for the formulations that marginalize the translations out, i.e. whose
+ * decision variable is the reduced (rotation + range) block rather than the
+ * full variable. Implicit and Dense differ *only* in how the Schur complement
+ * operator is applied, so every site that branches on "is this the reduced
+ * problem?" must use this predicate rather than comparing to
+ * Formulation::Implicit. */
+inline bool isMarginalized(Formulation f) {
+  return f == Formulation::Implicit || f == Formulation::Dense;
+}
 
 struct CertResults {
   bool is_certified;

@@ -4,5 +4,23 @@
   "max_rank": 5,
   "abs_data_path": "/home/nikolas/variable-projection/examples/data/",
   "num_inits": 5,
-  "scale_reg_weight": 0.01
+  "scale_reg_weight": 0.01,
+  "_comment_formulations": "Which formulations to sweep. Omit or leave empty for the default three (Explicit, ExplicitVarPro, Implicit). Add \"Dense\" to also run the explicitly-formed Schur complement baseline. Overridden by the VARPRO_FORMULATION env var (comma-separated), which is how one formulation is isolated per process for memory measurement.",
+  "formulations": [
+    "Explicit",
+    "ExplicitVarPro",
+    "Implicit",
+    "Dense"
+  ],
+  "_comment_max_dense_gb": "Refuse to form a dense reduced system larger than this many GB. Skipped runs are still recorded, with skip_reason=dense_too_large and the dense_gb it would have needed. At 8 GB this covers 49/51 standard datasets; mrclam2 (39.8 GB) and mrclam4 (29.0 GB) are excluded.",
+  "max_dense_gb": 8.0,
+  "_comment_skip_substrings": "Dataset discovery is 'any leaf dir holding a .pyfg'. These families are the robust-experiment datasets (run via run_cosmobench_irls_gnc_sweep.py), have no inits/, and are not part of the standard benchmark.",
+  "skip_substrings": [
+    "cosmobench",
+    "nebula",
+    "pgo_outliers",
+    "sphere_sweep"
+  ],
+  "_comment_sfm_use_scaled_stiefel": "false = solve SfM on the plain Stiefel manifold (no per-pose scales, no log-barrier); true = use (R_{>0} x St(p,k))^n with the scale_reg_weight log-barrier. NOTE: gpu_paper_experiments always uses scaled Stiefel, so CPU and GPU SfM results are not comparable while this is false.",
+  "sfm_use_scaled_stiefel": false
 }

@@ -49,6 +49,7 @@ static bool testTNTSolver(const std::string& label,
                            const std::string& path,
                            VarPro::Formulation formulation) {
   std::cout << "  [TNT/" << (formulation == VarPro::Formulation::Implicit ? "Implicit" :
+                              formulation == VarPro::Formulation::Dense ? "Dense" :
                               formulation == VarPro::Formulation::ExplicitVarPro ? "VarPro" : "Explicit")
             << "] " << label << " ... ";
 

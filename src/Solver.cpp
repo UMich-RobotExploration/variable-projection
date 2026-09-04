@@ -1,4 +1,7 @@
 #include <VarPro/Solver.h>
+
+#include <cstdlib>
+#include <limits>
 #include <VarPro/Utils.h>
 
 #include <Optimization/Base/Concepts.h>
@@ -49,7 +52,10 @@ namespace VarPro
       }
       else
       {
-        checkMatrixShape("solveCora::Implicit", problem.rotAndRangeMatrixSize(),
+        // Implicit and Dense share the reduced variable size; they differ only
+        // in how the Schur complement operator is applied.
+        checkMatrixShape("solveCora::Marginalized",
+                         problem.rotAndRangeMatrixSize(),
                          x0.cols(), x0.rows(), x0.cols());
       }
 
@@ -117,14 +123,40 @@ namespace VarPro
       params.Delta0 = 5;
       params.alpha2 = 3.0;
       params.max_TPCG_iterations = 80;
+      // Outer-iteration budget. Overridable via VARPRO_MAX_ITERATIONS so a
+      // sweep can be re-run without an iteration cap; <= 0 means no limit (the
+      // solve is then bounded only by the gradient / relative-decrease /
+      // stepsize / trust-region tolerances). Default 500 preserves the
+      // historical behaviour.
       params.max_iterations = 500;
+      if (const char *env_max_iters = std::getenv("VARPRO_MAX_ITERATIONS"))
+      {
+        const long n = std::atol(env_max_iters);
+        // Not SIZE_MAX: TNT does reserve(max_iterations + 1) on its logging
+        // vectors, which would wrap. 1e6 is effectively unbounded here (the
+        // slowest solve in this sweep runs ~30 s/iter) and reserves ~8 MB.
+        constexpr size_t kEffectivelyUnbounded = 1000000;
+        params.max_iterations =
+            (n > 0) ? static_cast<size_t>(n) : kEffectivelyUnbounded;
+      }
       params.preconditioned_gradient_tolerance = 1e-6;
       params.gradient_tolerance = 1e-6;
       params.theta = 0.8;
       params.Delta_tolerance = 1e-5;
       params.verbose = verbose;
       params.precision = 2;
+      // Per-solve wall-clock budget, in seconds. Overridable via the
+      // VARPRO_MAX_COMPUTATION_TIME environment variable so a sweep can be
+      // re-run uncapped without a rebuild; <= 0 means no time limit (the
+      // solve is then bounded only by max_iterations and the tolerances).
+      // Default 500 preserves the historical behaviour.
       params.max_computation_time = 500;
+      if (const char *env_max_time = std::getenv("VARPRO_MAX_COMPUTATION_TIME"))
+      {
+        const double t = std::atof(env_max_time);
+        params.max_computation_time =
+            (t > 0.0) ? t : std::numeric_limits<double>::max();
+      }
       params.relative_decrease_tolerance = 1e-6;
       params.stepsize_tolerance = 1e-6;
       params.log_iterates = false;

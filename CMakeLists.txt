@@ -105,7 +105,7 @@ add_subdirectory(${PRECONDITIONERS_DIR})
 set(VARPRO_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
 set(VARPRO_HDR_DIR ${VARPRO_INCLUDE_DIR}/VarPro)
 set(VARPRO_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src)
-set(VARPRO_EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/examples)
+set(VARPRO_EXAMPLES_DIR ${CMAKE_CURRENT_SOURCE_DIR}/examples/cpp)
 
 # The VARPRO headers and and Eigen 3, SPQR, and Cholmod are all referenced by the
 # header files of the VARPRO library, hence must be PUBLICLY included (i.e.
@@ -176,11 +176,34 @@ if(${ENABLE_GPU})
   set(CMAKE_CUDA_STANDARD 17)
   set(CMAKE_CUDA_STANDARD_REQUIRED ON)
 
-  # Detect GPU architecture; default to sm_86 (Ampere) if not set
-  if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES)
-    set(CMAKE_CUDA_ARCHITECTURES "86" CACHE STRING "CUDA architectures to compile for")
-    message(STATUS "CMAKE_CUDA_ARCHITECTURES not set; defaulting to sm_86 (Ampere)")
+  # GPU architecture. Default to the *native* architecture of the card in the
+  # machine rather than a hardcoded sm_86: building sm_86 on a newer card means
+  # every kernel is JIT-recompiled from Ampere PTX at load time, and (worse)
+  # links whatever cuBLAS/cuSPARSE ship with the chosen toolkit, which for an
+  # old nvcc have no tuning for the actual device.
+  #
+  # "native" needs CMake >= 3.24 and an nvcc that knows the arch; if the
+  # toolkit is too old for the installed GPU, fall back to the newest virtual
+  # architecture it does support so we at least emit forward-compatible PTX.
+  # CMake "native" needs >= 3.24, so pick from the toolkit version instead.
+  # 12.8+ can emit real SASS for Blackwell (sm_120); 12.0-12.7 top out at
+  # sm_90, so emit compute_90 PTX and let the driver JIT forward to newer
+  # cards; anything older keeps the historical sm_86 default.
+  # CMake < 3.24 pre-populates CMAKE_CUDA_ARCHITECTURES with a low default
+  # (often 52) during enable_language(CUDA), so NOT DEFINED is not enough --
+  # also override that stale default unless the user asked for it explicitly.
+  if(NOT DEFINED VARPRO_CUDA_ARCH_USER_SET AND
+     (NOT DEFINED CMAKE_CUDA_ARCHITECTURES OR CMAKE_CUDA_ARCHITECTURES STREQUAL "52"))
+    if(CUDAToolkit_VERSION VERSION_GREATER_EQUAL 12.8)
+      set(CMAKE_CUDA_ARCHITECTURES "120" CACHE STRING "CUDA architectures to compile for" FORCE)
+    elseif(CUDAToolkit_VERSION VERSION_GREATER_EQUAL 12.0)
+      set(CMAKE_CUDA_ARCHITECTURES "90-virtual" CACHE STRING "CUDA architectures to compile for" FORCE)
+    else()
+      set(CMAKE_CUDA_ARCHITECTURES "86" CACHE STRING "CUDA architectures to compile for" FORCE)
+    endif()
+    message(STATUS "auto-selected CUDA arch: ${CMAKE_CUDA_ARCHITECTURES}")
   endif()
+  message(STATUS "CUDA toolkit ${CUDAToolkit_VERSION} at ${CUDAToolkit_BIN_DIR}")
 
   set(VARPROGPU_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
   set(VARPROGPU_CUDA_DIR    ${CMAKE_CURRENT_SOURCE_DIR}/cuda)
@@ -193,6 +216,8 @@ if(${ENABLE_GPU})
     ${VARPROGPU_INCLUDE_DIR}/VarProGPU/MatrixFreeSchurOperator.h
     ${VARPROGPU_INCLUDE_DIR}/VarProGPU/RTRSolver.h
     ${VARPROGPU_INCLUDE_DIR}/VarProGPU/GpuRTRSolver.h
+    ${VARPROGPU_INCLUDE_DIR}/VarProGPU/GpuSparseSolver.h
+    ${VARPROGPU_INCLUDE_DIR}/VarProGPU/GpuDenseSchur.h
   )
 
   set(VARPROGPU_CUDA_SRCS
@@ -204,7 +229,27 @@ if(${ENABLE_GPU})
   set(VARPROGPU_CXX_SRCS
     ${CMAKE_CURRENT_SOURCE_DIR}/src/gpu/GpuLinearAlgebra.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/gpu/ManifoldOps.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/gpu/GpuSparseSolver.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/gpu/GpuDenseSchur.cpp
   )
+
+  # cuDSS: NVIDIA's sparse direct solver. Optional -- without it the
+  # marginalized formulations fall back to solving M on the host via CHOLMOD,
+  # which costs a synchronize + PCIe round-trip per inner tCG iteration.
+  find_path(CUDSS_INCLUDE_DIR cudss.h
+    HINTS ${CUDAToolkit_INCLUDE_DIRS} /usr/include/libcudss/12 /usr/include/libcudss
+          /usr/local/cudss/include
+    PATH_SUFFIXES include)
+  find_library(CUDSS_LIBRARY NAMES cudss
+    HINTS /usr/lib/x86_64-linux-gnu/libcudss/12 /usr/lib/x86_64-linux-gnu/libcudss
+          /usr/local/cudss/lib64 ${CUDAToolkit_LIBRARY_DIR})
+  if(CUDSS_INCLUDE_DIR AND CUDSS_LIBRARY)
+    message(STATUS "Found cuDSS: ${CUDSS_LIBRARY}")
+    set(VARPRO_CUDSS_FOUND TRUE)
+  else()
+    message(STATUS "cuDSS NOT found - GPU sparse solves will fall back to host CHOLMOD")
+    set(VARPRO_CUDSS_FOUND FALSE)
+  endif()
 
   add_library(VARPROGPU SHARED
     ${VARPROGPU_HDRS}
@@ -222,6 +267,11 @@ if(${ENABLE_GPU})
     CUDA::cusparse
   )
   target_compile_definitions(VARPROGPU PUBLIC VARPRO_HAVE_CUDA)
+  if(VARPRO_CUDSS_FOUND)
+    target_include_directories(VARPROGPU PUBLIC ${CUDSS_INCLUDE_DIR})
+    target_link_libraries(VARPROGPU PUBLIC ${CUDSS_LIBRARY})
+    target_compile_definitions(VARPROGPU PUBLIC VARPRO_HAVE_CUDSS)
+  endif()
 
   # Propagate definition to CPU targets that #include the GPU headers
   target_compile_definitions(VARPRO PUBLIC VARPRO_HAVE_CUDA)

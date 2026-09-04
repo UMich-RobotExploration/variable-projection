@@ -4,8 +4,11 @@ For each dataset, with priors stripped (the JRL priors have variance 1e-8/1e-6
 which makes the Hessian ill-conditioned and crashes the inner solver):
 
   1. Run `build/bin/irls_robust --gnc --kernel gm --formulation {explicit, expvp, impl}`
+     (pass --include-dense to add the `dense` baseline, which forms the reduced
+     system explicitly and re-forms it every IRLS outer iteration)
      from the same odometry init.
   2. Compute ATE (global Umeyama + per-robot Umeyama) against ground truth.
+     Results are JSON only -- this script collects data and renders nothing.
   3. Write a per-dataset JSON with all the metrics for the table.
   4. Render the 4-panel trajectory plot (GT + 3 methods, per-robot aligned).
 
@@ -20,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -32,8 +36,8 @@ import numpy as np
 
 
 REPO = Path(__file__).resolve().parent.parent
-IRLS_BIN = REPO / "build" / "bin" / "irls_robust"
-PLOT_SCRIPT = REPO / "examples" / "plot_cosmobench_irls.py"
+IRLS_BIN = Path(os.environ.get("VARPRO_IRLS_BIN",
+                                 REPO / "build" / "bin" / "irls_robust"))
 
 DATASETS_ROOTS = [
     REPO / "examples" / "data" / "cosmobench" / "wifi",
@@ -41,13 +45,21 @@ DATASETS_ROOTS = [
     REPO / "examples" / "data" / "nebula",
 ]
 
+# The three formulations the paper compares. "dense" (explicitly-formed Schur
+# complement) is opt-in via --include-dense: it is a memory/time baseline, and
+# under IRLS it re-forms the p x p reduced system on every outer iteration.
 METHODS = ["explicit", "expvp", "impl"]
+DENSE_METHOD = "dense"
 
 IRLS_RESULT_RE = re.compile(
     r"IRLS_RESULT\s+kernel=(\S+)\s+form=(\S+)\s+gnc=(\d+)\s+init_seed=(\d+)\s+"
     r"dim=(\d+)\s+outer=(\d+)\s+inner=(\d+)\s+final_cost=(\S+)\s+"
     r"robust_cost=(\S+)\s+total_s=(\S+)\s+precompute_s=(\S+)"
 )
+# Emitted only by builds that know about the Dense formulation; parsed
+# separately so older result lines still match the main regex.
+TOTAL_PRECOMPUTE_RE = re.compile(r"total_precompute_s=(\S+)")
+DENSE_GB_RE = re.compile(r"dense_gb=(\S+)")
 
 
 # ---------------------------------------------------------------------------
@@ -158,18 +170,44 @@ def parse_irls_result(stdout: str) -> Optional[Dict[str, object]]:
                 "robust_cost": float(m.group(9)),
                 "wall_s": float(m.group(10)),
                 "precompute_s": float(m.group(11)),
+                # Total precompute across all IRLS outer iterations (IRLS calls
+                # updateProblemData() once per iteration). Falls back to the
+                # single-shot number for binaries that predate the field.
+                "total_precompute_s": (
+                    float(tp.group(1))
+                    if (tp := TOTAL_PRECOMPUTE_RE.search(line))
+                    else float(m.group(11))
+                ),
+                "dense_gb": (
+                    float(dg.group(1))
+                    if (dg := DENSE_GB_RE.search(line))
+                    else 0.0
+                ),
             }
     return None
 
 
+def rel_to_repo(path: Path) -> str:
+    """Repo-relative posix path, falling back to absolute if outside the repo."""
+    try:
+        return path.resolve().relative_to(REPO).as_posix()
+    except ValueError:
+        return str(path.resolve())
+
+
 def run_one_method(pyfg_no_priors: Path, formulation: str, tum_dir: Path,
-                    timeout_s: float) -> Tuple[Dict[str, object], Path]:
+                    timeout_s: float, use_gpu: bool = False) -> Tuple[Dict[str, object], Path]:
     init_tum = tum_dir / f"init_{formulation}.tum"
     final_tum = tum_dir / f"final_{formulation}.tum"
     cmd = [
         str(IRLS_BIN), str(pyfg_no_priors), str(init_tum), str(final_tum),
         "--kernel", "gm", "--formulation", formulation, "--gnc",
     ]
+    if use_gpu:
+        # Runs each IRLS inner solve on the GPU RTR solver. The operator is
+        # rebuilt every outer iteration because reweighting rewrites the
+        # covariances, so small problems are dominated by that setup cost.
+        cmd.append("--gpu")
     t0 = time.time()
     try:
         result = subprocess.run(cmd, capture_output=True, text=True,
@@ -190,21 +228,6 @@ def run_one_method(pyfg_no_priors: Path, formulation: str, tum_dir: Path,
         }, final_tum
     stats["status"] = "ok"
     return stats, final_tum
-
-
-def render_plot(pyfg_no_priors: Path, tum_explicit: Path, tum_expvp: Path,
-                tum_impl: Path, out_png: Path, per_robot_align: bool) -> None:
-    cmd = [
-        sys.executable, str(PLOT_SCRIPT),
-        "--pyfg", str(pyfg_no_priors),
-        "--tum-explicit", str(tum_explicit),
-        "--tum-expvp", str(tum_expvp),
-        "--tum-impl", str(tum_impl),
-        "-o", str(out_png),
-    ]
-    if per_robot_align:
-        cmd.append("--per-robot-align")
-    subprocess.run(cmd, check=True, capture_output=True)
 
 
 # ---------------------------------------------------------------------------
@@ -228,12 +251,16 @@ def list_datasets() -> List[Path]:
     return out
 
 
-def sweep(out_dir: Path, scratch_dir: Path, timeout_s: float) -> None:
+def sweep(out_dir: Path, scratch_dir: Path, timeout_s: float,
+          include_dense: bool = False, use_gpu: bool = False) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     scratch_dir.mkdir(parents=True, exist_ok=True)
 
+    methods = METHODS + ([DENSE_METHOD] if include_dense else [])
+
     datasets = list_datasets()
-    print(f"sweeping {len(datasets)} datasets into {out_dir}\n")
+    print(f"sweeping {len(datasets)} datasets into {out_dir} "
+          f"(methods: {', '.join(methods)})\n")
     t_start = time.time()
 
     for idx, pyfg in enumerate(datasets, start=1):
@@ -279,9 +306,9 @@ def sweep(out_dir: Path, scratch_dir: Path, timeout_s: float) -> None:
 
         per_method_status = []
         method_tums: Dict[str, Path] = {}
-        for form in METHODS:
+        for form in methods:
             stats, final_tum = run_one_method(pyfg_no_priors, form, ds_scratch,
-                                                timeout_s)
+                                                timeout_s, use_gpu=use_gpu)
             method_tums[form] = final_tum
             if stats.get("status") == "ok":
                 # ATE
@@ -297,25 +324,6 @@ def sweep(out_dir: Path, scratch_dir: Path, timeout_s: float) -> None:
             record["methods"][form] = stats
             mark = "ok" if stats.get("status") == "ok" else stats.get("status", "?")
             per_method_status.append(f"{form}:{mark}")
-
-        # Plot (per-robot aligned) if all three methods finished
-        plot_ok = all(record["methods"][f].get("status") == "ok" for f in METHODS)
-        if plot_ok:
-            plot_perRobot = out_dir / f"{name}_perRobot.png"
-            plot_global = out_dir / f"{name}_global.png"
-            try:
-                render_plot(pyfg_no_priors, method_tums["explicit"],
-                            method_tums["expvp"], method_tums["impl"],
-                            plot_perRobot, per_robot_align=True)
-                render_plot(pyfg_no_priors, method_tums["explicit"],
-                            method_tums["expvp"], method_tums["impl"],
-                            plot_global, per_robot_align=False)
-                record["plot_perRobot"] = plot_perRobot.relative_to(REPO).as_posix()
-                record["plot_global"] = plot_global.relative_to(REPO).as_posix()
-            except subprocess.CalledProcessError as e:
-                record["plot_error"] = e.stderr.decode("utf-8", errors="replace")[:400]
-        else:
-            record["plot_error"] = "skipped (one or more methods failed)"
 
         ds_wall = time.time() - ds_t0
         record["dataset_wall_s"] = ds_wall
@@ -344,11 +352,21 @@ def main() -> int:
                      help="scratch directory for stripped-prior pyfg + TUM outputs")
     ap.add_argument("--timeout", type=float, default=600.0,
                      help="per-method timeout in seconds (default 600)")
+    ap.add_argument("--gpu", action="store_true",
+                     help="run each IRLS inner solve on the GPU RTR solver "
+                          "(irls_robust --gpu); requires an ENABLE_GPU build")
+    ap.add_argument("--include-dense", action="store_true",
+                     help="also run the `dense` formulation (explicitly-formed "
+                          "Schur complement). Off by default: it holds a p x p "
+                          "matrix and re-forms it every IRLS outer iteration.")
     args = ap.parse_args()
+    args.out = args.out.resolve()
+    args.scratch = args.scratch.resolve()
     if not IRLS_BIN.exists():
         print(f"missing binary: {IRLS_BIN}", file=sys.stderr)
         return 2
-    sweep(args.out, args.scratch, args.timeout)
+    sweep(args.out, args.scratch, args.timeout, args.include_dense,
+           use_gpu=args.gpu)
     return 0
 
 

@@ -26,8 +26,8 @@ Landmark augmentation (not present in the g2o example):
   * Observations are 3-D relative translations in each pose's body frame
     (EDGE_SE3_XYZ), with translational σ = 0.05 m.
 
-Two sweep axes (same names + grid as the SfM sweep so the plot code reuses
-the existing aggregate / sweep_plots pipeline):
+Two sweep axes (same names + grid as the SfM sweep, so the aggregate
+results JSON is directly comparable across sweeps):
 
   size  - total (P + L) at fixed pose:landmark ratio (1:5)
   ratio - pose:landmark ratio at fixed P (= 990 poses, 33 laps × 30 nodes)
@@ -65,6 +65,16 @@ SIZE_GRID = [2_000, 3_000, 5_000, 7_500, 10_000, 15_000, 22_000]
 RATIO_FIXED_POSE_TO_LANDMARK = (1, 5)
 RATIO_FIXED_POSES = 33 * NODES_PER_LEVEL    # 990 poses for the ratio sweep
 RATIO_GRID = [(1, 1), (1, 2), (1, 3), (1, 5), (1, 10), (1, 20), (1, 50), (1, 100)]
+
+# Axis C: pure pose-graph size sweep -- no landmarks, i.e. exactly the g2o
+# create_sphere example. nodes_per_level is pinned to g2o's own default of 50
+# (which is also what sphere2500 uses), so every scenario differs *only* in
+# the number of laps and therefore only in problem size. Every target below is
+# an exact multiple of 50, so P lands on the round number.
+PGO_NODES_PER_LEVEL = 50
+PGO_SIZE_GRID = [1_000, 2_000, 3_000, 4_000, 5_000, 6_000,
+                 7_000, 8_000, 9_000, 10_000,
+                 15_000, 20_000, 30_000, 50_000]
 
 FORMULATION_NAME = {0: "Explicit", 1: "ExplicitVarPro", 2: "Implicit"}
 
@@ -130,6 +140,19 @@ def make_scenarios() -> list[Scenario]:
             n_landmarks=L,
             K=OBS_PER_LANDMARK,
             seed=base_seed + 1000 + b,
+        ))
+
+    # Axis C: pure PGO (no landmarks), the unmodified g2o sphere.
+    for P in PGO_SIZE_GRID:
+        assert P % PGO_NODES_PER_LEVEL == 0, f"{P} not a multiple of nodes_per_level"
+        scenarios.append(Scenario(
+            axis="pgo",
+            name=f"pgo_{P // 1000}k",
+            num_laps=P // PGO_NODES_PER_LEVEL,
+            nodes_per_level=PGO_NODES_PER_LEVEL,
+            n_landmarks=0,
+            K=0,
+            seed=base_seed + 2000 + P,
         ))
     return scenarios
 
@@ -405,12 +428,27 @@ def generate_scenario(scenario: Scenario, out_root: Path) -> Path:
 
 
 def cmd_generate(args: argparse.Namespace) -> int:
-    if SWEEP_ROOT.exists() and not args.force:
-        print(f"{SWEEP_ROOT.relative_to(REPO)} already exists. Pass --force to overwrite.")
+    axis = getattr(args, "axis", None)
+    scenarios = [sc for sc in make_scenarios() if axis is None or sc.axis == axis]
+
+    # NB: this deliberately does NOT delete the axis directory. It used to
+    # rmtree it under --force, which silently destroys cached_results/, inits/
+    # and results.json alongside the .pyfg -- i.e. potentially days of solver
+    # output. Scenarios that already have a .pyfg are skipped unless --force,
+    # and --force only rewrites the .pyfg + meta.json in place (generation is
+    # seeded per scenario, so a regenerated file is byte-identical anyway).
+    existing = [sc for sc in scenarios
+                if (SWEEP_ROOT / sc.axis / sc.name / f"{sc.name}.pyfg").exists()]
+    if existing and not args.force:
+        print(f"  skipping {len(existing)} scenario(s) that already exist: "
+              + ", ".join(sc.name for sc in existing))
+        scenarios = [sc for sc in scenarios if sc not in existing]
+    if not scenarios:
+        print("nothing to generate.")
+        return 0
+    if not scenarios:
+        print(f"no scenarios for axis {axis!r}")
         return 1
-    if SWEEP_ROOT.exists():
-        shutil.rmtree(SWEEP_ROOT)
-    scenarios = make_scenarios()
     for sc in scenarios:
         out = generate_scenario(sc, SWEEP_ROOT)
         meta = json.loads((out / "meta.json").read_text())
@@ -527,6 +565,9 @@ def main() -> None:
                                      formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = parser.add_subparsers(dest="cmd", required=True)
     g = sub.add_parser("generate", help="emit synthetic .pyfg files")
+    g.add_argument("--axis", choices=["size", "ratio", "pgo"], default=None,
+                   help="generate only this axis (default: all). 'pgo' is the "
+                        "landmark-free g2o sphere size sweep.")
     g.add_argument("--force", action="store_true",
                     help=f"overwrite {SWEEP_ROOT.relative_to(REPO)} if it exists")
     r = sub.add_parser("run", help="run CPU + GPU paper_experiments on the sweep")

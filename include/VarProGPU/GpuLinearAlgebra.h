@@ -186,6 +186,30 @@ inline void uploadEigenSparse(
       CUSPARSE_INDEX_BASE_ZERO, CUDA_R_64F));
 }
 
+// ---------------------------------------------------------------------------
+// updateEigenSparseValues — refresh only the numeric values of an already
+// uploaded CSR, leaving structure (and therefore the cuSPARSE descriptor, which
+// holds raw device pointers) untouched.
+//
+// This is the IRLS case: reweighting rescales measurement precisions, so every
+// entry changes value but none appears or vanishes. Returns false when the
+// pattern has actually changed, in which case the caller must do a full
+// uploadEigenSparse (re-allocating would dangle the descriptor's pointers).
+// ---------------------------------------------------------------------------
+inline bool updateEigenSparseValues(
+    GpuCsrMatrix& gpu,
+    const Eigen::SparseMatrix<double, Eigen::RowMajor>& A) {
+  if (gpu.descr == nullptr) return false;
+  if (gpu.rows != static_cast<int>(A.rows()) ||
+      gpu.cols != static_cast<int>(A.cols()) ||
+      gpu.nnz != static_cast<int>(A.nonZeros()))
+    return false;
+  // Same element count, so DeviceBuffer::upload() reuses the allocation and the
+  // descriptor keeps pointing at valid memory.
+  gpu.values.upload(A.valuePtr(), static_cast<std::size_t>(gpu.nnz));
+  return true;
+}
+
 // Overload for Eigen ColMajor — convert to RowMajor first
 inline void uploadEigenSparse(
     GpuCsrMatrix& gpu,
@@ -243,6 +267,25 @@ double ddot(GpuContext& ctx,
 // ---------------------------------------------------------------------------
 
 double dnrm2(GpuContext& ctx, const GpuDenseMatrix& X);
+
+// ---------------------------------------------------------------------------
+// dsymm — Y = alpha * A * X + beta * Y, with A a *symmetric* dense n×n matrix
+//         stored column-major with only the lower triangle referenced.
+//
+// This is the operator application for Formulation::Dense: the explicitly
+// formed Schur complement Q_sc is symmetric, so SYMM does the same work as
+// GEMM while touching half the matrix.
+//
+// A is a raw device pointer (n×n, leading dimension n) rather than a
+// GpuDenseMatrix because the caller owns the O(n^2) allocation.
+// ---------------------------------------------------------------------------
+
+void dsymm(GpuContext& ctx,
+           const double* A, int n,
+           const GpuDenseMatrix& X,
+           GpuDenseMatrix& Y,
+           double alpha = 1.0,
+           double beta  = 0.0);
 
 // ---------------------------------------------------------------------------
 // dcopy — Y ← X

@@ -617,6 +617,21 @@ namespace VarPro
           std::chrono::duration<double>(t1 - t0).count();
     }
     problem_data_up_to_date_ = true;
+
+    // Any previously-formed dense Schur complement is now stale (the weights,
+    // and hence Qmain_/TransOffDiagRed_/LtransCholRed_, may have changed --
+    // this is exactly what happens on every IRLS outer iteration). Rebuild it
+    // if and only if the Dense formulation is currently selected.
+    dense_schur_up_to_date_ = false;
+    if (formulation_ == Formulation::Dense && host_dense_schur_enabled_)
+    {
+      fillDenseSchurMatrix();
+    }
+    else
+    {
+      Qsc_dense_.resize(0, 0);
+      dense_precompute_time_s_ = 0.0;
+    }
   }
 
   void Problem::updatePreconditioner()
@@ -730,8 +745,10 @@ namespace VarPro
       bool good_factorization = false;
       while (!good_factorization)
       {
+        precon_matrix_ =
+            regularized_data_matrix.block(0, 0, num_rows, num_rows);
         preconditioner_matrices_.block_chol_factor_ptrs_ =
-            getBlockCholeskyFactorization(regularized_data_matrix.block(0, 0, num_rows, num_rows), block_sizes);
+            getBlockCholeskyFactorization(precon_matrix_, block_sizes);
         CholInfo info = cholFactorStatus(
             preconditioner_matrices_.block_chol_factor_ptrs_);
 
@@ -888,9 +905,12 @@ namespace VarPro
     // LtransCholRed_ = chol(Ltrans(1:end-1, 1:end-1), 'lower');
     {
       int n = numTranslationalStates() - 1;
-      SparseMatrix Q33_red = data_matrix_.block(
+      // Keep M = Q33_red itself, not only its Cholesky factor: the GPU path
+      // builds its own on-device sparse direct solver from the matrix, and
+      // CHOLMOD's internal factor is not portable to the device.
+      LtransBlockRed_ = data_matrix_.block(
           rotAndRangeMatrixSize(), rotAndRangeMatrixSize(), n, n);
-      LtransCholRed_ = std::make_shared<CholeskyFactorization>(Q33_red);
+      refreshLtransFactorization();
     }
 
     // // save the block used for LtransCholRed_ for debugging
@@ -900,6 +920,109 @@ namespace VarPro
     //     numTranslationalStates() , numTranslationalStates() );
     // saveSparseMatrixToFile(block, LtransCholRed_fpath);
     // std::cout << "Wrote LtransCholRed_ to " << LtransCholRed_fpath << std::endl;
+  }
+
+  // Algorithm 2, line 2: the symbolic Cholesky of M = C^T Omega C depends only
+  // on M's sparsity pattern, which IRLS never changes -- reweighting rescales
+  // measurement precisions, so entries change value but never appear or vanish.
+  bool Problem::ltransPatternMatches(const SparseMatrix &M) const
+  {
+    if (ltrans_pattern_outer_.empty()) return false;
+    const auto outer_len = static_cast<std::size_t>(M.outerSize()) + 1;
+    const auto nnz = static_cast<std::size_t>(M.nonZeros());
+    if (ltrans_pattern_outer_.size() != outer_len) return false;
+    if (ltrans_pattern_inner_.size() != nnz) return false;
+    return std::equal(ltrans_pattern_outer_.begin(), ltrans_pattern_outer_.end(),
+                      M.outerIndexPtr()) &&
+           std::equal(ltrans_pattern_inner_.begin(), ltrans_pattern_inner_.end(),
+                      M.innerIndexPtr());
+  }
+
+  // Algorithm 2, line 5: NumericCholesky(C^T Omega~ C, P) -- reuse the cached
+  // ordering + symbolic factorization P whenever the pattern is unchanged, and
+  // redo only the numeric factorization. Falls back to a full analyse+factorise
+  // the first time, or if the pattern ever does change.
+  void Problem::refreshLtransFactorization()
+  {
+    const bool reuse = LtransCholRed_ && ltransPatternMatches(LtransBlockRed_);
+    if (!reuse)
+    {
+      LtransCholRed_ = std::make_shared<CholeskyFactorization>();
+      LtransCholRed_->analyzePattern(LtransBlockRed_);
+      const auto outer_len = static_cast<std::size_t>(LtransBlockRed_.outerSize()) + 1;
+      const auto nnz = static_cast<std::size_t>(LtransBlockRed_.nonZeros());
+      ltrans_pattern_outer_.assign(LtransBlockRed_.outerIndexPtr(),
+                                    LtransBlockRed_.outerIndexPtr() + outer_len);
+      ltrans_pattern_inner_.assign(LtransBlockRed_.innerIndexPtr(),
+                                    LtransBlockRed_.innerIndexPtr() + nnz);
+    }
+    LtransCholRed_->factorize(LtransBlockRed_);
+    if (LtransCholRed_->info() != Eigen::Success)
+      throw std::runtime_error(
+          "Problem::refreshLtransFactorization: Cholesky of the translation "
+          "block failed");
+  }
+
+  void Problem::fillDenseSchurMatrix()
+  {
+    const auto t0 = std::chrono::high_resolution_clock::now();
+
+    const int p = rotAndRangeMatrixSize();
+
+    // Q_sc = Qmain - B * M^{-1} * B^T,  with B = TransOffDiagRed_ (p x m) and
+    // M^{-1} applied via the Cholesky factor LtransCholRed_.
+    //
+    // The obvious one-liner materializes both B (p x m dense) and
+    // M^{-1} B^T (m x p dense) alongside the p x p result. For PGO
+    // (m ~ p/dim) that is ~2x the peak of the result itself, which matters
+    // precisely on the problems where this formulation is interesting. So we
+    // build Q_sc a column-block at a time, keeping B sparse throughout: peak
+    // extra storage is then O(p * kColBlock) rather than O(p * m).
+    //
+    // Q_sc is symmetric, so a packed-triangular variant would halve the
+    // storage at the same flop count. We keep the full square because that is
+    // what the operator application (a plain GEMM) wants, and because the
+    // quadratic-vs-linear memory story this baseline exists to tell is not
+    // changed by a factor of two.
+    constexpr int kColBlock = 512;
+
+    Qsc_dense_ = Matrix(Qmain_);
+    for (int c0 = 0; c0 < p; c0 += kColBlock)
+    {
+      const int nc = std::min(kColBlock, p - c0);
+      // rhs = B(c0:c0+nc, :)^T   (m x nc)
+      Matrix rhs = Matrix(SparseMatrix(TransOffDiagRed_.middleRows(c0, nc))
+                              .transpose());
+      Matrix sol = LtransCholRed_->solve(rhs);   // m x nc
+      Matrix upd = TransOffDiagRed_ * sol;       // p x nc
+      Qsc_dense_.middleCols(c0, nc) -= upd;
+    }
+
+    dense_schur_up_to_date_ = true;
+
+    const auto t1 = std::chrono::high_resolution_clock::now();
+    dense_precompute_time_s_ = std::chrono::duration<double>(t1 - t0).count();
+  }
+
+  void Problem::setFormulation(Formulation formulation)
+  {
+    formulation_ = formulation;
+    if (formulation_ == Formulation::Dense)
+    {
+      // Only buildable once the submatrices exist; otherwise this is deferred
+      // to the updateProblemData() call that the caller still owes us.
+      if (problem_data_up_to_date_ && !dense_schur_up_to_date_ &&
+          host_dense_schur_enabled_)
+      {
+        fillDenseSchurMatrix();
+      }
+    }
+    else if (dense_schur_up_to_date_ || Qsc_dense_.size() > 0)
+    {
+      // Release the O(p^2) allocation as soon as we leave the Dense path.
+      Qsc_dense_.resize(0, 0);
+      dense_schur_up_to_date_ = false;
+    }
   }
 
   Matrix Problem::dataMatrixProduct(const Matrix &Y) const
@@ -918,6 +1041,20 @@ namespace VarPro
       Matrix P3 = TransOffDiagRed_ * P2;
 
       return QY - P3;
+    }
+    else if (formulation_ == Formulation::Dense)
+    {
+      if (!dense_schur_up_to_date_)
+      {
+        throw std::runtime_error(
+            "Problem::dataMatrixProduct: the Dense formulation was selected "
+            "but the explicit Schur complement has not been formed. Call "
+            "updateProblemData() before setFormulation(Formulation::Dense) -- "
+            "or, if host formation was disabled via "
+            "setHostDenseSchurEnabled(false), note that the device-resident "
+            "Q_sc is not visible to host-side products.");
+      }
+      return Qsc_dense_ * Y;
     }
     else
     {
@@ -1131,7 +1268,7 @@ namespace VarPro
         res = blockCholeskySolve(preconditioner_matrices_.block_chol_factor_ptrs_,
                                  V);
       }
-      else if (formulation_ == Formulation::Implicit)
+      else if (isMarginalized(formulation_))
       {
         Matrix V_lift = Matrix::Zero(getDataMatrixSize(), relaxation_rank_);
         // the upper block of V_lift is V
@@ -1226,7 +1363,7 @@ namespace VarPro
     {
       return getDataMatrixSize();
     }
-    else if (formulation_ == Formulation::Implicit)
+    else if (isMarginalized(formulation_))
     {
       return rotAndRangeMatrixSize();
     }
@@ -1455,7 +1592,7 @@ namespace VarPro
       Y_aligned = Y * first_rot.transpose();
     }
 
-    if (formulation_ == Formulation::Implicit)
+    if (isMarginalized(formulation_))
     {
       Y_aligned = getTranslationExplicitSolution(Y_aligned);
     }

@@ -1,0 +1,19 @@
+{
+  "_comment": "Pure-PGO sphere size sweep (g2o create_sphere, no landmarks). Generate the data first with: python3 examples/sphere_sweep.py generate --axis pgo",
+  "verbose": false,
+  "min_rank": 5,
+  "max_rank": 5,
+  "abs_data_path": "/home/nikolas/variable-projection/examples/data/sphere_sweep/pgo/",
+  "num_inits": 25,
+  "scale_reg_weight": 0.01,
+  "formulations": [
+    "Explicit",
+    "ExplicitVarPro",
+    "Implicit",
+    "Dense"
+  ],
+  "_comment_max_dense_gb": "32 GB = attempt Dense on every dataset that physically can run. pgo_20k needs 28.8 GB and fits in the 53 GB available; pgo_30k (64.8 GB) and pgo_50k (180 GB) exceed total system RAM (62 GB, 1 GB swap), so they are recorded as dense_too_large with the size they would have required rather than OOM-killing the sweep process.",
+  "max_dense_gb": 32.0,
+  "skip_substrings": [],
+  "sfm_use_scaled_stiefel": false
+}

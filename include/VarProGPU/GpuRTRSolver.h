@@ -24,7 +24,10 @@
 #include <VarProGPU/GpuLinearAlgebra.h>
 #include <VarProGPU/ManifoldKernels.h>
 #include <VarProGPU/MatrixFreeSchurOperator.h>
+#include <VarProGPU/GpuSparseSolver.h>
 #include <VarProGPU/RTRSolver.h>
+
+#include <memory>
 
 #include <VarPro/Problem.h>
 #include <VarPro/Types.h>
@@ -155,6 +158,128 @@ struct GpuBlockDiagPreconditioner {
           n_range, cols, ctx.stream.get(), p);
     }
   }
+};
+
+// ---------------------------------------------------------------------------
+// GpuRegCholeskyPreconditioner
+//
+// The *same* preconditioner the CPU uses (Cholesky of the regularized,
+// gauge-pinned data matrix), applied entirely on device via cuDSS. Because it
+// is numerically the same operator, pTCG converges in the same number of
+// iterations as the host path -- the comparison is then purely speed, and no
+// data crosses PCIe inside the solve.
+//
+// Works for every formulation:
+//   - marginalized (Implicit/Dense): the iterate has p rows, so it is lifted
+//     into the full (N-1)-row system, solved, and restricted back to p rows.
+//   - explicit (Explicit/ExplicitVarPro): the iterate already spans the full
+//     variable; the pinned last row is solved as zero.
+// ---------------------------------------------------------------------------
+
+class GpuRegCholeskyPreconditioner {
+ public:
+  GpuRegCholeskyPreconditioner(const VarPro::SparseMatrix& precon_matrix,
+                               int var_rows, int n_rot, int n_range,
+                               int n_poses, int K, bool use_scaled_stiefel,
+                               GpuContext& ctx)
+      : var_rows_(var_rows), n_rot_(n_rot), n_range_(n_range),
+        n_poses_(n_poses), K_(K), use_scaled_(use_scaled_stiefel) {
+    if (!gpuSparseSolverAvailable() || precon_matrix.rows() == 0) return;
+    try {
+      solver_ = std::make_unique<GpuSparseSolver>(precon_matrix, ctx);
+      n_full_ = solver_->rows();
+    } catch (const std::exception&) {
+      solver_.reset();
+    }
+  }
+
+  bool valid() const { return static_cast<bool>(solver_); }
+
+  /// Geometry this preconditioner was built for -- solve() reuses the cached
+  /// instance only when these match.
+  bool matches(int var_rows, int n_rot, int n_range, int n_poses, int K,
+               bool use_scaled) const {
+    return var_rows_ == var_rows && n_rot_ == n_rot && n_range_ == n_range &&
+           n_poses_ == n_poses && K_ == K && use_scaled_ == use_scaled;
+  }
+
+  /**
+   * @brief Refresh after an IRLS reweighting (Algorithm 2, line 5).
+   *
+   * The regularized preconditioner matrix is rebuilt every outer iteration but
+   * its sparsity pattern is fixed, so only the numeric factorization needs to
+   * repeat -- constructing a new GpuSparseSolver would redo the cuDSS
+   * reordering and symbolic analysis as well.
+   */
+  bool update(const VarPro::SparseMatrix& precon_matrix) {
+    if (!solver_) return false;
+    try {
+      solver_->refactorize(precon_matrix);
+    } catch (const std::exception&) {
+      return false;
+    }
+    return true;
+  }
+
+  void apply(GpuContext& ctx, const GpuDenseMatrix& X_dev,
+             const GpuDenseMatrix& r_in, GpuDenseMatrix& z_out) const {
+    const int cols = r_in.cols;
+    if (z_out.rows != var_rows_ || z_out.cols != cols)
+      z_out.resize(var_rows_, cols);
+    if (lift_.rows != n_full_ || lift_.cols != cols) lift_.resize(n_full_, cols);
+    if (sol_.rows != n_full_ || sol_.cols != cols) sol_.resize(n_full_, cols);
+
+    const std::size_t dbl = sizeof(double);
+    const int copy_rows = std::min(var_rows_, n_full_);
+
+    // Lift: zero-pad the iterate up to the full system size. Device-to-device
+    // strided copy -- column-major, so the leading dimension differs.
+    CUDA_CHECK(cudaMemsetAsync(lift_.data.get(), 0,
+                               static_cast<std::size_t>(n_full_) * cols * dbl,
+                               ctx.stream.get()));
+    CUDA_CHECK(cudaMemcpy2DAsync(
+        lift_.data.get(), static_cast<std::size_t>(n_full_) * dbl,
+        r_in.data.get(), static_cast<std::size_t>(var_rows_) * dbl,
+        static_cast<std::size_t>(copy_rows) * dbl, cols,
+        cudaMemcpyDeviceToDevice, ctx.stream.get()));
+
+    solver_->solve(lift_, sol_);
+
+    // Restrict back, zeroing anything past the solved block (the pinned row
+    // for the explicit formulations).
+    CUDA_CHECK(cudaMemsetAsync(z_out.data.get(), 0,
+                               static_cast<std::size_t>(var_rows_) * cols * dbl,
+                               ctx.stream.get()));
+    CUDA_CHECK(cudaMemcpy2DAsync(
+        z_out.data.get(), static_cast<std::size_t>(var_rows_) * dbl,
+        sol_.data.get(), static_cast<std::size_t>(n_full_) * dbl,
+        static_cast<std::size_t>(copy_rows) * dbl, cols,
+        cudaMemcpyDeviceToDevice, ctx.stream.get()));
+
+    // Tangent-space projection, on device. SfM uses the scaled-Stiefel
+    // manifold (R_{>0} x St)^n, whose tangent space includes a scale
+    // direction -- projecting with the plain Stiefel operator there leaves the
+    // tangent space and destroys the preconditioned direction.
+    if (n_rot_ > 0 && K_ >= 2 && K_ <= 4) {
+      if (use_scaled_)
+        scaledStiefelProjectTangent(X_dev.data.get(), z_out.data.get(),
+                                    n_poses_, K_, cols, ctx.stream.get(),
+                                    var_rows_);
+      else
+        stiefelProjectTangent(X_dev.data.get(), z_out.data.get(), n_poses_, K_,
+                              cols, ctx.stream.get(), var_rows_);
+    }
+    if (n_range_ > 0)
+      obliqueProjectTangent(X_dev.data.get() + n_rot_,
+                            z_out.data.get() + n_rot_, n_range_, cols,
+                            ctx.stream.get(), var_rows_);
+  }
+
+ private:
+  std::unique_ptr<GpuSparseSolver> solver_;
+  mutable GpuDenseMatrix lift_, sol_;
+  int n_full_{0}, var_rows_{0}, n_rot_{0}, n_range_{0}, n_poses_{0}, K_{0};
+  bool use_scaled_{false};
 };
 
 /**
@@ -327,9 +452,15 @@ class GpuRTRSolver {
    * For large r (relaxation rank) or many iterations, these manifold ops
    * are a small fraction of the total work.
    */
+  // Templated on the operator so the same solver drives both marginalized
+  // formulations: GpuSchurOperator (matrix-free, Formulation::Implicit) and
+  // GpuDenseSchurOperator (explicit Q_sc + SYMM, Formulation::Dense). The
+  // solver only ever calls op.applyDevice() and op.precompute(), so the two
+  // runs are identical apart from how the Schur product is computed.
+  template <typename SchurOp>
   RTRResult solve(
       VarPro::Problem& prob,
-      const GpuSchurOperator& op,
+      const SchurOp& op,
       const VarPro::Matrix& x0,
       const RTRParams& params = RTRParams{}) {
 
@@ -348,12 +479,35 @@ class GpuRTRSolver {
     // Upload iterate to device
     GpuDenseMatrix X_dev(p, r);
     X_dev.upload(x0);
+    // Build the device-resident preconditioner once per solve. Falls back to
+    // the host path if cuDSS is unavailable or factorization fails.
+    GpuRegCholeskyPreconditioner* dev_precon = nullptr;
+    {
+      const int n_rot_p   = prob.numPosesDim();
+      const int n_range_p = prob.numRangeMeasurements();
+      // Reuse the cached preconditioner across calls when the problem geometry
+      // is unchanged (the IRLS case): only the numeric factorization repeats.
+      const bool reusable =
+          precon_cache_ && precon_cache_->valid() &&
+          precon_cache_->matches(p, n_rot_p, n_range_p, prob.numPoses(),
+                                  prob.dim(), prob.isScaledStiefel()) &&
+          precon_cache_->update(prob.precon_matrix_);
+      if (!reusable) {
+        auto cand = std::make_unique<GpuRegCholeskyPreconditioner>(
+            prob.precon_matrix_, p, n_rot_p, n_range_p, prob.numPoses(),
+            prob.dim(), prob.isScaledStiefel(), ctx_);
+        precon_cache_ = cand->valid() ? std::move(cand) : nullptr;
+      }
+      dev_precon = precon_cache_.get();
+    }
+
 
     // Scratch buffers
     GpuDenseMatrix QX_dev(p, r);     // Schur product (scratch)
     GpuDenseMatrix G_dev(p, r);      // Riemannian gradient (device)
     GpuDenseMatrix egrad_dev(p, r);  // Euclidean gradient on device (for Hessian corrections)
     GpuDenseMatrix Xtrial_dev(p, r);
+    GpuDenseMatrix Hstep_dev(p, r);  // model-decrease Hessian product
     const bool use_scaled = prob.isScaledStiefel();
 
     // Compute initial cost and gradient on host (projecting back to manifold)
@@ -456,16 +610,24 @@ class GpuRTRSolver {
         }
       };
 
-      // Hybrid block-Cholesky preconditioner: download r, CPU block-Cholesky
-      // + tangent projection, upload z.  Matches CPU pTCG convergence rate.
-      GpuPrecondFn gpu_precon = [&](const GpuDenseMatrix& r_in,
-                                    GpuDenseMatrix& z_out) {
-        ctx_.synchronize();
-        VarPro::Matrix r_host = r_in.download();
-        VarPro::Matrix z_host = prob.tangent_space_projection(
-            X_h, prob.precondition(r_host));
-        z_out.uploadAsync(z_host, ctx_.stream.get());
-      };
+      // Preconditioner. Device-resident when cuDSS is available (identical
+      // operator to the host path, so identical pTCG convergence); otherwise
+      // the legacy host round-trip, which synchronizes and crosses PCIe on
+      // every inner iteration.
+      GpuPrecondFn gpu_precon;
+      if (dev_precon && dev_precon->valid()) {
+        gpu_precon = [&](const GpuDenseMatrix& r_in, GpuDenseMatrix& z_out) {
+          dev_precon->apply(ctx_, X_dev, r_in, z_out);
+        };
+      } else {
+        gpu_precon = [&](const GpuDenseMatrix& r_in, GpuDenseMatrix& z_out) {
+          ctx_.synchronize();
+          VarPro::Matrix r_host = r_in.download();
+          VarPro::Matrix z_host = prob.tangent_space_projection(
+              X_h, prob.precondition(r_host));
+          z_out.uploadAsync(z_host, ctx_.stream.get());
+        };
+      }
 
       GpuPTCGResult ptcg = gpuPTCGSolve(
           ctx_, G_dev, gpu_hess, Delta, params,
@@ -489,9 +651,18 @@ class GpuRTRSolver {
         fx_trial = 0.5 * (X_trial.transpose() * egrad_trial).trace();
       }
 
-      // Predicted decrease — use the same Riemannian Hessian as pTCG
-      Matrix Hstep = prob.Riemannian_Hessian_vector_product(
-          X_h, egrad, step_host);
+      // Predicted decrease — use the same Riemannian Hessian as pTCG.
+      // Deliberately the *device* operator: it is the one pTCG built its model
+      // from, and for Formulation::Dense the host has no Q_sc to multiply by
+      // at all when the reduced system was formed on the device.
+      Matrix Hstep;
+      if (use_scaled) {
+        Hstep = prob.Riemannian_Hessian_vector_product(X_h, egrad, step_host);
+      } else {
+        gpu_hess(ptcg.step_dev, Hstep_dev);
+        ctx_.synchronize();
+        Hstep = Hstep_dev.download();
+      }
 
       double inner_g_h  = (grad.transpose() * step_host).trace();
       double inner_h_Hh = (step_host.transpose() * Hstep).trace();
@@ -598,6 +769,28 @@ class GpuRTRSolver {
     GpuDenseMatrix QX_dev(p, r);
     GpuDenseMatrix G_dev(p, r);
     GpuDenseMatrix egrad_dev(p, r);
+    // Build the device-resident preconditioner once per solve. Falls back to
+    // the host path if cuDSS is unavailable or factorization fails.
+    GpuRegCholeskyPreconditioner* dev_precon = nullptr;
+    {
+      const int n_rot_p   = prob.numPosesDim();
+      const int n_range_p = prob.numRangeMeasurements();
+      // Reuse the cached preconditioner across calls when the problem geometry
+      // is unchanged (the IRLS case): only the numeric factorization repeats.
+      const bool reusable =
+          precon_cache_ && precon_cache_->valid() &&
+          precon_cache_->matches(p, n_rot_p, n_range_p, prob.numPoses(),
+                                  prob.dim(), prob.isScaledStiefel()) &&
+          precon_cache_->update(prob.precon_matrix_);
+      if (!reusable) {
+        auto cand = std::make_unique<GpuRegCholeskyPreconditioner>(
+            prob.precon_matrix_, p, n_rot_p, n_range_p, prob.numPoses(),
+            prob.dim(), prob.isScaledStiefel(), ctx_);
+        precon_cache_ = cand->valid() ? std::move(cand) : nullptr;
+      }
+      dev_precon = precon_cache_.get();
+    }
+
     GpuDenseMatrix Xtrial_dev(p, r);
     const bool use_scaled = prob.isScaledStiefel();
 
@@ -694,6 +887,10 @@ class GpuRTRSolver {
       // Hybrid block-Cholesky preconditioner
       GpuPrecondFn gpu_precon = [&](const GpuDenseMatrix& r_in,
                                     GpuDenseMatrix& z_out) {
+        if (dev_precon && dev_precon->valid()) {
+          dev_precon->apply(ctx_, X_dev, r_in, z_out);
+          return;
+        }
         ctx_.synchronize();
         Matrix r_host = r_in.download();
         Matrix z_host = prob.tangent_space_projection(
@@ -783,6 +980,10 @@ class GpuRTRSolver {
   }
 
  private:
+  // Preconditioner reused across solve() calls; see the reuse logic in
+  // solve()/solveExplicit(). Rebuilt only when the geometry changes or
+  // the numeric refactorization fails.
+  std::unique_ptr<GpuRegCholeskyPreconditioner> precon_cache_;
   GpuContext& ctx_;
 };
 

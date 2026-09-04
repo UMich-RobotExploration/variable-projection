@@ -240,6 +240,19 @@ namespace VarPro
 
     void fillImplicitFormulationMatrices();
 
+    /**
+     * @brief Form the reduced (Schur complement) system explicitly as a dense
+     * matrix:  Q_sc = Qmain_ - TransOffDiagRed_ * M^{-1} * TransOffDiagRed_^T.
+     *
+     * This is the operator that Formulation::Implicit applies matrix-free; see
+     * dataMatrixProduct(). Only used by Formulation::Dense.
+     *
+     * Costs p^2 doubles of storage and a p-column multi-RHS solve against the
+     * Cholesky factor of M, so it is only called when the Dense formulation is
+     * actually selected (never from updateProblemData() unconditionally).
+     */
+    void fillDenseSchurMatrix();
+
     void updatePreconditioner();
 
     Matrix dataMatrixProduct(const Matrix &Y) const;
@@ -361,6 +374,27 @@ namespace VarPro
     SparseMatrix Qmain_;
     SparseMatrix TransOffDiagRed_;
     CholFactorPtr LtransCholRed_;
+    // M = Q33_red, the (gauge-pinned) translation block that LtransCholRed_
+    // factors. Retained so the GPU backend can build a device-resident sparse
+    // direct solver instead of round-tripping every product through CHOLMOD.
+    SparseMatrix LtransBlockRed_;
+
+    // Sparsity pattern of the M that LtransCholRed_ was *symbolically*
+    // factored against (Algorithm 2, line 2). IRLS only rescales measurement
+    // precisions, so M's pattern is invariant across outer iterations and the
+    // fill-reducing ordering + symbolic factorization can be computed once and
+    // reused (line 5); only the numeric factorization has to be redone.
+    std::vector<SparseMatrix::StorageIndex> ltrans_pattern_outer_;
+    std::vector<SparseMatrix::StorageIndex> ltrans_pattern_inner_;
+    bool ltransPatternMatches(const SparseMatrix &M) const;
+    void refreshLtransFactorization();
+
+    // The exact (regularized, gauge-pinned) matrix whose Cholesky factor is the
+    // preconditioner. Retained so the GPU backend can build an identical
+    // device-resident preconditioner via cuDSS -- matching the host
+    // preconditioner exactly means convergence is unchanged and only speed
+    // differs.
+    SparseMatrix precon_matrix_;
 
     // the most recent minimum eigenvectors computed by LOBPCG for certification
     CertResults last_cert_results_;
@@ -373,6 +407,21 @@ namespace VarPro
     // construction of the data matrix itself.
     double implicit_precompute_time_s_ = 0.0;
 
+    // The explicitly-formed dense Schur complement, populated only when
+    // formulation_ == Formulation::Dense. Empty otherwise (and freed as soon
+    // as the formulation is switched away from Dense, since it is O(p^2)).
+    Matrix Qsc_dense_;
+    bool dense_schur_up_to_date_ = false;
+
+    // When false, fillDenseSchurMatrix() is never called automatically; see
+    // setHostDenseSchurEnabled().
+    bool host_dense_schur_enabled_ = true;
+
+    // wall-clock seconds spent inside the last fillDenseSchurMatrix() call.
+    // This is the extra cost the Dense formulation pays *on top of* the
+    // implicit precompute (it reuses Qmain_/TransOffDiagRed_/LtransCholRed_).
+    double dense_precompute_time_s_ = 0.0;
+
     void updateProblemData();
     SparseMatrix getDataMatrix();
 
@@ -380,6 +429,37 @@ namespace VarPro
     // steps: CR(Af), Cholesky(C^T Ω C), B = A_c^T Ω C), as measured during
     // the last updateProblemData() call.
     double getImplicitPrecomputeTimeS() const { return implicit_precompute_time_s_; }
+
+    // Wall-clock time of the last dense Schur formation (0 if the Dense
+    // formulation has never been selected).
+    double getDensePrecomputeTimeS() const { return dense_precompute_time_s_; }
+
+    // Size in GB that the explicit dense Schur complement occupies (or would
+    // occupy). Safe to call before the matrix is formed -- use this to decide
+    // whether forming it is affordable.
+    double densePrecomputeGB() const
+    {
+      const double p = static_cast<double>(rotAndRangeMatrixSize());
+      return p * p * static_cast<double>(sizeof(Scalar)) / 1e9;
+    }
+
+    bool hasDenseSchur() const { return dense_schur_up_to_date_; }
+
+    /**
+     * @brief Suppress the host-side O(p^2) Schur formation.
+     *
+     * The GPU builds Q_sc on device (VarProGPU::formDenseSchurOnDevice), and
+     * on the larger problems the host formation costs more than the entire
+     * solve that follows it -- so a GPU run that let updateProblemData() build
+     * it anyway would pay the very cost the device path exists to remove.
+     *
+     * With this false, Formulation::Dense is valid only for callers that never
+     * touch dataMatrixProduct() on the host: that includes the GPU RTR solver
+     * on Stiefel/Oblique, but NOT scaled-Stiefel SfM, whose objective and
+     * Euclidean gradient are still evaluated host-side.
+     */
+    void setHostDenseSchurEnabled(bool enabled) { host_dense_schur_enabled_ = enabled; }
+    bool hostDenseSchurEnabled() const { return host_dense_schur_enabled_; }
 
     // function to perform a separable structure update (in the style of Khosoussi et al.)
     void separableStructureUpdate(Matrix &Y) const;
@@ -449,7 +529,11 @@ namespace VarPro
     {
       preconditioner_ = preconditioner;
     }
-    void setFormulation(Formulation formulation) { formulation_ = formulation; }
+    // Switching *to* Formulation::Dense forms the explicit Schur complement
+    // (if the problem data is already built); switching *away* from it frees
+    // the O(p^2) matrix immediately, so a sweep that cycles through
+    // formulations does not carry the dense allocation into the other runs.
+    void setFormulation(Formulation formulation);
     void setScaleRegWeight(Scalar lambda) { scale_reg_weight_ = lambda; }
     Scalar getScaleRegWeight() const { return scale_reg_weight_; }
 

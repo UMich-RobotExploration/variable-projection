@@ -1,0 +1,22 @@
+{
+  "_comment": "Sphere PGO size sweep 1k-10k (ten sizes), NO Dense, uncapped on both wall-clock and iterations. Run with VARPRO_MAX_COMPUTATION_TIME=0 VARPRO_MAX_ITERATIONS=0. 15k/20k/30k/50k excluded by request. Dense results for 2k/3k/5k from earlier runs remain in cached_results/ but are not swept here.",
+  "verbose": false,
+  "min_rank": 5,
+  "max_rank": 5,
+  "abs_data_path": "/home/nikolas/variable-projection/examples/data/sphere_sweep/pgo/",
+  "num_inits": 25,
+  "scale_reg_weight": 0.01,
+  "formulations": [
+    "Explicit",
+    "ExplicitVarPro",
+    "Implicit"
+  ],
+  "max_dense_gb": 32.0,
+  "skip_substrings": [
+    "pgo_15k",
+    "pgo_20k",
+    "pgo_30k",
+    "pgo_50k"
+  ],
+  "sfm_use_scaled_stiefel": false
+}

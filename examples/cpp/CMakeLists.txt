@@ -1,0 +1,66 @@
+if(${ENABLE_PROFILING})
+  target_compile_definitions(varpro_example PRIVATE GPERFTOOLS)
+  target_link_libraries(varpro_example profiler)
+endif()
+
+if(${PERFORM_EXPERIMENTS})
+  message(STATUS "Building paper_experiments executable")
+  add_executable(paper_experiments paper_experiments.cpp)
+  target_link_libraries(paper_experiments VARPRO)
+  target_include_directories(paper_experiments PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  if(${ENABLE_PROFILING})
+    target_compile_definitions(paper_experiments PRIVATE GPERFTOOLS)
+    target_link_libraries(paper_experiments profiler)
+  endif()
+endif()
+
+if(ENABLE_GPU AND PERFORM_EXPERIMENTS)
+  find_package(CUDAToolkit REQUIRED)
+  target_link_libraries(paper_experiments VARPROGPU CUDA::cudart CUDA::cublas CUDA::cusparse)
+  target_compile_definitions(paper_experiments PRIVATE VARPRO_HAVE_CUDA)
+endif()
+
+if(ENABLE_GPU AND PERFORM_EXPERIMENTS)
+  message(STATUS "Building gpu_paper_experiments executable")
+  add_executable(gpu_paper_experiments gpu_paper_experiments.cpp)
+  find_package(CUDAToolkit REQUIRED)
+  target_link_libraries(gpu_paper_experiments VARPRO VARPROGPU CUDA::cudart CUDA::cublas CUDA::cusparse)
+  target_include_directories(gpu_paper_experiments PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+  target_compile_definitions(gpu_paper_experiments PRIVATE VARPRO_HAVE_CUDA)
+endif()
+
+add_executable(test_scaled_stiefel test_scaled_stiefel.cpp)
+target_link_libraries(test_scaled_stiefel VARPRO)
+target_include_directories(test_scaled_stiefel PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(init_from_odometry init_from_odometry.cpp)
+target_link_libraries(init_from_odometry VARPRO)
+target_include_directories(init_from_odometry PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+add_executable(irls_robust irls_robust.cpp)
+target_link_libraries(irls_robust VARPRO)
+target_include_directories(irls_robust PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+if(ENABLE_GPU)
+  # --gpu runs each IRLS inner solve on the GPU RTR solver.
+  target_link_libraries(irls_robust VARPROGPU CUDA::cudart CUDA::cublas CUDA::cusparse)
+  target_compile_definitions(irls_robust PRIVATE VARPRO_HAVE_CUDA)
+endif()
+
+add_executable(optimizer_diagnostics optimizer_diagnostics.cpp)
+target_link_libraries(optimizer_diagnostics VARPRO)
+target_include_directories(optimizer_diagnostics PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+# Optional GTSAM-based GNC-GM baseline for the PGO sweep. Builds only when
+# GTSAM is installed and locatable via its CMake config — does NOT link
+# against VARPRO so it stays a self-contained reference implementation.
+find_package(GTSAM QUIET)
+if(GTSAM_FOUND)
+  message(STATUS "Found GTSAM ${GTSAM_VERSION} — building gtsam_gnc_pgo")
+  add_executable(gtsam_gnc_pgo gtsam_gnc_pgo.cpp)
+  target_link_libraries(gtsam_gnc_pgo gtsam)
+  target_include_directories(gtsam_gnc_pgo PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+else()
+  message(STATUS "GTSAM not found — skipping gtsam_gnc_pgo executable")
+endif()
+
+message(STATUS "Building main varpro_example command-line executable in directory ${EXECUTABLE_OUTPUT_PATH}\n")

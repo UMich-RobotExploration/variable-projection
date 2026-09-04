@@ -38,6 +38,12 @@ CholFactorPtrVector getBlockCholeskyFactorization(const SparseMatrix &A,
     // compute the Cholesky decomposition of the block
     block_cholesky_factors.emplace_back(
         std::make_shared<CholeskyFactorization>(block));
+
+    // Advance to the next diagonal block. Without this every factor is taken
+    // from A's top-left corner while blockCholeskySolve() applies them to
+    // successive row ranges, so blocks 2..n get the wrong operator. Latent
+    // until now: the default RegularizedCholesky path uses a single block.
+    block_start += blockSize;
   }
 
   return block_cholesky_factors;

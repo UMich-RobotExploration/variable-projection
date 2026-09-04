@@ -110,6 +110,7 @@ static SolveStats runTNT(const std::string& pyfg, int rank,
                           VarPro::Formulation form) {
   SolveStats s;
   s.formulation = (form == VarPro::Formulation::Implicit) ? "Implicit" :
+                  (form == VarPro::Formulation::Dense) ? "Dense" :
                   (form == VarPro::Formulation::ExplicitVarPro) ? "VarPro" : "Explicit";
   s.backend = "TNT (CPU)";
 
