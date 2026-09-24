@@ -1,4 +1,4 @@
-# Sparse Variable Projection in Robotic Perception: Exploiting Separable Structure for Efficient Nonlinear Optimization
+# SPARSER: Sparse Variable Projection by Exploiting Separable Structure in Robotic Perception
 
 This is the code for the experiments in the paper SPARSER: Sparse Variable Projection by Exploiting Separable Structure in Robotic Perception by [Nikolas R. Sanderson](https://pandahood.github.io/NikolasSanderson.github.io/), Andrew Fishberg, Haoyu Han, [Heng Yang](https://hankyang.seas.harvard.edu/), Jonathan P. How, Hanumant Singh, [Michael Everett](https://mfe7.github.io/), and [Alan Papalia](https://alanpapalia.github.io/). This was done in collaboration with UMich's [Robotic Exploration Lab](https://robex.engin.umich.edu/), Northeastern Field Robotics Group, [Northeastern Autonomy and Intelligence Labratory](https://neu-autonomy.github.io/lab_website/), MIT's [Aerospace Controls Laboratory](https://acl.mit.edu/), and Harvard's [Computational Robotics Group](https://computationalrobotics.seas.harvard.edu/). For the rest of the GTSAM experiments please see this [repository](https://github.com/UMich-RobotExploration/varProj-gtsam).
 
