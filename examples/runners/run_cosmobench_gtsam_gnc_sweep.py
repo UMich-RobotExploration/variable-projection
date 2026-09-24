@@ -19,9 +19,27 @@ Metrics emitted mirror the IRLS sweep where possible:
 GNC outer/inner iteration counts are NOT exposed by GTSAM's GncOptimizer
 summary, so they are omitted (unlike the IRLS record which has them).
 
+Multiple inits (--seeds + --init-dir): the SESync driver does not generate
+perturbed inits itself. It reads back the exact init TUM that the IRLS sweep
+wrote for that (dataset, seed) via --init-tum, so both solvers start from a
+bit-identical iterate rather than from two RNGs that happen to agree. This
+requires `--init-dir <irls_out>/inits` and only works with VARPRO_SESYNC_BIN
+(the gtsam_gnc_pgo path takes its own init argument and is single-init).
+
+Record shape with --seeds: `runs` maps seed -> per-run stats and `aggregate`
+holds median/min/max across seeds, mirroring the IRLS sweep. Single-init runs
+still write the flat `result` key.
+
 Usage:
   python3 examples/run_cosmobench_gtsam_gnc_sweep.py \
       --out examples/data/analysis/cosmobench_gtsam_gnc_full
+
+  # the residual-matched SESync baseline, same 5 inits as the IRLS sweep
+  VARPRO_SESYNC_BIN=~/varProj-gtsam/cmake-build-default/bin/SESync_GNC_example \
+  python3 examples/runners/run_cosmobench_gtsam_gnc_sweep.py \
+      --seeds 0 1 2 3 4 \
+      --init-dir examples/data/analysis/cosmobench_irls_gnc_5init/inits \
+      --out examples/data/analysis/cosmobench_gtsam_sesync_5init
 """
 from __future__ import annotations
 
@@ -29,6 +47,7 @@ import argparse
 import json
 import os
 import re
+import statistics
 import subprocess
 import sys
 import time
@@ -56,6 +75,12 @@ DATASETS_ROOTS = [
 
 GTSAM_RESULT_RE = re.compile(r"^(?:GTSAM_GNC_RESULT|SESYNC_GNC_RESULT)\s+(.+)$",
                               re.MULTILINE)
+
+# Share the IRLS sweep's across-seed aggregation so both sides of the
+# comparison summarise their inits identically.
+sys.path.insert(0, str(REPO / "examples"))
+from run_cosmobench_irls_gnc_sweep import (  # noqa: E402
+    add_per_robot_mean, aggregate_runs, rel_to_repo)
 
 
 # ---------------------------------------------------------------------------
@@ -156,9 +181,12 @@ def parse_gtsam_result(stdout: str) -> Optional[Dict[str, object]]:
 
 def run_one(pyfg: Path, tum_dir: Path, timeout_s: float,
              strip_priors: bool = False,
-             extra_args: Optional[List[str]] = None) -> Tuple[Dict[str, object], Path]:
-    init_tum = tum_dir / "init.tum"
-    final_tum = tum_dir / "final.tum"
+             extra_args: Optional[List[str]] = None,
+             seed: Optional[int] = None,
+             init_from: Optional[Path] = None) -> Tuple[Dict[str, object], Path]:
+    tag = "" if seed is None else f"_s{seed}"
+    init_tum = tum_dir / f"init{tag}.tum"
+    final_tum = tum_dir / f"final{tag}.tum"
     # VARPRO_SESYNC_BIN selects the SE-Sync (chordal) GNC driver, which
     # minimises the *same* objective as VarPro's irls_robust -- see
     # SESync_GNC_example.cpp. It takes <d> <p> <pyfg> <final.tum> and needs no
@@ -166,6 +194,10 @@ def run_one(pyfg: Path, tum_dir: Path, timeout_s: float,
     # --strip-priors (it only reads pose-pose edges).
     if SESYNC_BIN:
         cmd = [str(SESYNC_BIN), "3", "3", str(pyfg), str(final_tum), "--gnc"]
+        # Multi-init: consume the IRLS sweep's init for this (dataset, seed)
+        # rather than chaining odometry internally.
+        if init_from is not None:
+            cmd += ["--init-tum", str(init_from)]
         if extra_args:
             cmd.extend(extra_args)
     else:
@@ -214,12 +246,29 @@ def list_datasets() -> List[Path]:
 
 def sweep(out_dir: Path, scratch_dir: Path, timeout_s: float,
            strip_priors: bool = False,
-           extra_args: Optional[List[str]] = None) -> None:
+           extra_args: Optional[List[str]] = None,
+           seeds: Optional[List[int]] = None,
+           init_dir: Optional[Path] = None,
+           only: Optional[List[str]] = None) -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     scratch_dir.mkdir(parents=True, exist_ok=True)
+    seeds = list(seeds) if seeds else [0]
+    # One seed and no external init = the original single-init behaviour, which
+    # keeps writing the flat `result` key.
+    single_init = len(seeds) == 1 and init_dir is None
 
     datasets = list_datasets()
-    print(f"sweeping {len(datasets)} datasets into {out_dir}\n")
+    if only:
+        wanted = set(only)
+        datasets = [p for p in datasets if p.stem in wanted]
+        missing = wanted - {p.stem for p in datasets}
+        if missing:
+            print(f"warning: no such dataset(s): {', '.join(sorted(missing))}",
+                   file=sys.stderr)
+    print(f"sweeping {len(datasets)} datasets into {out_dir}"
+          + ("" if single_init else
+             f" (seeds: {', '.join(str(s) for s in seeds)}"
+             + (f"; inits from {init_dir}" if init_dir else "") + ")") + "\n")
     t_start = time.time()
 
     for idx, pyfg in enumerate(datasets, start=1):
@@ -246,7 +295,9 @@ def sweep(out_dir: Path, scratch_dir: Path, timeout_s: float,
             "method": "gtsam_gnc_gm",
             "kernel": "gm",
             "gnc": True,
-            "init": "odometry",
+            "init": "odometry" if init_dir is None else "odometry+noise (shared)",
+            "seeds": seeds,
+            "init_dir": (rel_to_repo(init_dir) if init_dir is not None else None),
             "n_poses": int(len(names)),
             "n_edges": int(n_edges_full),
             "n_edges_inlier_truth": (int(n_edges_clean) if n_edges_clean is not None
@@ -258,18 +309,47 @@ def sweep(out_dir: Path, scratch_dir: Path, timeout_s: float,
             "poses_per_robot": poses_per_robot,
         }
 
-        stats, final_tum = run_one(pyfg, ds_scratch, timeout_s,
-                                     strip_priors=strip_priors,
-                                     extra_args=extra_args)
-        if stats.get("status") == "ok" and final_tum.exists():
-            est_xyz = parse_tum_xyz(final_tum)
-            if est_xyz.shape[0] == gt_xyz.shape[0]:
-                stats.update(compute_ate(est_xyz, gt_xyz, robot_letters))
-            else:
-                stats["ate_warning"] = (
-                    f"tum rows {est_xyz.shape[0]} != gt rows {gt_xyz.shape[0]}"
-                )
-        record["result"] = stats
+        runs: Dict[str, Dict[str, object]] = {}
+        for seed in seeds:
+            init_from = None
+            if init_dir is not None:
+                init_from = init_dir / name / f"init_s{seed}.tum"
+                if not init_from.exists():
+                    runs[str(seed)] = {
+                        "status": "missing_init", "seed": seed,
+                        "init_tum": str(init_from),
+                    }
+                    continue
+            stats, final_tum = run_one(pyfg, ds_scratch, timeout_s,
+                                         strip_priors=strip_priors,
+                                         extra_args=extra_args,
+                                         seed=None if single_init else seed,
+                                         init_from=init_from)
+            stats["seed"] = seed
+            if init_from is not None:
+                stats["init_tum"] = rel_to_repo(init_from)
+            if stats.get("status") == "ok" and final_tum.exists():
+                est_xyz = parse_tum_xyz(final_tum)
+                if est_xyz.shape[0] == gt_xyz.shape[0]:
+                    stats.update(compute_ate(est_xyz, gt_xyz, robot_letters))
+                else:
+                    stats["ate_warning"] = (
+                        f"tum rows {est_xyz.shape[0]} != gt rows {gt_xyz.shape[0]}"
+                    )
+            add_per_robot_mean(stats)
+            runs[str(seed)] = stats
+
+        ok = [s for s in runs.values() if s.get("status") == "ok"]
+        if single_init:
+            record["result"] = runs[str(seeds[0])]
+        else:
+            record["runs"] = runs
+            record["n_runs"] = len(runs)
+            record["n_ok"] = len(ok)
+            record["aggregate"] = aggregate_runs(runs)
+        # Progress line reads off the representative run either way.
+        stats = runs[str(seeds[0])] if single_init else (
+            ok[0] if ok else runs[str(seeds[0])])
 
         ds_wall = time.time() - ds_t0
         record["dataset_wall_s"] = ds_wall
@@ -277,10 +357,17 @@ def sweep(out_dir: Path, scratch_dir: Path, timeout_s: float,
         json_path = out_dir / f"{name}.json"
         json_path.write_text(json.dumps(record, indent=2))
         elapsed = time.time() - t_start
-        mark = stats.get("status", "?")
+        bad = sorted({s.get("status", "?") for s in runs.values()
+                       if s.get("status") != "ok"})
+        mark = "ok" if not bad else "/".join(bad)
+        if not single_init:
+            mark += f"({len(ok)}/{len(runs)})"
         ate_str = ""
-        if "ate_global_rmse_m" in stats:
-            ate_str = f"ATE={stats['ate_global_rmse_m']:.3f}m"
+        ates = [s["ate_global_rmse_m"] for s in ok if "ate_global_rmse_m" in s]
+        if ates:
+            ate_str = f"ATE={statistics.median(ates):.3f}m"
+            if len(ates) > 1:
+                ate_str += f" [{min(ates):.2f}-{max(ates):.2f}]"
         print(f"[{idx:2d}/{len(datasets)}] {name}  "
               f"({record['n_poses']} poses, {record['n_edges']} edges, "
               f"truth_out={record['n_outliers_truth']})  "
@@ -313,9 +400,31 @@ def main() -> int:
                           "GncOptimizer and match the IRLS hyperparameters, e.g. "
                           "--gtsam-args '--use-gtsam-gnc --barc-prob 0.999659 "
                           "--mu-step 1.4 --max-iters 20 --rel-tol 1e-4'")
+    ap.add_argument("--seeds", type=int, nargs="+", default=[0],
+                     help="init seeds to run per dataset (default: 0). Needs "
+                          "--init-dir: the SESync driver reads the IRLS sweep's "
+                          "init for each seed rather than generating its own.")
+    ap.add_argument("--init-dir", type=Path, default=None,
+                     help="directory of shared inits, i.e. <irls_out>/inits, "
+                          "holding <dataset>/init_s<seed>.tum")
+    ap.add_argument("--datasets", nargs="+", default=None,
+                     help="restrict the sweep to these dataset stems")
     args = ap.parse_args()
     if SESYNC_BIN and not SESYNC_BIN.exists():
         print(f"missing SE-Sync GNC binary: {SESYNC_BIN}", file=sys.stderr)
+        return 2
+    if args.init_dir is not None:
+        args.init_dir = args.init_dir.resolve()
+        if not args.init_dir.is_dir():
+            print(f"missing init dir: {args.init_dir}", file=sys.stderr)
+            return 2
+        if not SESYNC_BIN:
+            print("--init-dir needs VARPRO_SESYNC_BIN: only the SESync driver "
+                  "takes --init-tum", file=sys.stderr)
+            return 2
+    if len(args.seeds) > 1 and args.init_dir is None:
+        print("--seeds with more than one seed needs --init-dir (the SESync "
+              "driver does not generate perturbed inits itself)", file=sys.stderr)
         return 2
     if not SESYNC_BIN and not BIN.exists():
         print(f"missing binary: {BIN} — build with "
@@ -323,7 +432,8 @@ def main() -> int:
               file=sys.stderr)
         return 2
     sweep(args.out, args.scratch, args.timeout, strip_priors=args.strip_priors,
-           extra_args=args.gtsam_args.split() or None)
+           extra_args=args.gtsam_args.split() or None, seeds=args.seeds,
+           init_dir=args.init_dir, only=args.datasets)
     return 0
 
 

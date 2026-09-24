@@ -7,6 +7,20 @@ You can find the paper [here](https://arxiv.org/abs/2512.07969)
 
 If you use this work in your research, please cite:
 
+
+
+```bibtex
+@misc{sanderson2026sparsersparsevariableprojection,
+      title={SPARSER: Sparse Variable Projection by Exploiting Separable Structure in Robotic Perception}, 
+      author={Nikolas R. Sanderson and Andrew Fishberg and Haoyu Han and Heng Yang and Jonathan P. How and Hanumant Singh and Michael Everett and Alan Papalia},
+      year={2026},
+      eprint={2609.24708},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2609.24708}, 
+}
+```
+
 ```bibtex
 @misc{papalia2025sparsevariableprojectionrobotic,
       title        = {Sparse Variable Projection in Robotic Perception: Exploiting Separable Structure for Efficient Nonlinear Optimization},
@@ -106,6 +120,26 @@ initialization, and scores ATE against ground truth.
 $ .venv/bin/python examples/run_cosmobench_irls_gnc_sweep.py \
       --out examples/data/analysis/cosmobench_irls_gnc_full
 ```
+
+Five inits per dataset — seed 0 is noiseless odometry, seeds 1-4 perturb every
+odometry edge by 0.5 deg / 0.02 m before chaining — and the residual-matched
+SESync baseline replays the *same* inits by reading the TUMs the first sweep
+writes under `inits/`. Run them in this order, and sequentially: they share the
+machine and the reported wall times are solver timings.
+
+```
+$ .venv/bin/python examples/run_cosmobench_irls_gnc_sweep.py \
+      --seeds 0 1 2 3 4 --init-noise-rot-deg 0.5 --init-noise-trans 0.02 \
+      --include-dense \
+      --out examples/data/analysis/cosmobench_irls_gnc_5init
+$ VARPRO_SESYNC_BIN=~/varProj-gtsam/cmake-build-default/bin/SESync_GNC_example \
+  .venv/bin/python examples/runners/run_cosmobench_gtsam_gnc_sweep.py \
+      --seeds 0 1 2 3 4 \
+      --init-dir examples/data/analysis/cosmobench_irls_gnc_5init/inits \
+      --out examples/data/analysis/cosmobench_gtsam_sesync_5init
+$ .venv/bin/python examples/runners/plot_robust_pareto.py
+```
+
 
 `examples/runners/` holds the remaining data-collection scripts (grid3D and SfM
 sweeps, the GTSAM baselines, outlier injection, precompute and peak-RAM
